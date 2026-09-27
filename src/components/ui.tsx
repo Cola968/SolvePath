@@ -20,15 +20,18 @@ export function AppText({
   variant = 'body',
   muted = false,
   style,
+  numberOfLines,
 }: {
   children: ReactNode;
   variant?: TextVariant;
   muted?: boolean;
   style?: object;
+  numberOfLines?: number;
 }) {
   const { colors } = useTheme();
   return (
     <Text
+      numberOfLines={numberOfLines}
       style={[
         {
           color: muted ? colors.muted : colors.ink,
