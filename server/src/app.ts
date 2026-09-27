@@ -23,7 +23,7 @@ export function buildServer(
     apiKey: process.env.LLM_API_KEY ?? '',
     model: process.env.LLM_MODEL ?? '',
     baseUrl: process.env.LLM_BASE_URL ?? '',
-    timeoutMs: positiveNumber(process.env.LLM_TIMEOUT_MS, 25_000),
+    timeoutMs: positiveNumber(process.env.LLM_TIMEOUT_MS, 18_000),
     verifyAnalysis: process.env.LLM_VERIFY_ANALYSIS !== 'false',
   }),
 ) {
@@ -31,7 +31,7 @@ export function buildServer(
     logger: false,
     trustProxy: process.env.TRUST_PROXY === 'true',
     bodyLimit: MAX_IMAGE_BYTES + MAX_TEXT_LENGTH + 4096,
-    requestTimeout: 35_000,
+    requestTimeout: 80_000,
   });
 
   const requests = new Map<string, { count: number; until: number }>();
