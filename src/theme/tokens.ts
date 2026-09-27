@@ -1,41 +1,76 @@
 import { useColorScheme } from 'react-native';
 
-export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32, huge: 48 } as const;
-export const radius = { sm: 10, md: 16, lg: 24, pill: 999 } as const;
-export const typeScale = { caption: 12, body: 16, lead: 18, title: 25, hero: 34 } as const;
+export const spacing = {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 24,
+  xxl: 32,
+  huge: 48,
+  giant: 72,
+} as const;
+
+export const radius = { sm: 10, md: 16, lg: 24, xl: 32, pill: 999 } as const;
+
+export const typeScale = {
+  caption: 12,
+  body: 16,
+  lead: 18,
+  title: 25,
+  hero: 36,
+} as const;
 
 const light = {
-  background: '#F5F7F6',
+  background: '#F3F7F5',
   surface: '#FFFFFF',
-  surfaceAlt: '#EAF1EF',
-  ink: '#172B27',
-  muted: '#60746F',
-  primary: '#1D6B5C',
-  primarySoft: '#DCEDE8',
-  border: '#DCE6E2',
-  danger: '#9B413B',
-  dangerSoft: '#F9E8E5',
-  success: '#1D6B5C',
-  successSoft: '#DCEDE8',
+  surfaceAlt: '#E9F1EE',
+  surfaceStrong: '#DCEAE5',
+  ink: '#142823',
+  muted: '#657872',
+  primary: '#176B59',
+  primaryStrong: '#0D4D40',
+  primarySoft: '#DDEFE9',
+  accent: '#4267D5',
+  accentSoft: '#E8EEFF',
+  border: '#D8E4E0',
+  borderStrong: '#BCD2CB',
+  danger: '#A0443D',
+  dangerSoft: '#FBEAE7',
+  success: '#166B59',
+  successSoft: '#DDEFE9',
+  warning: '#8B6111',
+  warningSoft: '#FFF3D5',
   white: '#FFFFFF',
+  shadow: '#0B281F',
 };
+
 const dark = {
-  background: '#101C1A',
-  surface: '#192A26',
-  surfaceAlt: '#223A33',
-  ink: '#E9F2EE',
-  muted: '#A5BAB2',
-  primary: '#8BC9B4',
-  primarySoft: '#2A4A3F',
-  border: '#355046',
-  danger: '#F0A39B',
-  dangerSoft: '#4B2E2B',
-  success: '#8BC9B4',
-  successSoft: '#2A4A3F',
-  white: '#101C1A',
+  background: '#0D1815',
+  surface: '#162722',
+  surfaceAlt: '#1D332D',
+  surfaceStrong: '#29453D',
+  ink: '#EDF5F2',
+  muted: '#A6BAB3',
+  primary: '#8DD0B8',
+  primaryStrong: '#B9E6D6',
+  primarySoft: '#24483D',
+  accent: '#9BAFFF',
+  accentSoft: '#283456',
+  border: '#304B43',
+  borderStrong: '#45675D',
+  danger: '#F2A39B',
+  dangerSoft: '#4B2D2A',
+  success: '#8DD0B8',
+  successSoft: '#24483D',
+  warning: '#F0C56C',
+  warningSoft: '#4B3C1F',
+  white: '#FFFFFF',
+  shadow: '#000000',
 };
 
 export type Palette = typeof light;
+
 export function useTheme(): { colors: Palette; isDark: boolean } {
   const isDark = useColorScheme() === 'dark';
   return { colors: isDark ? dark : light, isDark };
