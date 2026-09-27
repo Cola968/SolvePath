@@ -1,10 +1,10 @@
-# SolvePath 0.5.0 Beta Release Checklist
+# SolvePath 0.5.1 Beta Release Checklist
 
 ## Repository / App
 
-- [x] Version 0.5.0
-- [x] Android versionCode 3
-- [x] iOS buildNumber 3
+- [x] Version 0.5.1
+- [x] Android versionCode 4
+- [x] iOS buildNumber 4
 - [x] TypeScript strict
 - [x] Mobile- und Backend-Lint
 - [x] automatisierte Tests
