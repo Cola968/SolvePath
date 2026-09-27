@@ -76,12 +76,15 @@ export const useSession = create<SessionState>((set, get) => ({
         problem.id,
         ...get().recentProblemIds.filter((id) => id !== problem.id),
       ].slice(0, 12);
+      const nextRemoteProblems =
+        mode === 'remote'
+          ? Object.fromEntries(
+              Object.entries({ ...get().remoteProblems, [problem.id]: problem }).slice(-24),
+            )
+          : get().remoteProblems;
       set({
         currentProblemId: problem.id,
-        remoteProblems:
-          mode === 'remote'
-            ? { ...get().remoteProblems, [problem.id]: problem }
-            : get().remoteProblems,
+        remoteProblems: nextRemoteProblems,
         recentProblemIds,
         busy: false,
         stuckReason: null,
