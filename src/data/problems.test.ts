@@ -4,11 +4,11 @@ import { problemAnalysisSchema } from '../domain/problem/schema';
 import { MockProblemAnalyzer, UnsupportedProblemError } from '../services/problem-analyzer';
 
 describe('demo data and analyzer', () => {
-  it('validates eight complete tasks with all required hint levels', () => {
-    expect(demoProblems).toHaveLength(8);
+  it('validates the expanded practice library with all required hint levels', () => {
+    expect(demoProblems).toHaveLength(27);
     expect(problemAnalysisSchema.array().safeParse(demoProblems).success).toBe(true);
-    expect(demoProblems.filter((problem) => problem.subject === 'physics')).toHaveLength(4);
-    expect(demoProblems.filter((problem) => problem.subject === 'math')).toHaveLength(4);
+    expect(demoProblems.filter((problem) => problem.subject === 'physics')).toHaveLength(8);
+    expect(demoProblems.filter((problem) => problem.subject === 'math')).toHaveLength(19);
   });
 
   it('rejects an invalid hint ladder', () => {
