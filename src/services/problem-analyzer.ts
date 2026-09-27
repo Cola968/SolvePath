@@ -57,7 +57,7 @@ export class RemoteProblemAnalyzer implements ProblemAnalyzer {
   constructor(
     private readonly baseUrl: string,
     private readonly fetcher: typeof fetch = fetch,
-    private readonly timeoutMs = 35_000,
+    private readonly timeoutMs = 85_000,
   ) {}
 
   async analyze(
