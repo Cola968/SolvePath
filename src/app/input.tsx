@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+import * as ImagePicker from 'expo-image-picker';
+import { Image, View } from 'react-native';
 import {
   AppButton,
   AppInput,
@@ -15,6 +17,7 @@ import {
 } from '../components/ui';
 import { demoProblems } from '../data/problems';
 import { useSession } from '../features/session/store';
+import { remoteApiUrl, type AnalysisImage, type AnalysisMode } from '../services/problem-analyzer';
 import { spacing } from '../theme/tokens';
 
 type Filter = 'all' | 'physics' | 'math';
@@ -24,9 +27,14 @@ export default function InputScreen() {
   const { photo } = useLocalSearchParams<{ photo?: string }>();
   const [text, setText] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
+  const [mode, setMode] = useState<AnalysisMode>(remoteApiUrl ? 'remote' : 'demo');
+  const [image, setImage] = useState<AnalysisImage | null>(null);
+  const [inputError, setInputError] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
   const analyze = useSession((state) => state.analyze);
   const busy = useSession((state) => state.busy);
   const error = useSession((state) => state.error);
+  const analysisStage = useSession((state) => state.analysisStage);
 
   const visibleProblems = useMemo(
     () =>
@@ -36,9 +44,68 @@ export default function InputScreen() {
     [filter],
   );
 
-  async function submit() {
-    if (await analyze(text)) router.push('/stuck');
+  async function selectImage(source: 'camera' | 'gallery') {
+    setInputError(null);
+    setReady(false);
+    try {
+      if (source === 'camera') {
+        const permission = await ImagePicker.requestCameraPermissionsAsync();
+        if (!permission.granted) {
+          setInputError('Für ein Foto benötigt SolvePath die Kamera-Berechtigung.');
+          return;
+        }
+      }
+      const result =
+        source === 'camera'
+          ? await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.85 })
+          : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.85 });
+      if (result.canceled) return;
+      const asset = result.assets[0];
+      if (!asset) throw new Error('Das Bild konnte nicht ausgewählt werden.');
+      const mimeType =
+        asset.mimeType ?? (asset.uri.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg');
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(mimeType))
+        throw new Error('Bitte wähle ein JPEG-, PNG- oder WebP-Bild.');
+      if (asset.fileSize && asset.fileSize > 8 * 1024 * 1024)
+        throw new Error('Das Bild ist größer als 8 MB. Bitte wähle ein kleineres Bild.');
+      setImage({
+        uri: asset.uri,
+        name: asset.fileName ?? `aufgabe.${mimeType.split('/')[1]}`,
+        mimeType,
+        size: asset.fileSize,
+      });
+    } catch (cause) {
+      setInputError(cause instanceof Error ? cause.message : 'Bildauswahl fehlgeschlagen.');
+    }
   }
+
+  async function paste() {
+    try {
+      const value = await Clipboard.getStringAsync();
+      if (!value.trim()) throw new Error('Die Zwischenablage enthält keinen Text.');
+      setText(value);
+      setReady(false);
+      setInputError(null);
+    } catch (cause) {
+      setInputError(cause instanceof Error ? cause.message : 'Einfügen fehlgeschlagen.');
+    }
+  }
+
+  async function submit() {
+    setReady(false);
+    setInputError(null);
+    if (await analyze(text, image ?? undefined, mode)) {
+      setImage(null);
+      setReady(true);
+    }
+  }
+
+  const stages = [
+    'Aufgabe lesen',
+    'Gegebenes und Gesuchtes erkennen',
+    'Lösungswege prüfen',
+    'Deinen Lernpfad erstellen',
+  ];
 
   return (
     <Page
@@ -51,10 +118,10 @@ export default function InputScreen() {
         steps={['Aufgabe', 'Diagnose', 'Methode', 'Lösen', 'Prüfen', 'Lernprofil']}
       />
 
-      {photo === '1' ? (
+      {photo === '1' && !image ? (
         <Feedback
-          title="Fotoanalyse ist vorbereitet, aber noch nicht aktiv"
-          message="Für diesen MVP gib den erkannten Aufgabentext ein oder nutze eine Demo. Eine echte Bildanalyse braucht später einen sicheren Remote-Dienst."
+          title="Foto oder Screenshot auswählen"
+          message="Nimm ein Foto auf oder wähle ein Bild aus der Galerie. Screenshots findest du ebenfalls dort."
         />
       ) : null}
 
@@ -73,23 +140,134 @@ export default function InputScreen() {
           accessibilityLabel="Aufgabentext"
           placeholder="Zum Beispiel: Ein Satellit befindet sich 400 km über der Erdoberfläche …"
           value={text}
-          onChangeText={setText}
+          onChangeText={(value) => {
+            setText(value);
+            setReady(false);
+          }}
           multiline
           style={{ minHeight: 190 }}
         />
 
         <AppText variant="caption" muted>
-          {text.trim().length} Zeichen · lokale Demo erkennt derzeit acht vorbereitete Aufgaben
+          {text.trim().length} Zeichen · Remote Analysis unterstützt freie Aufgaben
         </AppText>
+
+        <AppButton
+          label="Aus Zwischenablage einfügen"
+          variant="secondary"
+          onPress={() => {
+            void paste();
+          }}
+        />
+        <View style={{ gap: spacing.sm }}>
+          <AppButton
+            label="Kamera öffnen"
+            variant="secondary"
+            onPress={() => {
+              void selectImage('camera');
+            }}
+          />
+          <AppButton
+            label="Bild / Screenshot auswählen"
+            variant="secondary"
+            onPress={() => {
+              void selectImage('gallery');
+            }}
+          />
+        </View>
+
+        {image ? (
+          <View style={{ gap: spacing.sm }}>
+            <Image
+              source={{ uri: image.uri }}
+              accessibilityLabel="Vorschau des Aufgabenbildes"
+              style={{ width: '100%', height: 220, borderRadius: 12 }}
+              resizeMode="contain"
+            />
+            <AppText variant="caption" muted>
+              {image.name}
+            </AppText>
+            <AppButton
+              label="Bild entfernen"
+              variant="ghost"
+              onPress={() => {
+                setImage(null);
+                setReady(false);
+              }}
+            />
+          </View>
+        ) : null}
+
+        <View style={{ gap: spacing.sm }}>
+          <AppText variant="lead">Analysemodus</AppText>
+          <Choice
+            label="Remote Analysis · freie Aufgaben und Bilder"
+            selected={mode === 'remote'}
+            onPress={() => {
+              setMode('remote');
+              setReady(false);
+            }}
+          />
+          <Choice
+            label="Lokale Demo · acht Beispielaufgaben"
+            selected={mode === 'demo'}
+            onPress={() => {
+              setMode('demo');
+              setReady(false);
+            }}
+          />
+        </View>
+
+        {!remoteApiUrl && mode === 'remote' ? (
+          <Feedback
+            title="Server-URL fehlt"
+            message="Setze EXPO_PUBLIC_SOLVEPATH_API_URL oder nutze die lokale Demo."
+            kind="error"
+          />
+        ) : null}
+        {image && mode === 'demo' ? (
+          <Feedback
+            title="Bildanalyse benötigt Remote Analysis"
+            message="Wähle Remote Analysis oder entferne das Bild für eine Demo-Aufgabe."
+            kind="error"
+          />
+        ) : null}
+        {inputError ? <Feedback title="Eingabe prüfen" message={inputError} kind="error" /> : null}
 
         {error ? <Feedback title="Noch nicht erkannt" message={error} kind="error" /> : null}
 
+        {busy ? (
+          <Card>
+            {stages.map((stage, index) => (
+              <AppText key={stage} muted={index > analysisStage}>
+                {index < analysisStage ? '✓' : index === analysisStage ? '●' : '○'} {stage}
+              </AppText>
+            ))}
+          </Card>
+        ) : null}
+
+        {ready ? (
+          <Feedback
+            title="Dein SolvePath ist bereit"
+            message="Die Aufgabe wurde analysiert. Starte jetzt mit deiner Diagnose."
+            kind="success"
+          />
+        ) : null}
+
+        {ready ? (
+          <AppButton label="Diagnose starten" onPress={() => router.push('/stuck')} />
+        ) : null}
+
         <AppButton
-          label="Lösungsweg analysieren →"
+          label={error ? 'Analyse erneut versuchen' : 'Lösungsweg analysieren →'}
           onPress={() => {
             void submit();
           }}
-          disabled={text.trim().length < 10}
+          disabled={
+            mode === 'remote'
+              ? !remoteApiUrl || (!image && text.trim().length < 10)
+              : !!image || text.trim().length < 10
+          }
           busy={busy}
         />
       </Card>
@@ -137,7 +315,12 @@ export default function InputScreen() {
             <AppButton
               label="Diese Aufgabe testen"
               variant="secondary"
-              onPress={() => setText(problem.originalText)}
+              onPress={() => {
+                setText(problem.originalText);
+                setImage(null);
+                setMode('demo');
+                setReady(false);
+              }}
             />
           </Card>
         ))}

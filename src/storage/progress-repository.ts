@@ -1,10 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { z } from 'zod';
 import { emptyProfile, type LearningProfile } from '../domain/profile/progress';
+import { problemAnalysisSchema, type ProblemAnalysis } from '../domain/problem/schema';
 
 const storageKey = 'solvepath:v1:progress';
 const storedSchema = z.object({
   recentProblemIds: z.array(z.string()),
+  remoteProblems: z.record(z.string(), problemAnalysisSchema).default({}),
   revealedByProblem: z.record(z.string(), z.array(z.number())),
   profile: z.object({
     topics: z.record(
@@ -25,12 +27,14 @@ const storedSchema = z.object({
 
 export type StoredProgress = {
   recentProblemIds: string[];
+  remoteProblems: Record<string, ProblemAnalysis>;
   revealedByProblem: Record<string, number[]>;
   profile: LearningProfile;
 };
 
 export const emptyProgress: StoredProgress = {
   recentProblemIds: [],
+  remoteProblems: {},
   revealedByProblem: {},
   profile: emptyProfile,
 };
