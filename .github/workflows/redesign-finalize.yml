@@ -1,0 +1,60 @@
+name: Redesign finalize
+
+on:
+  push:
+    branches: ["feat/v0.5.1-ocr-ui-redesign"]
+    paths:
+      - ".github/workflows/redesign-finalize.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+
+      - name: Refresh lockfile
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Format repository
+        run: pnpm format
+
+      - name: Verify redesign
+        run: |
+          pnpm typecheck
+          pnpm server:typecheck
+          pnpm lint
+          pnpm server:lint
+          pnpm test
+          pnpm server:test
+          pnpm format:check
+          pnpm release:check
+          pnpm build:export
+
+      - name: Commit generated changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nothing to commit"
+          else
+            git commit -m "style: finalize 0.5.1 OCR and UI redesign"
+            git push
+          fi
