@@ -77,7 +77,9 @@ export class RemoteProblemAnalyzer implements ProblemAnalyzer {
     try {
       let body: string | FormData;
       const appUserId = getSubscriptionAppUserId();
-      const headers: Record<string, string> = appUserId ? { 'x-solvepath-user-id': appUserId } : {};
+      let headers: Record<string, string> | undefined = appUserId
+        ? { 'x-solvepath-user-id': appUserId }
+        : undefined;
       if (image) {
         const form = new FormData();
         form.append('image', {
@@ -89,7 +91,7 @@ export class RemoteProblemAnalyzer implements ProblemAnalyzer {
         body = form;
       } else {
         body = JSON.stringify({ text: text.trim() });
-        headers['content-type'] = 'application/json';
+        headers = { ...(headers ?? {}), 'content-type': 'application/json' };
       }
       const response = await this.fetcher(`${this.baseUrl.replace(/\/$/, '')}/api/analyze`, {
         method: 'POST',
