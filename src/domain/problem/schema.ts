@@ -28,6 +28,19 @@ export const commonMistakeSchema = z.object({
   explanation: z.string(),
   correction: z.string(),
   triggers: z.array(z.string()),
+  code: z
+    .enum([
+      'radius_vs_height',
+      'wrong_unit_conversion',
+      'wrong_formula',
+      'sign_error',
+      'wrong_trig_function',
+      'degrees_vs_radians',
+      'average_vs_instantaneous',
+      'wrong_exponent',
+      'missing_second_solution',
+    ])
+    .optional(),
 });
 export const strategySelectionSchema = z.object({
   type: z.literal('strategySelection'),
@@ -54,6 +67,7 @@ export const problemAnalysisSchema = z
     correctResult: z.object({
       display: z.string(),
       numericValue: z.number().optional(),
+      unit: z.string().optional(),
       tolerance: z.number().nonnegative().optional(),
       acceptedAnswers: z.array(z.string()).default([]),
       explanation: z.string(),
