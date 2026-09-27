@@ -10,17 +10,18 @@ import {
   Choice,
   Feedback,
   Page,
-  Pill,
+  ProgressBar,
   SectionTitle,
   StatTile,
 } from '../components/ui';
 import { demoProblems, misconceptionLabel } from '../data/problems';
 import { topicScore, topRisks } from '../domain/profile/progress';
 import { useSession } from '../features/session/store';
-import { spacing } from '../theme/tokens';
+import { spacing, useTheme } from '../theme/tokens';
 
 export default function ExamScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
   const subject = useSession((state) => state.examSubject);
   const chosenTopics = useSession((state) => state.examTopics);
   const savedDate = useSession((state) => state.examDate);
@@ -96,75 +97,61 @@ export default function ExamScreen() {
 
   return (
     <Page
-      title="Trainiere das Risiko, nicht den Stoffberg."
-      subtitle="SolvePath priorisiert Fehlermuster und unsichere Entscheidungen für deine nächste Prüfung."
+      title="Prüfung vorbereiten"
+      subtitle="Wähle Fach, Themen und Termin. SolvePath priorisiert bekannte Schwachstellen."
       eyebrow="Exam Mode"
     >
-      <Card elevated>
-        <Pill label="BETA FREIGESCHALTET" tone="accent" />
-        <AppText variant="title">Exam Mode ist im Beta-Test vollständig verfügbar.</AppText>
-        <AppText muted>
-          Teste besonders die Themenauswahl, Priorisierung und den Wechsel in das Fokus-Training.
-        </AppText>
-      </Card>
-
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md }}>
-        <StatTile
-          value={readiness === null ? '–' : `${readiness}%`}
-          label="Readiness"
-          detail={readiness === null ? 'noch keine Daten' : 'für gewählte Themen'}
-          tone="accent"
-        />
-        <StatTile
-          value={dateIsValid ? date.slice(5) : '–'}
-          label="Prüfungstermin"
-          detail={dateIsValid ? date.slice(0, 4) : 'Termin eintragen'}
-          tone="primary"
-        />
-        <StatTile
-          value={risks.length.toString()}
-          label="bekannte Risiken"
-          detail="aus deinem Lernprofil"
-          tone="warning"
-        />
-      </View>
-
       <Card>
-        <SectionTitle>1. Fach wählen</SectionTitle>
-        <View style={{ gap: spacing.sm }}>
-          <Choice
-            prefix="P"
-            label="Physik"
-            selected={subject === 'physics'}
-            onPress={() => setExam('physics', [], date)}
+        <View style={{ flexDirection: 'row', gap: spacing.lg }}>
+          <StatTile
+            value={readiness === null ? '–' : `${readiness}%`}
+            label="Sicherheit"
+            tone="accent"
           />
-          <Choice
-            prefix="M"
-            label="Mathematik"
-            selected={subject === 'math'}
-            onPress={() => setExam('math', [], date)}
-          />
+          <StatTile value={risks.length.toString()} label="Fokuspunkte" tone="warning" />
+          <StatTile value={candidates.length.toString()} label="Aufgaben" />
         </View>
       </Card>
 
-      <Card>
-        <SectionTitle>2. Themen eingrenzen</SectionTitle>
-        <AppText muted>Ohne Auswahl trainiert SolvePath alle verfügbaren Themen des Fachs.</AppText>
+      <View style={{ gap: spacing.md }}>
+        <SectionTitle>Fach</SectionTitle>
+        <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+          <View style={{ flex: 1 }}>
+            <Choice
+              label="Mathematik"
+              selected={subject === 'math'}
+              onPress={() => setExam('math', [], date)}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Choice
+              label="Physik"
+              selected={subject === 'physics'}
+              onPress={() => setExam('physics', [], date)}
+            />
+          </View>
+        </View>
+      </View>
+
+      <View style={{ gap: spacing.md }}>
+        <SectionTitle>Themen</SectionTitle>
+        <AppText variant="caption" muted>
+          Ohne Auswahl werden alle verfügbaren Themen berücksichtigt.
+        </AppText>
         <View style={{ gap: spacing.sm }}>
-          {topics.map((topic, index) => (
+          {topics.map((topic) => (
             <Choice
               key={topic}
-              prefix={(index + 1).toString()}
               label={topic}
               selected={chosenTopics.includes(topic)}
               onPress={() => toggleTopic(topic)}
             />
           ))}
         </View>
-      </Card>
+      </View>
 
-      <Card>
-        <SectionTitle>3. Prüfungstermin</SectionTitle>
+      <View style={{ gap: spacing.md }}>
+        <SectionTitle>Prüfungstermin</SectionTitle>
         <AppInput
           accessibilityLabel="Prüfungstermin"
           placeholder="JJJJ-MM-TT"
@@ -179,46 +166,46 @@ export default function ExamScreen() {
             kind="error"
           />
         ) : dateIsValid ? (
-          <Pill label="TERMIN GESPEICHERT" tone="primary" />
-        ) : (
-          <AppText variant="caption" muted>
-            Beispiel: 2026-12-15
-          </AppText>
-        )}
-      </Card>
+          <ProgressBar value={100} label={`Termin: ${date}`} />
+        ) : null}
+      </View>
 
-      <Card elevated>
-        <Pill label="PRIORISIERUNG" tone="warning" />
-        <SectionTitle>Deine größten Risiken</SectionTitle>
-        {risks.length
-          ? risks.map((risk, index) => (
-              <View key={risk.misconceptionId} style={{ flexDirection: 'row', gap: spacing.md }}>
-                <Pill label={`#${index + 1}`} tone="warning" />
-                <View style={{ flex: 1 }}>
-                  <AppText style={{ fontWeight: '800' }}>
-                    {misconceptionLabel(risk.misconceptionId)}
-                  </AppText>
+      <View style={{ gap: spacing.md }}>
+        <SectionTitle>Priorität</SectionTitle>
+        <Card>
+          {(risks.length ? risks.slice(0, 3) : demoRisks.map((label) => ({ label }))).map(
+            (item, index, arr) => {
+              const label =
+                'misconceptionId' in item ? misconceptionLabel(item.misconceptionId) : item.label;
+              const detail =
+                'misconceptionId' in item
+                  ? `${item.topic} · ${item.count}× erkannt`
+                  : 'Typischer Fehler in den gewählten Themen';
+
+              return (
+                <View
+                  key={label}
+                  style={{
+                    paddingBottom: index === arr.length - 1 ? 0 : spacing.md,
+                    marginBottom: index === arr.length - 1 ? 0 : spacing.md,
+                    borderBottomWidth: index === arr.length - 1 ? 0 : 1,
+                    borderBottomColor: colors.border,
+                    gap: spacing.xs,
+                  }}
+                >
+                  <AppText style={{ fontWeight: '700' }}>{label}</AppText>
                   <AppText variant="caption" muted>
-                    {risk.topic} · {risk.count}× erkannt
+                    {detail}
                   </AppText>
                 </View>
-              </View>
-            ))
-          : demoRisks.map((risk, index) => (
-              <View key={risk} style={{ flexDirection: 'row', gap: spacing.md }}>
-                <Pill label={`#${index + 1}`} tone="neutral" />
-                <AppText style={{ flex: 1 }}>{risk}</AppText>
-              </View>
-            ))}
-        <AppText variant="caption" muted>
-          {risks.length
-            ? 'Priorität aus deinem lokalen Fehlerprofil.'
-            : 'Vorschau aus typischen Fehlern der Demo-Aufgaben. Nach eigenen Versuchen wird sie personalisiert.'}
-        </AppText>
-      </Card>
+              );
+            },
+          )}
+        </Card>
+      </View>
 
       <AppButton
-        label="Fokus-Training starten →"
+        label="Fokus-Training starten"
         onPress={startTraining}
         disabled={!dateIsValid || candidates.length === 0}
       />

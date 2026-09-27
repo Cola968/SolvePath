@@ -10,7 +10,6 @@ import {
   Feedback,
   Page,
   PathRail,
-  Pill,
   ProgressBar,
   SectionTitle,
 } from '../components/ui';
@@ -18,7 +17,7 @@ import { getNextHint, visibleHints } from '../domain/hints/engine';
 import { checkStepAnswer } from '../domain/misconceptions/check';
 import { useProblem } from '../features/problems/use-problem';
 import { useSession } from '../features/session/store';
-import { radius, spacing, useTheme } from '../theme/tokens';
+import { spacing, useTheme } from '../theme/tokens';
 
 export default function GuideScreen() {
   const router = useRouter();
@@ -53,52 +52,30 @@ export default function GuideScreen() {
 
   return (
     <Page
-      title="Ein Schritt. Dann du."
-      subtitle="SolvePath zeigt nie mehr Hilfe als nötig. Löse jeden Schritt selbst, bevor du weitergehst."
-      eyebrow="04 · Lösen"
+      title={step.title}
+      subtitle="Löse immer nur den aktuellen Schritt."
+      eyebrow={`Schritt 4 · Teil ${stepIndex + 1}/${problem.reasoningSteps.length}`}
     >
       <PathRail
         current={3}
-        steps={['Aufgabe', 'Diagnose', 'Methode', 'Lösen', 'Prüfen', 'Lernprofil']}
+        steps={['Aufgabe', 'Diagnose', 'Methode', 'Lösen', 'Prüfen', 'Profil']}
       />
 
       <ProgressBar
         value={Math.round(((stepIndex + 1) / problem.reasoningSteps.length) * 100)}
-        label={`Schritt ${stepIndex + 1} von ${problem.reasoningSteps.length}`}
+        label={`Lösungsschritt ${stepIndex + 1} von ${problem.reasoningSteps.length}`}
       />
 
       {error ? <Feedback title="Speichern fehlgeschlagen" message={error} kind="error" /> : null}
 
-      <Card elevated>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
-          <View style={{ flex: 1, gap: spacing.xs }}>
-            <Pill label={`SCHRITT ${stepIndex + 1}`} tone="accent" />
-            <SectionTitle>{step.title}</SectionTitle>
-          </View>
-          <View
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: 24,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: colors.primarySoft,
-            }}
-          >
-            <AppText variant="lead" style={{ color: colors.primary, fontWeight: '800' }}>
-              {stepIndex + 1}
-            </AppText>
-          </View>
-        </View>
-
+      <Card>
         <AppText variant="lead">{step.question}</AppText>
 
         {step.choices ? (
           <View style={{ gap: spacing.sm }}>
-            {step.choices.map((choice, index) => (
+            {step.choices.map((choice) => (
               <Choice
                 key={choice}
-                prefix={String.fromCharCode(65 + index)}
                 label={choice}
                 selected={answer === choice}
                 onPress={() => {
@@ -125,105 +102,76 @@ export default function GuideScreen() {
           onPress={() => setChecked(checkStepAnswer(step.answer, answer) ? 'correct' : 'retry')}
           disabled={!answer.trim()}
         />
-
-        {checked === 'correct' ? (
-          <Feedback title="Passt." message={step.explanation} kind="success" />
-        ) : checked === 'retry' ? (
-          <Feedback
-            title="Hier ist noch ein Denkfehler"
-            message="Prüfe Größe, Bedeutung und Einheit. Wenn du festhängst, öffne genau einen Hinweis."
-            kind="error"
-          />
-        ) : null}
       </Card>
 
-      <Card
-        style={{
-          backgroundColor: currentHint ? colors.accentSoft : colors.surface,
-          borderColor: currentHint ? colors.accentSoft : colors.border,
-        }}
-      >
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
-          <View style={{ flex: 1, gap: spacing.xs }}>
-            <SectionTitle>Hint Ladder</SectionTitle>
-            <AppText muted>
-              {shownHints.length === 0
-                ? 'Noch kein Hinweis benutzt.'
-                : `${shownHints.length} von 6 Hilfestufen geöffnet.`}
-            </AppText>
-          </View>
-          <Pill
-            label={shownHints.length ? `LEVEL ${shownHints.length}` : '0 / 6'}
-            tone={shownHints.length >= 4 ? 'warning' : 'accent'}
-          />
-        </View>
+      {checked === 'correct' ? (
+        <Feedback title="Richtig" message={step.explanation} kind="success" />
+      ) : checked === 'retry' ? (
+        <Feedback
+          title="Noch nicht"
+          message="Prüfe Bedeutung, Vorzeichen und Einheit. Wenn du festhängst, öffne einen Hinweis."
+          kind="error"
+        />
+      ) : null}
 
+      <View style={{ gap: spacing.md }}>
+        <SectionTitle>Hinweis</SectionTitle>
         {currentHint ? (
-          <View
-            style={{
-              padding: spacing.lg,
-              borderRadius: radius.md,
-              backgroundColor: colors.surface,
-              gap: spacing.xs,
-            }}
-          >
-            <AppText variant="caption" style={{ color: colors.accent, fontWeight: '800' }}>
-              KLEINSTER NÄCHSTER HINWEIS
-            </AppText>
+          <Card style={{ backgroundColor: colors.primarySoft }}>
             <AppText>{currentHint.text}</AppText>
-          </View>
+            <AppText variant="caption" muted>
+              {shownHints.length} von 6 Hinweisen geöffnet
+            </AppText>
+          </Card>
         ) : (
-          <AppText muted>
-            Versuche den Schritt zuerst selbst. Ein Hint wird erst sichtbar, wenn du ihn anforderst.
-          </AppText>
+          <AppText muted>Versuche den Schritt zuerst selbst.</AppText>
         )}
 
         <AppButton
-          label={canReveal ? 'Genau einen Hinweis öffnen' : 'Alle Hinweise geöffnet'}
+          label={canReveal ? 'Einen Hinweis öffnen' : 'Alle Hinweise geöffnet'}
           variant="secondary"
           disabled={!canReveal}
           onPress={nextHint}
         />
-      </Card>
+      </View>
 
       {shownHints.length >= 3 ? (
-        <Card>
-          <SectionTitle>Formelanker</SectionTitle>
-          <AppText muted>
-            Du hast mehrere Hinweise genutzt. Deshalb zeigt SolvePath jetzt die relevanten Formeln.
-          </AppText>
-          {problem.formulas.map((formula) => (
-            <View
-              key={formula.id}
-              style={{
-                padding: spacing.lg,
-                borderRadius: radius.md,
-                backgroundColor: colors.surfaceAlt,
-                gap: spacing.xs,
-              }}
-            >
-              <AppText variant="lead">{formula.expression}</AppText>
-              <AppText variant="caption" muted>
-                {formula.explanation}
-              </AppText>
-            </View>
-          ))}
-        </Card>
+        <View style={{ gap: spacing.md }}>
+          <SectionTitle>Formeln</SectionTitle>
+          <Card>
+            {problem.formulas.map((formula, index) => (
+              <View
+                key={formula.id}
+                style={{
+                  paddingBottom: index === problem.formulas.length - 1 ? 0 : spacing.md,
+                  marginBottom: index === problem.formulas.length - 1 ? 0 : spacing.md,
+                  borderBottomWidth: index === problem.formulas.length - 1 ? 0 : 1,
+                  borderBottomColor: colors.border,
+                  gap: spacing.xs,
+                }}
+              >
+                <AppText variant="lead">{formula.expression}</AppText>
+                <AppText variant="caption" muted>
+                  {formula.explanation}
+                </AppText>
+              </View>
+            ))}
+          </Card>
+        </View>
       ) : null}
 
       <View style={{ flexDirection: 'row', gap: spacing.sm }}>
         <View style={{ flex: 1 }}>
           <AppButton
-            label="← Zurück"
-            variant="ghost"
+            label="Zurück"
+            variant="secondary"
             disabled={stepIndex === 0}
             onPress={() => move(stepIndex - 1)}
           />
         </View>
         <View style={{ flex: 1 }}>
           <AppButton
-            label="Weiter →"
-            variant="secondary"
+            label="Weiter"
             disabled={stepIndex === problem.reasoningSteps.length - 1 || checked !== 'correct'}
             onPress={() => move(stepIndex + 1)}
           />
@@ -231,7 +179,7 @@ export default function GuideScreen() {
       </View>
 
       {stepIndex === problem.reasoningSteps.length - 1 && checked === 'correct' ? (
-        <AppButton label="Mein Ergebnis prüfen →" onPress={() => router.push('/result')} />
+        <AppButton label="Ergebnis prüfen" onPress={() => router.push('/result')} />
       ) : null}
     </Page>
   );

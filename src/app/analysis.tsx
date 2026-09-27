@@ -9,11 +9,10 @@ import {
   Feedback,
   Page,
   PathRail,
-  Pill,
   SectionTitle,
 } from '../components/ui';
 import { useProblem } from '../features/problems/use-problem';
-import { radius, spacing, useTheme } from '../theme/tokens';
+import { spacing, useTheme } from '../theme/tokens';
 
 export default function AnalysisScreen() {
   const router = useRouter();
@@ -32,125 +31,106 @@ export default function AnalysisScreen() {
 
   return (
     <Page
-      title="Baue den Lösungsweg."
-      subtitle="Erst Größen und Prinzip erkennen. Die Formel kommt danach."
-      eyebrow="03 · Methode"
+      title="Welche Methode passt?"
+      subtitle="Sortiere zuerst die Informationen. Danach entscheidest du über den Lösungsweg."
+      eyebrow="Schritt 3"
     >
       <PathRail
         current={2}
-        steps={['Aufgabe', 'Diagnose', 'Methode', 'Lösen', 'Prüfen', 'Lernprofil']}
+        steps={['Aufgabe', 'Diagnose', 'Methode', 'Lösen', 'Prüfen', 'Profil']}
       />
 
       <Card>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
-          <AppText variant="lead" style={{ flex: 1 }}>
-            {problem.title}
-          </AppText>
-          <Pill label={problem.topic.toUpperCase()} tone="neutral" />
-        </View>
-        <AppText muted>{problem.originalText}</AppText>
+        <AppText variant="caption" muted>
+          AUFGABE
+        </AppText>
+        <AppText>{problem.originalText}</AppText>
       </Card>
 
       <View style={{ gap: spacing.md }}>
-        <SectionTitle>1. Größen sortieren</SectionTitle>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md }}>
-          {problem.given.map((item) => (
+        <SectionTitle>Gegeben und gesucht</SectionTitle>
+        <Card>
+          {problem.given.map((item, index) => (
             <View
               key={item.symbol}
               style={{
-                flexGrow: 1,
-                minWidth: 145,
-                padding: spacing.lg,
-                borderRadius: radius.lg,
-                backgroundColor: colors.surface,
-                borderWidth: 1,
-                borderColor: colors.border,
-                gap: spacing.xs,
+                paddingBottom: index === problem.given.length - 1 ? 0 : spacing.md,
+                marginBottom: index === problem.given.length - 1 ? 0 : spacing.md,
+                borderBottomWidth: index === problem.given.length - 1 ? 0 : 1,
+                borderBottomColor: colors.border,
               }}
             >
-              <AppText variant="caption" muted>
-                GEGEBEN
-              </AppText>
-              <AppText variant="lead">
-                {item.symbol} = {item.value}
-              </AppText>
-              <AppText variant="caption" muted>
-                {item.meaning}
-              </AppText>
+              <View
+                style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}
+              >
+                <AppText style={{ fontWeight: '700' }}>
+                  {item.symbol} = {item.value}
+                </AppText>
+                <AppText variant="caption" muted style={{ flex: 1, textAlign: 'right' }}>
+                  {item.meaning}
+                </AppText>
+              </View>
             </View>
           ))}
-        </View>
 
-        <View
-          style={{
-            padding: spacing.lg,
-            borderRadius: radius.lg,
-            backgroundColor: colors.accentSoft,
-            gap: spacing.xs,
-          }}
-        >
-          <AppText variant="caption" style={{ color: colors.accent, fontWeight: '800' }}>
-            GESUCHT
-          </AppText>
-          {problem.unknowns.map((item) => (
-            <AppText key={item.symbol} variant="lead">
-              {item.symbol} · {item.meaning}
+          <View
+            style={{
+              paddingTop: spacing.md,
+              marginTop: spacing.xs,
+              borderTopWidth: 1,
+              borderTopColor: colors.border,
+            }}
+          >
+            <AppText variant="caption" style={{ color: colors.primary, fontWeight: '700' }}>
+              GESUCHT
             </AppText>
-          ))}
-        </View>
+            {problem.unknowns.map((item) => (
+              <AppText key={item.symbol} style={{ fontWeight: '700', marginTop: spacing.xs }}>
+                {item.symbol} · {item.meaning}
+              </AppText>
+            ))}
+          </View>
+        </Card>
       </View>
 
-      <Card elevated>
-        <View style={{ gap: spacing.xs }}>
-          <Pill label="ENTSCHEIDUNGS-KOMPETENZ" tone="accent" />
-          <SectionTitle>2. Welche Methode passt?</SectionTitle>
-          <AppText muted>{problem.strategySelection.question}</AppText>
-        </View>
-
+      <View style={{ gap: spacing.md }}>
+        <SectionTitle>{problem.strategySelection.question}</SectionTitle>
         <View style={{ gap: spacing.sm }}>
-          {problem.strategySelection.options.map((option, index) => (
+          {problem.strategySelection.options.map((option) => (
             <Choice
               key={option}
-              prefix={String.fromCharCode(65 + index)}
               label={option}
               selected={strategy === option}
               onPress={() => setStrategy(option)}
             />
           ))}
         </View>
+      </View>
 
-        {strategy ? (
-          <Feedback
-            title={strategyCorrect ? 'Methode erkannt' : 'Der Weg passt noch nicht'}
-            message={
-              strategyCorrect
-                ? problem.strategySelection.explanation
-                : 'Vergleiche zuerst die gegebenen Größen mit dem gesuchten Wert. Welche Beziehung verbindet genau diese Größen?'
-            }
-            kind={strategyCorrect ? 'success' : 'error'}
-          />
-        ) : null}
-      </Card>
+      {strategy ? (
+        <Feedback
+          title={strategyCorrect ? 'Richtige Methode' : 'Prüfe die Verbindung der Größen'}
+          message={
+            strategyCorrect
+              ? problem.strategySelection.explanation
+              : 'Welche Beziehung enthält genau die gegebenen und gesuchten Größen?'
+          }
+          kind={strategyCorrect ? 'success' : 'error'}
+        />
+      ) : null}
 
       {strategyCorrect ? (
-        <Card
-          style={{
-            backgroundColor: colors.primaryStrong,
-            borderColor: colors.primaryStrong,
-          }}
-        >
-          <Pill label="GRUNDPRINZIP" tone="primary" />
-          <AppText variant="title" style={{ color: colors.white }}>
-            {problem.principle.name}
+        <Card>
+          <AppText variant="caption" style={{ color: colors.primary, fontWeight: '700' }}>
+            GRUNDPRINZIP
           </AppText>
-          <AppText style={{ color: colors.white, opacity: 0.84 }}>
-            {problem.principle.explanation}
-          </AppText>
+          <AppText variant="lead">{problem.principle.name}</AppText>
+          <AppText muted>{problem.principle.explanation}</AppText>
         </Card>
       ) : null}
 
       <AppButton
-        label={strategyCorrect ? 'Schrittweise lösen →' : 'Wähle zuerst die passende Methode'}
+        label="Schrittweise lösen"
         disabled={!strategyCorrect}
         onPress={() => router.push('/guide')}
       />

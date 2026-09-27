@@ -1,10 +1,10 @@
-# SolvePath 0.5.0 Beta Test
+# SolvePath 0.5.1 Beta Test
 
 ## Ziel
 
 Diese Beta prüft den lokalen Kern von SolvePath ohne Cloud-KI, API-Key oder In-App-Käufe.
 
-**Build:** 0.5.0 · Android versionCode 3 · iOS build 3
+**Build:** 0.5.1 · Android versionCode 4 · iOS build 4
 
 ## Beta-Funktionsumfang
 
@@ -35,7 +35,7 @@ Google-Play-Test-AAB:
 eas build --platform android --profile beta-store
 ```
 
-Zusätzlich erzeugt GitHub Actions mit **Beta APK** ein direkt installierbares `SolvePath-0.5.0-beta.apk`, ohne Expo- oder Play-Zugang. Dieses APK ist nur für den geschlossenen Test gedacht und nicht für Google Play.
+Zusätzlich erzeugt GitHub Actions mit **Beta APK** ein direkt installierbares `SolvePath-0.5.1-beta.apk`, ohne Expo- oder Play-Zugang. Dieses APK ist nur für den geschlossenen Test gedacht und nicht für Google Play.
 
 ## Testmatrix
 
@@ -45,16 +45,18 @@ Zusätzlich erzeugt GitHub Actions mit **Beta APK** ein direkt installierbares `
 4. `Berechne 4 + 3 * 2.` testen; Ergebnis muss `10` sein.
 5. Eine gut lesbare Matheaufgabe fotografieren und OCR-Text kontrollieren.
 6. Einen Screenshot aus der Galerie laden und OCR-Text kontrollieren.
-7. Eine nicht unterstützte Aufgabe eingeben; SolvePath darf kein Ergebnis erfinden.
-8. Stuck Mode für mindestens drei verschiedene Engpässe testen.
-9. Alle sechs Hint-Stufen einer Aufgabe durchlaufen.
-10. Ein korrektes und ein absichtlich falsches Ergebnis prüfen.
-11. Lernprofil nach mehreren Versuchen kontrollieren.
-12. Exam Mode: Fach, Themen, Datum und Fokus-Training testen.
-13. App schließen/öffnen und prüfen, ob Fortschritt erhalten bleibt.
-14. Lernfortschritt in Einstellungen löschen.
-15. Hell-/Dunkelmodus des Systems wechseln.
-16. App im Flugmodus erneut testen; lokale Kernfunktionen müssen weiterlaufen.
+7. Ein Foto aus Google Fotos/Dateiauswahl laden und prüfen, ob die Bildnormalisierung funktioniert.
+8. Bei absichtlich schwer lesbarem Bild „Erkennung erneut versuchen“ testen und danach den Text manuell korrigieren.
+9. Eine nicht unterstützte Aufgabe eingeben; SolvePath darf kein Ergebnis erfinden.
+10. Stuck Mode für mindestens drei verschiedene Engpässe testen.
+11. Alle sechs Hint-Stufen einer Aufgabe durchlaufen.
+12. Ein korrektes und ein absichtlich falsches Ergebnis prüfen.
+13. Lernprofil nach mehreren Versuchen kontrollieren.
+14. Exam Mode: Fach, Themen, Datum und Fokus-Training testen.
+15. App schließen/öffnen und prüfen, ob Fortschritt erhalten bleibt.
+16. Lernfortschritt in Einstellungen löschen.
+17. Hell-/Dunkelmodus des Systems wechseln.
+18. App im Flugmodus erneut testen; lokale Kernfunktionen müssen weiterlaufen.
 
 ## Bekannte Grenzen
 

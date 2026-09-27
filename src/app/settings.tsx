@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { Alert, Linking, View } from 'react-native';
-import { AppButton, AppText, Card, Page, Pill, SectionTitle } from '../components/ui';
+import { AppButton, AppText, Card, Page, SectionTitle } from '../components/ui';
 import { BETA_FEEDBACK_URL, BETA_VERSION_LABEL } from '../config/release';
 import { useSession } from '../features/session/store';
 import { spacing, useTheme } from '../theme/tokens';
@@ -36,72 +36,68 @@ export default function SettingsScreen() {
   return (
     <Page
       title="Einstellungen"
-      subtitle="Die Beta arbeitet local-first und speichert deinen Lernfortschritt auf diesem Gerät."
-      eyebrow="Beta"
+      subtitle="Beta-Informationen, Datenschutz und lokale Daten."
+      eyebrow={BETA_VERSION_LABEL}
     >
-      <Card elevated>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
-          <View style={{ flex: 1, gap: spacing.xs }}>
-            <SectionTitle>Beta-Test</SectionTitle>
+      <View style={{ gap: spacing.md }}>
+        <SectionTitle>Beta</SectionTitle>
+        <Card>
+          <AppText style={{ fontWeight: '700' }}>Lokale Beta</AppText>
+          <AppText muted>
+            Cloud-Analyse und Käufe sind deaktiviert. Aufgabenanalyse und OCR laufen auf dem Gerät.
+          </AppText>
+          <AppButton
+            label="Fehler oder Feedback melden"
+            variant="secondary"
+            onPress={() => {
+              void Linking.openURL(BETA_FEEDBACK_URL);
+            }}
+          />
+        </Card>
+      </View>
+
+      <View style={{ gap: spacing.md }}>
+        <SectionTitle>Datenschutz</SectionTitle>
+        <Card>
+          <AppText style={{ fontWeight: '700' }}>Local-first</AppText>
+          <AppText muted>
+            Aufgabenbilder werden lokal verarbeitet. Lernprofil und Verlauf bleiben auf diesem Gerät
+            und werden nicht an einen KI-Anbieter geschickt.
+          </AppText>
+        </Card>
+      </View>
+
+      <View style={{ gap: spacing.md }}>
+        <SectionTitle>App</SectionTitle>
+        <Card>
+          <View style={{ gap: spacing.xs }}>
+            <AppText style={{ fontWeight: '700' }}>Darstellung</AppText>
+            <AppText muted>{isDark ? 'Dunkelmodus' : 'Hellmodus'} · folgt dem System</AppText>
+          </View>
+
+          <View
+            style={{
+              height: 1,
+              backgroundColor: '#E4E7EC',
+              marginVertical: spacing.xs,
+            }}
+          />
+
+          <View style={{ gap: spacing.xs }}>
+            <AppText style={{ fontWeight: '700' }}>Lokale Daten</AppText>
             <AppText muted>
-              Käufe und Cloud-Analyse sind in diesem Build deaktiviert. Alle aktuellen
-              Lernfunktionen einschließlich Exam Mode stehen Testern frei zur Verfügung.
+              {profile.solvedProblemIds.length} gelöste Aufgaben · {recent.length} Einträge im
+              Verlauf
             </AppText>
           </View>
-          <Pill label="BETA" tone="accent" />
-        </View>
-        <AppButton
-          label="Fehler oder Feedback melden"
-          onPress={() => {
-            void Linking.openURL(BETA_FEEDBACK_URL);
-          }}
-        />
-      </Card>
 
-      <Card>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
-          <View style={{ flex: 1, gap: spacing.xs }}>
-            <SectionTitle>Local-first</SectionTitle>
-            <AppText muted>
-              Freie Analyse, Lernprofil und Aufgabenverlauf laufen lokal. Aufgabenbilder werden
-              lokal in Text umgewandelt und nicht an einen KI-Anbieter hochgeladen.
-            </AppText>
-          </View>
-          <Pill label="PRIVAT" tone="primary" />
-        </View>
-      </Card>
+          <AppButton label="Lernfortschritt löschen" variant="ghost" onPress={confirmReset} />
+        </Card>
+      </View>
 
-      <Card>
-        <SectionTitle>Darstellung</SectionTitle>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
-          <AppText>Systemmodus</AppText>
-          <Pill label={isDark ? 'DUNKEL' : 'HELL'} tone="accent" />
-        </View>
-        <AppText muted>Die Oberfläche folgt automatisch Android oder iOS.</AppText>
-      </Card>
-
-      <Card>
-        <SectionTitle>Lokale Daten</SectionTitle>
-        <AppText>
-          {profile.solvedProblemIds.length} gelöste Aufgaben · {recent.length} Einträge im Verlauf
-        </AppText>
-        <AppText muted>
-          Beim Löschen werden Verlauf, verwendete Hinweise, gelöste Aufgaben und erkannte
-          Fehlerkategorien entfernt.
-        </AppText>
-        <AppButton label="Lernfortschritt löschen" variant="ghost" onPress={confirmReset} />
-      </Card>
-
-      <Card>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
-          <SectionTitle>SolvePath</SectionTitle>
-          <Pill label={BETA_VERSION_LABEL} tone="primary" />
-        </View>
-        <AppText muted>
-          Lokale Text- und Bildanalyse, Stuck Mode, Hint Ladder, Denkfehler-Diagnose, Lernprofil und
-          Exam Mode. Dieser Build ist für geschlossene Beta-Tests vorgesehen.
-        </AppText>
-      </Card>
+      <AppText variant="caption" muted style={{ textAlign: 'center' }}>
+        SolvePath {BETA_VERSION_LABEL}
+      </AppText>
     </Page>
   );
 }
