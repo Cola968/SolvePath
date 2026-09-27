@@ -33,11 +33,20 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      - name: Backend typecheck
+        run: pnpm server:typecheck
+
       - name: Lint
         run: pnpm lint
 
+      - name: Backend lint
+        run: pnpm server:lint
+
       - name: Tests
         run: pnpm test
+
+      - name: Backend tests
+        run: pnpm server:test
 
       - name: Format check
         run: pnpm format:check
