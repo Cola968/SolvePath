@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import * as ImagePicker from 'expo-image-picker';
@@ -12,44 +12,75 @@ import {
   Feedback,
   Page,
   PathRail,
-  Pill,
   SectionTitle,
 } from '../components/ui';
 import { demoProblems } from '../data/problems';
 import { useSession } from '../features/session/store';
 import { type AnalysisImage } from '../services/problem-analyzer';
 import { extractTaskTextFromImage } from '../services/on-device-ocr';
-import { spacing } from '../theme/tokens';
+import { radius, spacing, useTheme } from '../theme/tokens';
 
-type Filter = 'all' | 'physics' | 'math';
-type BetaAnalysisMode = 'local' | 'demo';
+type Filter = 'physics' | 'math';
 
 export default function InputScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
   const { photo } = useLocalSearchParams<{ photo?: string }>();
+  const autoCameraOpened = useRef(false);
   const [text, setText] = useState('');
-  const [filter, setFilter] = useState<Filter>('all');
-  const [mode, setMode] = useState<BetaAnalysisMode>('local');
+  const [filter, setFilter] = useState<Filter>('math');
   const [image, setImage] = useState<AnalysisImage | null>(null);
   const [inputError, setInputError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [ocrBusy, setOcrBusy] = useState(false);
+  const [ocrComplete, setOcrComplete] = useState(false);
   const analyze = useSession((state) => state.analyze);
   const busy = useSession((state) => state.busy);
   const error = useSession((state) => state.error);
   const analysisStage = useSession((state) => state.analysisStage);
 
   const visibleProblems = useMemo(
-    () =>
-      filter === 'all'
-        ? demoProblems
-        : demoProblems.filter((problem) => problem.subject === filter),
+    () => demoProblems.filter((problem) => problem.subject === filter).slice(0, 4),
     [filter],
   );
+
+  useEffect(() => {
+    if (photo === '1' && !autoCameraOpened.current) {
+      autoCameraOpened.current = true;
+      void selectImage('camera');
+    }
+  }, [photo]);
+
+  async function runOcr(selectedImage: AnalysisImage) {
+    setInputError(null);
+    setOcrBusy(true);
+    setOcrComplete(false);
+    try {
+      const result = await extractTaskTextFromImage(selectedImage.uri);
+      setImage({
+        ...selectedImage,
+        uri: result.normalizedImageUri,
+        mimeType: 'image/jpeg',
+        name: 'solvepath-scan.jpg',
+      });
+      setText(result.text);
+      setOcrComplete(true);
+    } catch (cause) {
+      setInputError(
+        cause instanceof Error
+          ? cause.message
+          : 'Die Texterkennung ist fehlgeschlagen. Du kannst den Text trotzdem manuell eingeben.',
+      );
+    } finally {
+      setOcrBusy(false);
+    }
+  }
 
   async function selectImage(source: 'camera' | 'gallery') {
     setInputError(null);
     setReady(false);
+    setOcrComplete(false);
+
     try {
       if (source === 'camera') {
         const permission = await ImagePicker.requestCameraPermissionsAsync();
@@ -58,13 +89,22 @@ export default function InputScreen() {
           return;
         }
       }
+
       const result =
         source === 'camera'
-          ? await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.85 })
-          : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.85 });
+          ? await ImagePicker.launchCameraAsync({
+              mediaTypes: ['images'],
+              quality: 1,
+            })
+          : await ImagePicker.launchImageLibraryAsync({
+              mediaTypes: ['images'],
+              quality: 1,
+            });
+
       if (result.canceled) return;
       const asset = result.assets[0];
       if (!asset) throw new Error('Das Bild konnte nicht ausgewählt werden.');
+
       const extension = (asset.fileName ?? asset.uri).split('?')[0]?.toLowerCase();
       const mimeType =
         asset.mimeType ??
@@ -73,25 +113,25 @@ export default function InputScreen() {
           : extension?.endsWith('.webp')
             ? 'image/webp'
             : 'image/jpeg');
-      if (!['image/jpeg', 'image/png', 'image/webp'].includes(mimeType))
-        throw new Error('Bitte wähle ein JPEG-, PNG- oder WebP-Bild.');
-      if (asset.fileSize && asset.fileSize > 8 * 1024 * 1024)
-        throw new Error('Das Bild ist größer als 8 MB. Bitte wähle ein kleineres Bild.');
-      const selectedImage = {
+
+      if (!['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'].includes(mimeType)) {
+        throw new Error('Dieses Bildformat kann nicht verarbeitet werden.');
+      }
+
+      if (asset.fileSize && asset.fileSize > 20 * 1024 * 1024) {
+        throw new Error('Das Bild ist größer als 20 MB. Bitte wähle ein kleineres Bild.');
+      }
+
+      const selectedImage: AnalysisImage = {
         uri: asset.uri,
-        name: asset.fileName ?? `aufgabe.${mimeType.split('/')[1]}`,
+        name: asset.fileName ?? 'aufgabe',
         mimeType,
         size: asset.fileSize,
       };
+
       setImage(selectedImage);
-      setOcrBusy(true);
-      try {
-        const recognized = await extractTaskTextFromImage(asset.uri);
-        setText(recognized);
-        setMode('local');
-      } finally {
-        setOcrBusy(false);
-      }
+      setText('');
+      await runOcr(selectedImage);
     } catch (cause) {
       setInputError(cause instanceof Error ? cause.message : 'Bildauswahl fehlgeschlagen.');
     }
@@ -104,6 +144,7 @@ export default function InputScreen() {
       setText(value);
       setReady(false);
       setInputError(null);
+      setOcrComplete(false);
     } catch (cause) {
       setInputError(cause instanceof Error ? cause.message : 'Einfügen fehlgeschlagen.');
     }
@@ -112,8 +153,7 @@ export default function InputScreen() {
   async function submit() {
     setReady(false);
     setInputError(null);
-    if (await analyze(text, undefined, mode)) {
-      setImage(null);
+    if (await analyze(text, undefined, 'local')) {
       setReady(true);
     }
   }
@@ -121,214 +161,208 @@ export default function InputScreen() {
   const stages = [
     'Aufgabe lesen',
     'Gegebenes und Gesuchtes erkennen',
-    'Lösungswege prüfen',
-    'Deinen Lernpfad erstellen',
+    'Lösungsweg bestimmen',
+    'Lernpfad vorbereiten',
   ];
 
   return (
     <Page
-      title="Bring deine Aufgabe mit."
-      subtitle="SolvePath zerlegt sie in Entscheidungen, statt sofort die fertige Lösung auszuspucken."
-      eyebrow="01 · Aufgabe"
+      title="Aufgabe hinzufügen"
+      subtitle="Scanne die Aufgabe oder gib sie direkt ein. Du kannst erkannten Text immer korrigieren."
+      eyebrow="Schritt 1"
     >
       <PathRail
         current={0}
-        steps={['Aufgabe', 'Diagnose', 'Methode', 'Lösen', 'Prüfen', 'Lernprofil']}
+        steps={['Aufgabe', 'Diagnose', 'Methode', 'Lösen', 'Prüfen', 'Profil']}
       />
 
-      {photo === '1' && !image ? (
-        <Feedback
-          title="Foto oder Screenshot auswählen"
-          message="Nimm ein Foto auf oder wähle ein Bild aus der Galerie. Screenshots findest du ebenfalls dort."
-        />
-      ) : null}
+      <View style={{ gap: spacing.md }}>
+        <SectionTitle>Foto oder Screenshot</SectionTitle>
 
-      <Card elevated>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
-          <View style={{ flex: 1, gap: spacing.xs }}>
-            <AppText variant="lead">Aufgabentext</AppText>
-            <AppText muted>
-              Kopiere die Aufgabe möglichst vollständig – inklusive Zahlen, Einheiten und Frage.
-            </AppText>
-          </View>
-          <Pill label="TEXT" tone="accent" />
-        </View>
+        {!image ? (
+          <Card>
+            <View style={{ gap: spacing.xs }}>
+              <AppText variant="lead">Aufgabe scannen</AppText>
+              <AppText muted>
+                Fotografiere nur den relevanten Aufgabentext. Gute Beleuchtung und wenig Rand
+                verbessern die Erkennung.
+              </AppText>
+            </View>
+            <AppButton
+              label="Kamera öffnen"
+              onPress={() => {
+                void selectImage('camera');
+              }}
+            />
+            <AppButton
+              label="Aus Galerie wählen"
+              variant="secondary"
+              onPress={() => {
+                void selectImage('gallery');
+              }}
+            />
+          </Card>
+        ) : (
+          <Card>
+            <Image
+              source={{ uri: image.uri }}
+              accessibilityLabel="Vorschau der ausgewählten Aufgabe"
+              style={{
+                width: '100%',
+                height: 230,
+                borderRadius: radius.md,
+                backgroundColor: colors.surfaceAlt,
+              }}
+              resizeMode="contain"
+            />
 
+            {ocrBusy ? (
+              <Feedback
+                title="Text wird erkannt …"
+                message="Das Bild wird zuerst lokal vereinheitlicht und danach auf deinem Gerät gelesen."
+              />
+            ) : ocrComplete ? (
+              <Feedback
+                title="Text erkannt"
+                message="Prüfe den Text unten kurz. Zahlen, Brüche und Sonderzeichen kannst du direkt korrigieren."
+                kind="success"
+              />
+            ) : inputError ? (
+              <Feedback
+                title="Foto konnte nicht sicher gelesen werden"
+                message="Versuche die Erkennung erneut oder gib den Aufgabentext unten manuell ein."
+                kind="error"
+              />
+            ) : null}
+
+            {!ocrBusy ? (
+              <View style={{ gap: spacing.sm }}>
+                <AppButton
+                  label="Erkennung erneut versuchen"
+                  variant="secondary"
+                  onPress={() => {
+                    void runOcr(image);
+                  }}
+                />
+                <AppButton
+                  label="Anderes Bild wählen"
+                  variant="ghost"
+                  onPress={() => {
+                    setImage(null);
+                    setText('');
+                    setInputError(null);
+                    setOcrComplete(false);
+                  }}
+                />
+              </View>
+            ) : null}
+          </Card>
+        )}
+      </View>
+
+      <View style={{ gap: spacing.md }}>
+        <SectionTitle>{image ? 'Erkannter Aufgabentext' : 'Oder Text eingeben'}</SectionTitle>
         <AppInput
           accessibilityLabel="Aufgabentext"
-          placeholder="Zum Beispiel: Ein Satellit befindet sich 400 km über der Erdoberfläche …"
+          placeholder="z. B. Löse 3x + 5 = 20"
           value={text}
           onChangeText={(value) => {
             setText(value);
             setReady(false);
           }}
           multiline
-          style={{ minHeight: 190 }}
+          style={{ minHeight: image ? 150 : 170 }}
         />
-
-        <AppText variant="caption" muted>
-          {text.trim().length} Zeichen · Lokale Analyse benötigt keinen Account und keine API-Kosten
-        </AppText>
-
-        <AppButton
-          label="Aus Zwischenablage einfügen"
-          variant="secondary"
-          onPress={() => {
-            void paste();
-          }}
-        />
-        <View style={{ gap: spacing.sm }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
+          <AppText variant="caption" muted>
+            {text.trim().length} Zeichen
+          </AppText>
           <AppButton
-            label="Kamera öffnen"
-            variant="secondary"
+            label="Einfügen"
+            variant="ghost"
             onPress={() => {
-              void selectImage('camera');
-            }}
-          />
-          <AppButton
-            label="Bild / Screenshot auswählen"
-            variant="secondary"
-            onPress={() => {
-              void selectImage('gallery');
+              void paste();
             }}
           />
         </View>
+      </View>
 
-        {image ? (
-          <View style={{ gap: spacing.sm }}>
-            <Image
-              source={{ uri: image.uri }}
-              accessibilityLabel="Vorschau des Aufgabenbildes"
-              style={{ width: '100%', height: 220, borderRadius: 12 }}
-              resizeMode="contain"
-            />
-            <AppText variant="caption" muted>
-              {image.name}
-            </AppText>
-            <AppButton
-              label="Bild entfernen"
-              variant="ghost"
-              onPress={() => {
-                setImage(null);
-                setReady(false);
+      {inputError ? <Feedback title="Hinweis" message={inputError} kind="error" /> : null}
+      {error ? <Feedback title="Noch nicht unterstützt" message={error} kind="error" /> : null}
+
+      {busy ? (
+        <Card>
+          {stages.map((stage, index) => (
+            <View
+              key={stage}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: spacing.md,
+                opacity: index > analysisStage ? 0.45 : 1,
               }}
-            />
-          </View>
-        ) : null}
-
-        <View style={{ gap: spacing.sm }}>
-          <AppText variant="lead">Analysemodus</AppText>
-          <Choice
-            label="Lokal · kostenlos, privat, ohne API-Key"
-            selected={mode === 'local'}
-            onPress={() => {
-              setMode('local');
-              setReady(false);
-            }}
-          />
-          <Choice
-            label={`Beispielbibliothek · ${demoProblems.length} vollständige SolvePaths`}
-            selected={mode === 'demo'}
-            onPress={() => {
-              setMode('demo');
-              setReady(false);
-            }}
-          />
-        </View>
-
-        {ocrBusy ? (
-          <Feedback
-            title="Text wird lokal erkannt"
-            message="Die Bilderkennung läuft direkt auf deinem Gerät – ohne Upload und ohne API-Key."
-          />
-        ) : null}
-        {inputError ? <Feedback title="Eingabe prüfen" message={inputError} kind="error" /> : null}
-
-        {error ? <Feedback title="Noch nicht erkannt" message={error} kind="error" /> : null}
-
-        {busy ? (
-          <Card>
-            {stages.map((stage, index) => (
-              <AppText key={stage} muted={index > analysisStage}>
-                {index < analysisStage ? '✓' : index === analysisStage ? '●' : '○'} {stage}
+            >
+              <AppText style={{ color: index < analysisStage ? colors.success : colors.primary }}>
+                {index < analysisStage ? '✓' : index === analysisStage ? '●' : '○'}
               </AppText>
-            ))}
-          </Card>
-        ) : null}
+              <AppText>{stage}</AppText>
+            </View>
+          ))}
+        </Card>
+      ) : null}
 
-        {ready ? (
-          <Feedback
-            title="Dein SolvePath ist bereit"
-            message="Die Aufgabe wurde analysiert. Starte jetzt mit deiner Diagnose."
-            kind="success"
-          />
-        ) : null}
+      {ready ? (
+        <Feedback
+          title="Lernpfad bereit"
+          message="Die Aufgabe wurde erkannt. Als Nächstes bestimmst du, wo du festhängst."
+          kind="success"
+        />
+      ) : null}
 
-        {ready ? (
-          <AppButton label="Diagnose starten" onPress={() => router.push('/stuck')} />
-        ) : null}
-
+      {ready ? (
+        <AppButton label="Mit Diagnose starten" onPress={() => router.push('/stuck')} />
+      ) : (
         <AppButton
-          label={error ? 'Analyse erneut versuchen' : 'Lösungsweg analysieren →'}
+          label="Aufgabe analysieren"
           onPress={() => {
             void submit();
           }}
           disabled={ocrBusy || text.trim().length < 3}
           busy={busy || ocrBusy}
         />
-      </Card>
+      )}
 
       <View style={{ gap: spacing.md }}>
-        <SectionTitle aside={<Pill label={`${demoProblems.length} DEMOS`} tone="neutral" />}>
-          Sofort ausprobieren
-        </SectionTitle>
-
-        <View style={{ gap: spacing.sm }}>
-          <Choice label="Alle" selected={filter === 'all'} onPress={() => setFilter('all')} />
-          <Choice
-            label="Physik"
-            selected={filter === 'physics'}
-            onPress={() => setFilter('physics')}
-          />
-          <Choice
-            label="Mathematik"
-            selected={filter === 'math'}
-            onPress={() => setFilter('math')}
-          />
+        <SectionTitle>Beispiele</SectionTitle>
+        <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+          <View style={{ flex: 1 }}>
+            <Choice
+              label="Mathe"
+              selected={filter === 'math'}
+              onPress={() => setFilter('math')}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Choice
+              label="Physik"
+              selected={filter === 'physics'}
+              onPress={() => setFilter('physics')}
+            />
+          </View>
         </View>
 
         {visibleProblems.map((problem) => (
-          <Card key={problem.id}>
-            <View
-              style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}
-            >
-              <View style={{ flex: 1, gap: spacing.xs }}>
-                <AppText style={{ fontWeight: '800' }}>{problem.title}</AppText>
-                <AppText variant="caption" muted>
-                  {problem.topic}
-                </AppText>
-              </View>
-              <Pill
-                label={problem.subject === 'physics' ? 'PHYSIK' : 'MATHE'}
-                tone={problem.subject === 'physics' ? 'primary' : 'accent'}
-              />
-            </View>
-
-            <AppText muted numberOfLines={3}>
-              {problem.originalText}
-            </AppText>
-
-            <AppButton
-              label="Diese Aufgabe testen"
-              variant="secondary"
-              onPress={() => {
-                setText(problem.originalText);
-                setImage(null);
-                setMode('local');
-                setReady(false);
-              }}
-            />
-          </Card>
+          <Choice
+            key={problem.id}
+            label={`${problem.title} · ${problem.topic}`}
+            onPress={() => {
+              setText(problem.originalText);
+              setImage(null);
+              setInputError(null);
+              setOcrComplete(false);
+              setReady(false);
+            }}
+          />
         ))}
       </View>
     </Page>
