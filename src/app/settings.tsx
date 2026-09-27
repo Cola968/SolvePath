@@ -1,8 +1,8 @@
-import { Alert, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Alert, Linking, View } from 'react-native';
 import { AppButton, AppText, Card, Page, Pill, SectionTitle } from '../components/ui';
+import { BETA_FEEDBACK_URL, BETA_VERSION_LABEL } from '../config/release';
 import { useSession } from '../features/session/store';
-import { useSubscription } from '../features/subscription/store';
 import { spacing, useTheme } from '../theme/tokens';
 
 export default function SettingsScreen() {
@@ -11,17 +11,11 @@ export default function SettingsScreen() {
   const profile = useSession((state) => state.profile);
   const recent = useSession((state) => state.recentProblemIds);
   const reset = useSession((state) => state.resetProgress);
-  const pro = useSubscription((state) => state.pro);
-  const configured = useSubscription((state) => state.configured);
-  const appUserId = useSubscription((state) => state.appUserId);
-  const busy = useSubscription((state) => state.busy);
-  const restore = useSubscription((state) => state.restore);
-  const manage = useSubscription((state) => state.manage);
 
   function confirmReset() {
     Alert.alert(
       'Lernfortschritt löschen?',
-      'Verlauf, gelöste Aufgaben, Hinweise und Fehlerprofil werden lokal entfernt. Dein Store-Abo bleibt unverändert.',
+      'Verlauf, gelöste Aufgaben, Hinweise und Fehlerprofil werden nur auf diesem Gerät entfernt.',
       [
         { text: 'Abbrechen', style: 'cancel' },
         {
@@ -42,44 +36,26 @@ export default function SettingsScreen() {
   return (
     <Page
       title="Einstellungen"
-      subtitle="SolvePath speichert Lernfortschritt lokal; Abos werden über deinen App Store verwaltet."
-      eyebrow="App"
+      subtitle="Die Beta arbeitet local-first und speichert deinen Lernfortschritt auf diesem Gerät."
+      eyebrow="Beta"
     >
       <Card elevated>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
           <View style={{ flex: 1, gap: spacing.xs }}>
-            <SectionTitle>SolvePath Pro</SectionTitle>
+            <SectionTitle>Beta-Test</SectionTitle>
             <AppText muted>
-              {pro
-                ? 'Pro ist aktiv. Dein Abo wird über Apple oder Google abgerechnet und verwaltet.'
-                : 'Free enthält drei KI-Analysen pro Tag. Pro entfernt das Tageslimit.'}
+              Käufe und Cloud-Analyse sind in diesem Build deaktiviert. Alle aktuellen Lernfunktionen
+              einschließlich Exam Mode stehen Testern frei zur Verfügung.
             </AppText>
           </View>
-          <Pill label={pro ? 'PRO' : 'FREE'} tone={pro ? 'primary' : 'neutral'} />
+          <Pill label="BETA" tone="accent" />
         </View>
-
         <AppButton
-          label={pro ? 'Abo verwalten' : 'Pro ansehen'}
+          label="Fehler oder Feedback melden"
           onPress={() => {
-            if (pro) void manage();
-            else router.push('/pro');
-          }}
-          busy={busy}
-        />
-        <AppButton
-          label="Käufe wiederherstellen"
-          variant="ghost"
-          disabled={!configured}
-          busy={busy}
-          onPress={() => {
-            void restore();
+            void Linking.openURL(BETA_FEEDBACK_URL);
           }}
         />
-        {appUserId ? (
-          <AppText variant="caption" muted>
-            Support-ID: {appUserId}
-          </AppText>
-        ) : null}
       </Card>
 
       <Card>
@@ -87,8 +63,8 @@ export default function SettingsScreen() {
           <View style={{ flex: 1, gap: spacing.xs }}>
             <SectionTitle>Local-first</SectionTitle>
             <AppText muted>
-              Verlauf, Hint-Nutzung und Lernprofil bleiben lokal auf deinem Gerät. Aufgabenbilder
-              werden nicht dauerhaft gespeichert.
+              Freie Analyse, Lernprofil und Aufgabenverlauf laufen lokal. Aufgabenbilder werden
+              lokal in Text umgewandelt und nicht an einen KI-Anbieter hochgeladen.
             </AppText>
           </View>
           <Pill label="PRIVAT" tone="primary" />
@@ -119,11 +95,11 @@ export default function SettingsScreen() {
       <Card>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
           <SectionTitle>SolvePath</SectionTitle>
-          <Pill label="v0.4 RC" tone="primary" />
+          <Pill label={BETA_VERSION_LABEL} tone="primary" />
         </View>
         <AppText muted>
-          Freie Text- und Bildanalyse, Stuck Mode, Hint Ladder, Denkfehler-Diagnose, Lernprofil,
-          Exam Mode und Store-Abos über RevenueCat.
+          Lokale Text- und Bildanalyse, Stuck Mode, Hint Ladder, Denkfehler-Diagnose, Lernprofil und
+          Exam Mode. Dieser Build ist für geschlossene Beta-Tests vorgesehen.
         </AppText>
       </Card>
     </Page>
