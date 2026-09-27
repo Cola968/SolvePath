@@ -4,6 +4,10 @@ import { problemAnalysisSchema } from '../../src/domain/problem/schema';
 import type { AnalysisProvider } from './providers/analysis-provider';
 import { RemoteAnalysisProvider } from './providers/remote-analysis-provider';
 import {
+  RevenueCatEntitlementVerifier,
+  type EntitlementVerifier,
+} from './services/revenuecat';
+import {
   ApiError,
   MAX_IMAGE_BYTES,
   MAX_TEXT_LENGTH,
@@ -18,6 +22,10 @@ function positiveNumber(value: string | undefined, fallback: number): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+function headerValue(value: string | string[] | undefined): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim().slice(0, 300) : null;
+}
+
 export function buildServer(
   provider: AnalysisProvider = new RemoteAnalysisProvider({
     apiKey: process.env.LLM_API_KEY ?? '',
@@ -25,6 +33,10 @@ export function buildServer(
     baseUrl: process.env.LLM_BASE_URL ?? '',
     timeoutMs: positiveNumber(process.env.LLM_TIMEOUT_MS, 18_000),
     verifyAnalysis: process.env.LLM_VERIFY_ANALYSIS !== 'false',
+  }),
+  entitlementVerifier: EntitlementVerifier = new RevenueCatEntitlementVerifier({
+    apiKey: process.env.REVENUECAT_SECRET_KEY ?? '',
+    entitlementId: process.env.REVENUECAT_ENTITLEMENT_ID ?? 'pro',
   }),
 ) {
   const app = fastify({
@@ -36,10 +48,12 @@ export function buildServer(
 
   const minuteLimit = Math.floor(positiveNumber(process.env.RATE_LIMIT_PER_MINUTE, 12));
   const dailyLimit = Math.floor(positiveNumber(process.env.RATE_LIMIT_PER_DAY, 120));
+  const freeDailyLimit = Math.floor(positiveNumber(process.env.FREE_ANALYSES_PER_DAY, 3));
   const requests = new Map<
     string,
     { minuteCount: number; minuteUntil: number; dayCount: number; dayUntil: number }
   >();
+  const freeUsage = new Map<string, number>();
 
   app.register(multipart, {
     limits: {
@@ -138,6 +152,33 @@ export function buildServer(
       throw new ApiError(415, 'unsupported_media_type', 'Nutze JSON oder Multipart-Formular.');
     }
 
+    const appUserId = headerValue(request.headers['x-solvepath-user-id']);
+    const proStatus = appUserId ? await entitlementVerifier.isPro(appUserId) : null;
+    const day = Math.floor(Date.now() / 86_400_000);
+    const freeKey = appUserId ? `${day}:${appUserId}` : null;
+
+    if (freeUsage.size > 5_000) {
+      const prefix = `${day}:`;
+      for (const key of freeUsage.keys()) if (!key.startsWith(prefix)) freeUsage.delete(key);
+    }
+
+    if (proStatus === true) {
+      reply.header('x-solvepath-entitlement', 'pro');
+    } else if (proStatus === false && freeKey) {
+      const used = freeUsage.get(freeKey) ?? 0;
+      const remaining = Math.max(0, freeDailyLimit - used);
+      reply.header('x-solvepath-entitlement', 'free');
+      reply.header('x-solvepath-free-remaining', remaining);
+      if (used >= freeDailyLimit)
+        throw new ApiError(
+          429,
+          'free_quota_reached',
+          'Deine kostenlosen KI-Analysen für heute sind verbraucht. Mit SolvePath Pro gibt es kein Tageslimit.',
+        );
+    } else {
+      reply.header('x-solvepath-entitlement', 'unknown');
+    }
+
     const result = input.image
       ? await provider.analyzeImage(input.image, input.mimeType!, input.text)
       : await provider.analyzeText(input.text);
@@ -149,6 +190,12 @@ export function buildServer(
         'invalid_analysis',
         'Die Analyse war unvollständig. Bitte versuche es erneut.',
       );
+
+    if (proStatus === false && freeKey) {
+      const used = (freeUsage.get(freeKey) ?? 0) + 1;
+      freeUsage.set(freeKey, used);
+      reply.header('x-solvepath-free-remaining', Math.max(0, freeDailyLimit - used));
+    }
 
     return reply.send(validated.data);
   });
