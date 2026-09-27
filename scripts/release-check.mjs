@@ -10,13 +10,13 @@ const errors = [];
 
 if (!expo.name || !expo.slug) errors.push('Expo name/slug missing.');
 if (expo.version !== pkg.version) errors.push('app.json and package.json versions differ.');
-if (pkg.version !== '0.5.0') errors.push('Beta release must use version 0.5.0.');
+if (pkg.version !== '0.5.1') errors.push('Beta release must use version 0.5.1.');
 if (!expo.android?.package) errors.push('Android package is missing.');
-if (!Number.isInteger(expo.android?.versionCode) || expo.android.versionCode < 3)
-  errors.push('Android beta versionCode must be at least 3.');
+if (!Number.isInteger(expo.android?.versionCode) || expo.android.versionCode < 4)
+  errors.push('Android beta versionCode must be at least 4.');
 if (!expo.ios?.bundleIdentifier) errors.push('iOS bundleIdentifier is missing.');
-if (!expo.ios?.buildNumber || Number(expo.ios.buildNumber) < 3)
-  errors.push('iOS beta buildNumber must be at least 3.');
+if (!expo.ios?.buildNumber || Number(expo.ios.buildNumber) < 4)
+  errors.push('iOS beta buildNumber must be at least 4.');
 
 if (eas.build?.beta?.distribution !== 'internal' || eas.build?.beta?.android?.buildType !== 'apk')
   errors.push('EAS beta profile must create an internal Android APK.');
@@ -29,6 +29,8 @@ if (!eas.submit?.['beta-store']) errors.push('EAS beta-store submit profile is m
 
 if (!pkg.dependencies?.['expo-text-extractor'])
   errors.push('On-device OCR dependency expo-text-extractor is missing.');
+if (!pkg.dependencies?.['expo-image-manipulator'])
+  errors.push('OCR image normalization dependency expo-image-manipulator is missing.');
 
 if (!/BETA_MODE\s*=\s*true/.test(releaseConfig))
   errors.push('BETA_MODE must be true for the beta release.');
