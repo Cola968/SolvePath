@@ -15,10 +15,16 @@ if (!expo.ios?.bundleIdentifier) errors.push('iOS bundleIdentifier is missing.')
 if (!expo.ios?.buildNumber) errors.push('iOS buildNumber is missing.');
 if (!eas.build?.production) errors.push('EAS production build profile is missing.');
 if (!eas.submit?.production) errors.push('EAS production submit profile is missing.');
+if (!pkg.dependencies?.['react-native-purchases'])
+  errors.push('RevenueCat core SDK dependency is missing.');
+if (!pkg.dependencies?.['react-native-purchases-ui'])
+  errors.push('RevenueCat UI SDK dependency is missing.');
+if (!pkg.dependencies?.['expo-dev-client'])
+  errors.push('expo-dev-client is required for real subscription testing.');
 
 const serialized = JSON.stringify(app);
-if (/LLM_API_KEY|sk-[A-Za-z0-9_-]{12,}/.test(serialized))
-  errors.push('A provider secret appears to be present in mobile app configuration.');
+if (/LLM_API_KEY|REVENUECAT_SECRET_KEY|sk-[A-Za-z0-9_-]{12,}/.test(serialized))
+  errors.push('A server secret appears to be present in mobile app configuration.');
 
 if (errors.length) {
   console.error('Release check failed:');
@@ -27,5 +33,5 @@ if (errors.length) {
 }
 
 console.log(
-  `Release config OK: SolvePath ${expo.version}, Android ${expo.android.package} v${expo.android.versionCode}, iOS ${expo.ios.bundleIdentifier} build ${expo.ios.buildNumber}.`,
+  `Release config OK: SolvePath ${expo.version}, Android ${expo.android.package} v${expo.android.versionCode}, iOS ${expo.ios.bundleIdentifier} build ${expo.ios.buildNumber}, RevenueCat SDK present.`,
 );
