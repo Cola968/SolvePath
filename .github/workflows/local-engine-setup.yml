@@ -36,14 +36,6 @@ jobs:
       - name: Format
         run: pnpm format
 
-      - name: Verify
-        run: |
-          pnpm typecheck
-          pnpm lint
-          pnpm test
-          pnpm release:check
-          pnpm build:export
-
       - name: Commit dependency and formatting
         run: |
           git config user.name "github-actions[bot]"
@@ -55,3 +47,11 @@ jobs:
             git commit -m "build: add on-device OCR runtime"
             git push
           fi
+
+      - name: Verify
+        run: |
+          pnpm typecheck
+          pnpm lint
+          pnpm test
+          pnpm release:check
+          pnpm build:export
