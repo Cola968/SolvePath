@@ -1,48 +1,48 @@
-# Datenschutzerklärung für SolvePath – Veröffentlichungsentwurf
+# Datenschutzerklärung für SolvePath 0.5.0 Beta
 
-> Vor Veröffentlichung müssen Betreibername, ladungsfähige Kontaktangaben, Hosting-/KI-Anbieter, RevenueCat sowie eine dauerhaft erreichbare öffentliche URL ergänzt und rechtlich geprüft werden.
+**Stand: 27. September 2026**
 
-## 1. Verantwortlicher
-Der Verantwortliche für SolvePath muss vor Veröffentlichung mit Name/Firma, Anschrift und Kontaktmöglichkeit eingetragen werden.
+Diese Fassung beschreibt den geschlossenen Beta-Build.
 
-## 2. Lokale Daten
-SolvePath speichert derzeit lokal auf dem Gerät:
-- Verlauf analysierter Aufgaben,
+## 1. Lokale Aufgabenanalyse
+
+Die Standardanalyse erfolgt direkt auf dem Gerät. Für die Beta-Kernfunktion werden Aufgabentext und Aufgabenbild nicht an einen externen KI-Dienst übertragen.
+
+## 2. Lokale Texterkennung
+
+Aufgabenfotos und Screenshots werden auf Android/iOS lokal in Text umgewandelt. Bilder werden nicht dauerhaft in AsyncStorage gespeichert.
+
+## 3. Lokale Daten
+
+SolvePath kann lokal speichern:
+
+- Aufgabenverlauf,
+- generierte lokale SolvePaths,
 - freigeschaltete Hinweise,
 - Lernfortschritt,
 - erkannte Fehlermuster,
-- validierte Textanalysen,
-- den Zähler der kostenlosen täglichen KI-Analysen.
+- Prüfungsmodus-Einstellungen.
 
-Diese lokalen Daten können in der App zurückgesetzt werden. Ein bestehendes Store-Abo wird dadurch nicht gekündigt.
+Diese Daten können in den Einstellungen gelöscht werden.
 
-## 3. Lokale Aufgabenanalyse
-Die Standardanalyse erfolgt direkt auf dem Gerät. Aufgabenfotos werden lokal per Texterkennung verarbeitet; für die lokale Kernfunktion werden Aufgabentext und Aufgabenbild nicht an einen externen KI-Dienst übertragen.
+## 4. Kamera und Galerie
 
-Bilder werden von der App nicht dauerhaft in AsyncStorage gespeichert. Nach erfolgreicher Analyse wird die aktuelle Bildauswahl aus dem App-Zustand entfernt.
+Kamera- und Bilderzugriff erfolgen nur nach Nutzeraktion zur Aufnahme oder Auswahl einer Aufgabe.
 
-Eine optionale Cloud-Analyse kann in späteren Versionen oder speziellen Builds aktiviert werden. Falls dies geschieht, müssen der konkret eingesetzte Anbieter, Zweck, Rechtsgrundlage, Speicherdauer und etwaige internationale Datenübermittlungen vor Aktivierung in dieser Erklärung ergänzt werden.
+## 5. Cloud, Abonnements und Nutzerkonten
 
-## 4. Abonnements
-SolvePath verwendet RevenueCat zur technischen Verwaltung von In-App-Abonnements über Apple App Store und Google Play. Dabei wird eine App-User-ID verwendet, um den Abo-Status und das Entitlement „pro“ zuzuordnen.
+Cloud-Analyse, In-App-Käufe, RevenueCat-Nutzung und SolvePath-Nutzerkonten sind in diesem Beta-Build deaktiviert.
 
-Die mobilen Apps verwenden ausschließlich öffentliche RevenueCat SDK-Schlüssel. Serverseitige RevenueCat-Schlüssel werden nicht in die App ausgeliefert.
+## 6. Beta-Feedback
 
-Vor Veröffentlichung müssen die tatsächlich verwendeten Store- und RevenueCat-Datenschutzinformationen sowie erforderliche internationale Datenübermittlungen in dieser Erklärung konkret ergänzt werden.
+Feedback kann freiwillig über GitHub gesendet werden. Dafür gelten die Datenschutzbedingungen von GitHub. Fehlerberichte sollen keine unnötigen personenbezogenen Daten enthalten.
 
-## 5. Serverdaten
-Der SolvePath-Server verarbeitet technische Verbindungsdaten, eine App-User-ID für Abo-Prüfungen sowie Informationen, die für Bereitstellung, Missbrauchsschutz, Free-Tier-Limits und Fehlerbehandlung erforderlich sind. Die Anwendung selbst protokolliert keine vollständigen Aufgabenbilder, API-Schlüssel oder vollständigen Antworten des KI-Dienstleisters.
+## 7. Verantwortlicher
 
-Vor Produktivbetrieb müssen RevenueCat, gegebenenfalls verwendete Backend-/Hosting-Dienste, Speicher- und Löschfristen sowie deren konkrete Datenschutzbedingungen und etwaige internationale Datenübermittlungen konkret ergänzt werden.
+Vor einer öffentlichen Store-Veröffentlichung werden die vollständigen gesetzlichen Betreiber-, Anschrift- und Kontaktangaben ergänzt.
 
-## 6. Berechtigungen
-Die Kamera-Berechtigung wird nur angefragt, wenn eine Aufgabe fotografiert werden soll. Der Zugriff auf Bilder dient der Auswahl eines Aufgabenfotos oder Screenshots.
+## 8. Öffentliche Beta-Fassung
 
-## 7. Nutzerkonten
-Die aktuelle Version verwendet keine eigenen SolvePath-Nutzerkonten. Store-Abos werden über die jeweilige Store-Identität und RevenueCat verwaltet.
+Die für Tester vorgesehene Fassung liegt unter:
 
-## 8. Betroffenenrechte
-Die gesetzlich erforderlichen Hinweise zu Auskunft, Berichtigung, Löschung, Einschränkung, Widerspruch und Beschwerderecht müssen vor Veröffentlichung zusammen mit den vollständigen Verantwortlichenangaben ergänzt werden.
-
-## 9. Stand
-Entwurf: September 2026.
+https://github.com/Cola968/SolvePath/blob/main/docs/privacy-policy-beta.md
