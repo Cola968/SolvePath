@@ -17,19 +17,19 @@ import {
 } from '../components/ui';
 import { demoProblems } from '../data/problems';
 import { useSession } from '../features/session/store';
-import { useSubscription } from '../features/subscription/store';
-import { remoteApiUrl, type AnalysisImage, type AnalysisMode } from '../services/problem-analyzer';
+import { type AnalysisImage } from '../services/problem-analyzer';
 import { extractTaskTextFromImage } from '../services/on-device-ocr';
 import { spacing } from '../theme/tokens';
 
 type Filter = 'all' | 'physics' | 'math';
+type BetaAnalysisMode = 'local' | 'demo';
 
 export default function InputScreen() {
   const router = useRouter();
   const { photo } = useLocalSearchParams<{ photo?: string }>();
   const [text, setText] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
-  const [mode, setMode] = useState<AnalysisMode>('local');
+  const [mode, setMode] = useState<BetaAnalysisMode>('local');
   const [image, setImage] = useState<AnalysisImage | null>(null);
   const [inputError, setInputError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
@@ -38,8 +38,6 @@ export default function InputScreen() {
   const busy = useSession((state) => state.busy);
   const error = useSession((state) => state.error);
   const analysisStage = useSession((state) => state.analysisStage);
-  const pro = useSubscription((state) => state.pro);
-  const remaining = useSubscription((state) => state.remainingFreeAnalyses());
 
   const visibleProblems = useMemo(
     () =>
@@ -114,8 +112,7 @@ export default function InputScreen() {
   async function submit() {
     setReady(false);
     setInputError(null);
-    const analysisImage = mode === 'remote' ? (image ?? undefined) : undefined;
-    if (await analyze(text, analysisImage, mode)) {
+    if (await analyze(text, undefined, mode)) {
       setImage(null);
       setReady(true);
     }
@@ -237,20 +234,6 @@ export default function InputScreen() {
               setReady(false);
             }}
           />
-          {remoteApiUrl ? (
-            <Choice
-              label={
-                pro
-                  ? 'Cloud Analysis · Pro ohne Tageslimit'
-                  : `Cloud Analysis · ${remaining} Free-Analysen heute`
-              }
-              selected={mode === 'remote'}
-              onPress={() => {
-                setMode('remote');
-                setReady(false);
-              }}
-            />
-          ) : null}
         </View>
 
         {ocrBusy ? (
@@ -259,27 +242,10 @@ export default function InputScreen() {
             message="Die Bilderkennung läuft direkt auf deinem Gerät – ohne Upload und ohne API-Key."
           />
         ) : null}
-        {!remoteApiUrl && mode === 'remote' ? (
-          <Feedback
-            title="Cloud Analysis ist deaktiviert"
-            message="Die lokale Analyse funktioniert unabhängig davon vollständig kostenlos."
-            kind="error"
-          />
-        ) : null}
         {inputError ? <Feedback title="Eingabe prüfen" message={inputError} kind="error" /> : null}
 
         {error ? <Feedback title="Noch nicht erkannt" message={error} kind="error" /> : null}
 
-        {!pro && mode === 'remote' && remaining === 0 ? (
-          <Card>
-            <Pill label="FREE-LIMIT ERREICHT" tone="warning" />
-            <AppText muted>
-              Deine drei kostenlosen KI-Analysen für heute sind verbraucht. Die lokalen
-              Übungsaufgaben bleiben verfügbar.
-            </AppText>
-            <AppButton label="SolvePath Pro ansehen" onPress={() => router.push('/pro')} />
-          </Card>
-        ) : null}
 
         {busy ? (
           <Card>
@@ -308,12 +274,7 @@ export default function InputScreen() {
           onPress={() => {
             void submit();
           }}
-          disabled={
-            ocrBusy ||
-            (mode === 'remote'
-              ? !remoteApiUrl || (!image && text.trim().length < 10)
-              : text.trim().length < 3)
-          }
+          disabled={ocrBusy || text.trim().length < 3}
           busy={busy || ocrBusy}
         />
       </Card>
