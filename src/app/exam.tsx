@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { View } from 'react-native';
 import { z } from 'zod';
@@ -28,11 +28,6 @@ export default function ExamScreen() {
   const setExam = useSession((state) => state.setExam);
   const selectProblem = useSession((state) => state.selectProblem);
   const [date, setDate] = useState(savedDate);
-  const [todayMs, setTodayMs] = useState<number | null>(null);
-
-  useEffect(() => {
-    setTodayMs(Date.now());
-  }, []);
 
   const topics = useMemo(
     () => [
@@ -74,10 +69,6 @@ export default function ExamScreen() {
             selectedTopicProgress.length,
         );
 
-  const daysUntilExam = dateIsValid && todayMs !== null
-    ? Math.ceil((new Date(`${date}T12:00:00`).getTime() - todayMs) / 86_400_000)
-    : null;
-
   function toggleTopic(topic: string) {
     setExam(
       subject,
@@ -118,10 +109,10 @@ export default function ExamScreen() {
           tone="accent"
         />
         <StatTile
-          value={daysUntilExam === null ? '–' : daysUntilExam < 0 ? '0' : daysUntilExam.toString()}
-          label="Tage"
-          detail={dateIsValid ? 'bis zur Prüfung' : 'Termin eintragen'}
-          tone={daysUntilExam !== null && daysUntilExam <= 3 ? 'warning' : 'primary'}
+          value={dateIsValid ? date.slice(5) : '–'}
+          label="Prüfungstermin"
+          detail={dateIsValid ? date.slice(0, 4) : 'Termin eintragen'}
+          tone="primary"
         />
         <StatTile
           value={risks.length.toString()}
@@ -182,17 +173,8 @@ export default function ExamScreen() {
             message="Verwende ein gültiges Datum im Format JJJJ-MM-TT."
             kind="error"
           />
-        ) : dateIsValid && daysUntilExam !== null ? (
-          <Pill
-            label={
-              daysUntilExam < 0
-                ? 'TERMIN VORBEI'
-                : daysUntilExam === 0
-                  ? 'HEUTE'
-                  : `NOCH ${daysUntilExam} TAGE`
-            }
-            tone={daysUntilExam <= 3 ? 'warning' : 'primary'}
-          />
+        ) : dateIsValid ? (
+          <Pill label="TERMIN GESPEICHERT" tone="primary" />
         ) : (
           <AppText variant="caption" muted>
             Beispiel: 2026-12-15
@@ -235,7 +217,7 @@ export default function ExamScreen() {
       <AppButton
         label="Fokus-Training starten →"
         onPress={startTraining}
-        disabled={!dateIsValid || candidates.length === 0 || (daysUntilExam ?? 0) < 0}
+        disabled={!dateIsValid || candidates.length === 0}
       />
     </Page>
   );
