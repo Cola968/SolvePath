@@ -23,7 +23,7 @@ function normalizeUnitKey(unit: string): string {
     .replace(/²/g, '^2')
     .replace(/³/g, '^3')
     .replace(/[·×]/g, '*')
-    .replace(/s+/g, '')
+    .replace(/\s+/g, '')
     .replace(/^ohm$/, 'ω');
 }
 
