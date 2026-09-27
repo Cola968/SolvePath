@@ -64,6 +64,9 @@ export function Page({
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top', 'bottom']}>
       <ScrollView
         contentContainerStyle={{
+          width: '100%',
+          maxWidth: 720,
+          alignSelf: 'center',
           paddingHorizontal: spacing.xl,
           paddingTop: spacing.xl,
           paddingBottom: spacing.huge,

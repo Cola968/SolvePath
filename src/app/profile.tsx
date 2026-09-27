@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { View } from 'react-native';
 import { AppButton, AppText, Card, Page, ProgressBar, SectionTitle } from '../components/ui';
-import { problemById } from '../data/problems';
+import { misconceptionLabel, problemById } from '../data/problems';
 import { topicScore, topRisks } from '../domain/profile/progress';
 import { useSession } from '../features/session/store';
 import { spacing } from '../theme/tokens';
@@ -54,7 +54,7 @@ export default function ProfileScreen() {
         ) : (
           risks.map((risk) => (
             <Card key={risk.misconceptionId}>
-              <AppText variant="lead">{risk.misconceptionId.replace(/_/g, ' ')}</AppText>
+              <AppText variant="lead">{misconceptionLabel(risk.misconceptionId)}</AppText>
               <AppText muted>
                 {risk.topic} · {risk.count} Mal erkannt
               </AppText>

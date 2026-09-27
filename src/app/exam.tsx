@@ -12,7 +12,7 @@ import {
   Page,
   SectionTitle,
 } from '../components/ui';
-import { demoProblems } from '../data/problems';
+import { demoProblems, misconceptionLabel } from '../data/problems';
 import { topRisks } from '../domain/profile/progress';
 import { useSession } from '../features/session/store';
 import { spacing } from '../theme/tokens';
@@ -117,7 +117,7 @@ export default function ExamScreen() {
         {risks.length
           ? risks.map((risk, index) => (
               <AppText key={risk.misconceptionId}>
-                {index + 1}. {risk.misconceptionId.replace(/_/g, ' ')} · {risk.count} Mal erkannt
+                {index + 1}. {misconceptionLabel(risk.misconceptionId)} · {risk.count} Mal erkannt
               </AppText>
             ))
           : demoRisks.map((risk, index) => (

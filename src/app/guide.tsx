@@ -25,6 +25,7 @@ export default function GuideScreen() {
   const setStepIndex = useSession((state) => state.setStepIndex);
   const revealedByProblem = useSession((state) => state.revealedByProblem);
   const nextHint = useSession((state) => state.nextHint);
+  const error = useSession((state) => state.error);
   const [answer, setAnswer] = useState('');
   const [checked, setChecked] = useState<'correct' | 'retry' | null>(null);
   if (!problem)
@@ -52,6 +53,7 @@ export default function GuideScreen() {
         value={((stepIndex + 1) / problem.reasoningSteps.length) * 100}
         label={`Schritt ${stepIndex + 1} von ${problem.reasoningSteps.length}`}
       />
+      {error ? <Feedback title="Speichern fehlgeschlagen" message={error} kind="error" /> : null}
       <Card>
         <SectionTitle>{step.title}</SectionTitle>
         <AppText variant="lead">{step.question}</AppText>

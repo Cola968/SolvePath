@@ -94,8 +94,13 @@ export const useSession = create<SessionState>((set, get) => ({
     const problem = id ? problemById(id) : undefined;
     if (!id || !problem) return;
     const revealed = revealNextHint(problem, { revealedLevels: get().revealedByProblem[id] ?? [] });
-    set({ revealedByProblem: { ...get().revealedByProblem, [id]: revealed.revealedLevels } });
-    void progressRepository.save(snapshot(get()));
+    set({
+      revealedByProblem: { ...get().revealedByProblem, [id]: revealed.revealedLevels },
+      error: null,
+    });
+    void progressRepository
+      .save(snapshot(get()))
+      .catch(() => set({ error: 'Hinweise konnten nicht gespeichert werden.' }));
   },
   setStepIndex: (index) => set({ stepIndex: index }),
   checkAnswer: (answer) => {
@@ -112,8 +117,10 @@ export const useSession = create<SessionState>((set, get) => ({
         hintsUsed: get().revealedByProblem[problem.id]?.length ?? 0,
         misconceptionId: result.status === 'misconception' ? result.mistake.id : undefined,
       });
-      set({ profile });
-      void progressRepository.save(snapshot(get()));
+      set({ profile, error: null });
+      void progressRepository
+        .save(snapshot(get()))
+        .catch(() => set({ error: 'Lernfortschritt konnte nicht gespeichert werden.' }));
     }
     return result;
   },

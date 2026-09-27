@@ -18,7 +18,11 @@ export default function SettingsScreen() {
           text: 'Löschen',
           style: 'destructive',
           onPress: () => {
-            void reset().then(() => router.replace('/'));
+            void reset()
+              .then(() => router.replace('/'))
+              .catch(() =>
+                Alert.alert('Fehler', 'Die lokalen Daten konnten nicht gelöscht werden.'),
+              );
           },
         },
       ],

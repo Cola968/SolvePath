@@ -725,3 +725,10 @@ const rawProblems: ProblemAnalysis[] = [
 export const demoProblems = problemAnalysisSchema.array().parse(rawProblems);
 export const problemById = (id: string): ProblemAnalysis | undefined =>
   demoProblems.find((problem) => problem.id === id);
+
+export function misconceptionLabel(id: string): string {
+  return (
+    demoProblems.flatMap((problem) => problem.commonMistakes).find((mistake) => mistake.id === id)
+      ?.label ?? id
+  );
+}

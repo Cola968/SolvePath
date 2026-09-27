@@ -14,6 +14,7 @@ export default function ResultScreen() {
   const checkAnswer = useSession((state) => state.checkAnswer);
   const nextHint = useSession((state) => state.nextHint);
   const revealedByProblem = useSession((state) => state.revealedByProblem);
+  const error = useSession((state) => state.error);
   const [answer, setAnswer] = useState('');
   const [result, setResult] = useState<AnswerCheck | null>(null);
   if (!problem)
@@ -30,6 +31,7 @@ export default function ResultScreen() {
       subtitle="Gib zuerst dein eigenes Ergebnis ein. SolvePath prüft dann den Ansatz und typische Denkfehler."
       eyebrow="05 · Prüfen"
     >
+      {error ? <Feedback title="Speichern fehlgeschlagen" message={error} kind="error" /> : null}
       <Card>
         <SectionTitle>
           {problem.unknowns.map((item) => item.symbol).join(', ')} gesucht
