@@ -12,9 +12,11 @@ function numericAnswer(input: string): number | null {
 
 export function detectMisconception(problem: ProblemAnalysis, input: string): CommonMistake | null {
   const normalized = normalizeAnswer(input);
-  return problem.commonMistakes.find((mistake) =>
-    mistake.triggers.some((trigger) => normalized.includes(normalizeAnswer(trigger))),
-  ) ?? null;
+  return (
+    problem.commonMistakes.find((mistake) =>
+      mistake.triggers.some((trigger) => normalized.includes(normalizeAnswer(trigger))),
+    ) ?? null
+  );
 }
 
 export type AnswerCheck =
@@ -40,7 +42,11 @@ export function checkResult(problem: ProblemAnalysis, input: string): AnswerChec
   }
   const mistake = detectMisconception(problem, input);
   if (mistake) return { status: 'misconception', message: mistake.explanation, mistake };
-  return { status: 'retry', message: 'Das passt noch nicht. Prüfe deinen Ansatz, die Einheiten und den letzten Rechenschritt.' };
+  return {
+    status: 'retry',
+    message:
+      'Das passt noch nicht. Prüfe deinen Ansatz, die Einheiten und den letzten Rechenschritt.',
+  };
 }
 
 export function checkStepAnswer(expected: string, input: string): boolean {

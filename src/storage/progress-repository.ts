@@ -7,8 +7,18 @@ const storedSchema = z.object({
   recentProblemIds: z.array(z.string()),
   revealedByProblem: z.record(z.string(), z.array(z.number())),
   profile: z.object({
-    topics: z.record(z.string(), z.object({ attempts: z.number(), solved: z.number(), hintsUsed: z.number(), mistakes: z.number() })),
-    misconceptions: z.array(z.object({ misconceptionId: z.string(), topic: z.string(), count: z.number() })),
+    topics: z.record(
+      z.string(),
+      z.object({
+        attempts: z.number(),
+        solved: z.number(),
+        hintsUsed: z.number(),
+        mistakes: z.number(),
+      }),
+    ),
+    misconceptions: z.array(
+      z.object({ misconceptionId: z.string(), topic: z.string(), count: z.number() }),
+    ),
     solvedProblemIds: z.array(z.string()),
   }),
 });
@@ -19,7 +29,11 @@ export type StoredProgress = {
   profile: LearningProfile;
 };
 
-export const emptyProgress: StoredProgress = { recentProblemIds: [], revealedByProblem: {}, profile: emptyProfile };
+export const emptyProgress: StoredProgress = {
+  recentProblemIds: [],
+  revealedByProblem: {},
+  profile: emptyProfile,
+};
 
 export interface ProgressRepository {
   load(): Promise<StoredProgress>;
@@ -42,7 +56,9 @@ export class AsyncProgressRepository implements ProgressRepository {
 
   save(progress: StoredProgress): Promise<void> {
     const serialized = JSON.stringify(storedSchema.parse(progress));
-    this.writes = this.writes.catch(() => undefined).then(() => AsyncStorage.setItem(storageKey, serialized));
+    this.writes = this.writes
+      .catch(() => undefined)
+      .then(() => AsyncStorage.setItem(storageKey, serialized));
     return this.writes;
   }
 

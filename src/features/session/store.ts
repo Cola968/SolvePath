@@ -5,7 +5,11 @@ import { checkResult, type AnswerCheck } from '../../domain/misconceptions/check
 import type { StuckReason } from '../../domain/problem/diagnosis';
 import { updateProfile } from '../../domain/profile/progress';
 import { problemAnalyzer } from '../../services/problem-analyzer';
-import { emptyProgress, progressRepository, type StoredProgress } from '../../storage/progress-repository';
+import {
+  emptyProgress,
+  progressRepository,
+  type StoredProgress,
+} from '../../storage/progress-repository';
 
 type SessionState = StoredProgress & {
   hydrated: boolean;
@@ -29,7 +33,11 @@ type SessionState = StoredProgress & {
 };
 
 function snapshot(state: SessionState): StoredProgress {
-  return { recentProblemIds: state.recentProblemIds, revealedByProblem: state.revealedByProblem, profile: state.profile };
+  return {
+    recentProblemIds: state.recentProblemIds,
+    revealedByProblem: state.revealedByProblem,
+    profile: state.profile,
+  };
 }
 
 export const useSession = create<SessionState>((set, get) => ({
@@ -55,17 +63,30 @@ export const useSession = create<SessionState>((set, get) => ({
     set({ busy: true, error: null });
     try {
       const problem = await problemAnalyzer.analyze(text);
-      const recentProblemIds = [problem.id, ...get().recentProblemIds.filter((id) => id !== problem.id)].slice(0, 12);
-      set({ currentProblemId: problem.id, recentProblemIds, busy: false, stuckReason: null, stepIndex: 0 });
+      const recentProblemIds = [
+        problem.id,
+        ...get().recentProblemIds.filter((id) => id !== problem.id),
+      ].slice(0, 12);
+      set({
+        currentProblemId: problem.id,
+        recentProblemIds,
+        busy: false,
+        stuckReason: null,
+        stepIndex: 0,
+      });
       await progressRepository.save(snapshot(get()));
       return true;
     } catch (error) {
-      set({ busy: false, error: error instanceof Error ? error.message : 'Analyse fehlgeschlagen.' });
+      set({
+        busy: false,
+        error: error instanceof Error ? error.message : 'Analyse fehlgeschlagen.',
+      });
       return false;
     }
   },
   selectProblem: (id) => {
-    if (problemById(id)) set({ currentProblemId: id, stuckReason: null, stepIndex: 0, error: null });
+    if (problemById(id))
+      set({ currentProblemId: id, stuckReason: null, stepIndex: 0, error: null });
   },
   setStuckReason: (reason) => set({ stuckReason: reason }),
   nextHint: () => {
@@ -96,7 +117,8 @@ export const useSession = create<SessionState>((set, get) => ({
     }
     return result;
   },
-  setExam: (subject, topics, date) => set({ examSubject: subject, examTopics: topics, examDate: date }),
+  setExam: (subject, topics, date) =>
+    set({ examSubject: subject, examTopics: topics, examDate: date }),
   resetProgress: async () => {
     await progressRepository.clear();
     set({ ...emptyProgress, currentProblemId: null, stepIndex: 0, stuckReason: null });

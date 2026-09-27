@@ -7,7 +7,9 @@ export interface ProblemAnalyzer {
 
 export class UnsupportedProblemError extends Error {
   constructor() {
-    super('Diese Aufgabe ist in der lokalen Demo noch nicht enthalten. Wähle eine der Beispielaufgaben.');
+    super(
+      'Diese Aufgabe ist in der lokalen Demo noch nicht enthalten. Wähle eine der Beispielaufgaben.',
+    );
   }
 }
 
@@ -31,7 +33,9 @@ export class MockProblemAnalyzer implements ProblemAnalyzer {
       ['trigonometry', ['gegenkathete', 'ankathete']],
       ['rate-of-change', ['weges', 'geschwindigkeit', 't']],
     ];
-    const matchedId = rules.find(([, words]) => words.every((word) => input.includes(normalized(word))))?.[0];
+    const matchedId = rules.find(([, words]) =>
+      words.every((word) => input.includes(normalized(word))),
+    )?.[0];
     const problem = demoProblems.find((item) => item.id === matchedId);
     if (!problem) throw new UnsupportedProblemError();
     return problem;

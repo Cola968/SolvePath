@@ -16,7 +16,8 @@ describe('answer diagnostics', () => {
   it('records a specific misconception instead of a generic wrong flag', () => {
     const result = checkResult(byId('rate-of-change'), '15 m/s');
     expect(result.status).toBe('misconception');
-    if (result.status === 'misconception') expect(result.mistake.id).toBe('average_vs_instantaneous');
+    if (result.status === 'misconception')
+      expect(result.mistake.id).toBe('average_vs_instantaneous');
   });
 
   it('accepts both roots independent of their order', () => {

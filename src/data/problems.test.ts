@@ -19,6 +19,8 @@ describe('demo data and analyzer', () => {
   it('analyzes a selected demo text through the replaceable service', async () => {
     const analyzer = new MockProblemAnalyzer();
     expect((await analyzer.analyze(demoProblems[1]!.originalText)).id).toBe('satellite-orbit');
-    await expect(analyzer.analyze('Eine völlig andere Aufgabe über Quantenoptik')).rejects.toBeInstanceOf(UnsupportedProblemError);
+    await expect(
+      analyzer.analyze('Eine völlig andere Aufgabe über Quantenoptik'),
+    ).rejects.toBeInstanceOf(UnsupportedProblemError);
   });
 });
