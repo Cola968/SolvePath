@@ -1,0 +1,49 @@
+name: Production Smoke Test
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/production-smoke.yml
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Health check
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --retry 3 --retry-delay 5 \
+            https://solvepath-api-prod.onrender.com/health | tee /tmp/health.json
+          python - <<'PY'
+          import json
+          with open('/tmp/health.json') as f:
+              data=json.load(f)
+          assert data.get('status') == 'ok', data
+          print('Health OK')
+          PY
+
+      - name: Real AI analysis
+        run: |
+          set -euo pipefail
+          status=$(curl --silent --show-error --max-time 90 \
+            -o /tmp/analysis.json -w "%{http_code}" \
+            -H "content-type: application/json" \
+            --data '{"text":"Löse die Gleichung 3x + 5 = 20 und erkläre den Lösungsweg."}' \
+            https://solvepath-api-prod.onrender.com/api/analyze)
+          echo "HTTP $status"
+          cat /tmp/analysis.json
+          test "$status" = "200"
+          python - <<'PY'
+          import json
+          with open('/tmp/analysis.json') as f:
+              data=json.load(f)
+          required = ['id','subject','topic','title','hints','reasoningSteps','correctResult']
+          missing = [k for k in required if k not in data]
+          assert not missing, f"Missing fields: {missing}"
+          assert len(data['hints']) == 6, data['hints']
+          assert len(data['reasoningSteps']) >= 3, data['reasoningSteps']
+          print('Real AI analysis OK:', data['title'])
+          PY
