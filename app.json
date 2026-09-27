@@ -1,0 +1,14 @@
+{
+  "expo": {
+    "name": "SolvePath",
+    "slug": "solvepath",
+    "scheme": "solvepath",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": { "supportsTablet": true, "bundleIdentifier": "app.solvepath.mobile" },
+    "android": { "package": "app.solvepath.mobile", "edgeToEdgeEnabled": true },
+    "plugins": ["expo-router"]
+  }
+}
