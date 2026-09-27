@@ -6,7 +6,8 @@ import { getSubscriptionAppUserId } from './subscription-identity';
 export type AnalysisImage = { uri: string; name: string; mimeType: string; size?: number };
 export type AnalysisMode = 'remote' | 'demo';
 
-export const remoteApiUrl = process.env.EXPO_PUBLIC_SOLVEPATH_API_URL?.trim() ?? '';
+export const remoteApiUrl =
+  process.env.EXPO_PUBLIC_SOLVEPATH_API_URL?.trim() || 'https://solvepath-api-prod.onrender.com';
 
 export interface ProblemAnalyzer {
   analyze(
