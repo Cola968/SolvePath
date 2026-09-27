@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.5.1 Beta - 2026-09-27
+
+### Fixed
+
+- gallery and screenshot OCR now normalizes selected images to a local JPEG before recognition
+- OCR retries the original image URI if normalization or the first recognition attempt fails
+- photo import now accepts common HEIC/HEIF sources and gives actionable retry/manual-edit states
+
+### Redesigned
+
+- new calmer visual system with flatter surfaces, smaller radii, less decoration, and clearer typography
+- home screen reduced to the two primary actions: photograph or type a task
+- scan flow now follows **select image → recognize → review/edit text → analyze**
+- diagnosis, method selection, guided solving, result checking, learning profile, exam mode, and settings were simplified to reduce card/badge overload
+- progress navigation is now a compact step indicator instead of a six-node rail
+
+### Technical
+
+- added `expo-image-manipulator` for reliable local OCR input normalization
+- beta version raised to 0.5.1, Android versionCode 4, iOS build 4
+
 ## 0.5.0 Beta - 2026-09-27
 
 ### Added
