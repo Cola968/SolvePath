@@ -34,7 +34,12 @@ export function buildServer(
     requestTimeout: 80_000,
   });
 
-  const requests = new Map<string, { count: number; until: number }>();
+  const minuteLimit = Math.floor(positiveNumber(process.env.RATE_LIMIT_PER_MINUTE, 12));
+  const dailyLimit = Math.floor(positiveNumber(process.env.RATE_LIMIT_PER_DAY, 120));
+  const requests = new Map<
+    string,
+    { minuteCount: number; minuteUntil: number; dayCount: number; dayUntil: number }
+  >();
 
   app.register(multipart, {
     limits: {
@@ -50,22 +55,38 @@ export function buildServer(
     reply.header('x-request-id', request.id);
     reply.header('x-content-type-options', 'nosniff');
     if (request.url.startsWith('/api/')) reply.header('cache-control', 'no-store');
+    if (!request.url.startsWith('/api/analyze')) return;
 
     const key = request.ip;
     const now = Date.now();
     if (requests.size > 5_000) {
-      for (const [address, entry] of requests) if (entry.until <= now) requests.delete(address);
+      for (const [address, entry] of requests) if (entry.dayUntil <= now) requests.delete(address);
     }
 
-    const item = requests.get(key);
-    const next =
-      !item || item.until <= now
-        ? { count: 1, until: now + 60_000 }
-        : { count: item.count + 1, until: item.until };
+    const current = requests.get(key);
+    const minuteExpired = !current || current.minuteUntil <= now;
+    const dayExpired = !current || current.dayUntil <= now;
+    const next = {
+      minuteCount: minuteExpired ? 1 : current.minuteCount + 1,
+      minuteUntil: minuteExpired ? now + 60_000 : current.minuteUntil,
+      dayCount: dayExpired ? 1 : current.dayCount + 1,
+      dayUntil: dayExpired ? now + 86_400_000 : current.dayUntil,
+    };
     requests.set(key, next);
 
-    if (next.count > 30)
+    reply.header('x-ratelimit-limit-minute', minuteLimit);
+    reply.header('x-ratelimit-limit-day', dailyLimit);
+    reply.header('x-ratelimit-remaining-minute', Math.max(0, minuteLimit - next.minuteCount));
+    reply.header('x-ratelimit-remaining-day', Math.max(0, dailyLimit - next.dayCount));
+
+    if (next.minuteCount > minuteLimit)
       throw new ApiError(429, 'rate_limited', 'Zu viele Anfragen. Bitte kurz warten.');
+    if (next.dayCount > dailyLimit)
+      throw new ApiError(
+        429,
+        'daily_limit_reached',
+        'Das Tageslimit für Analysen ist erreicht. Bitte später erneut versuchen.',
+      );
   });
 
   app.setErrorHandler((error, request, reply) => {
