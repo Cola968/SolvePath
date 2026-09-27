@@ -10,7 +10,7 @@ import {
   SectionTitle,
   StatTile,
 } from '../components/ui';
-import { misconceptionLabel, problemById } from '../data/problems';
+import { demoProblems, misconceptionLabel, problemById } from '../data/problems';
 import { topicScore, topRisks } from '../domain/profile/progress';
 import { useSession } from '../features/session/store';
 import { spacing } from '../theme/tokens';
@@ -31,11 +31,7 @@ export default function ProfileScreen() {
   const totalHints = topics.reduce((sum, [, progress]) => sum + progress.hintsUsed, 0);
 
   const focusProblem = risks.length
-    ? problemById(
-        profile.solvedProblemIds.find(
-          (id) => problemById(id)?.topic === risks[0]?.topic,
-        ) ?? '',
-      )
+    ? demoProblems.find((problem) => problem.topic === risks[0]?.topic)
     : undefined;
 
   return (
