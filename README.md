@@ -20,25 +20,24 @@ Physik enthält unter anderem Gravitation, Kepler, Kreisbewegung, Gravitationsfe
 Free:
 
 - lokale Übungsbibliothek
-- drei Remote-KI-Analysen pro Tag
+- lokale freie Analyse für unterstützte Mathe-/Physikaufgaben
+- On-Device-Texterkennung für Aufgabenfotos
 - kompletter SolvePath mit Stuck Mode und Hint Ladder
 
 Pro:
 
-- kein Free-Tageslimit für KI-Analysen; serverseitiges Fair-Use-/Missbrauchslimit bleibt bestehen
 - adaptiver Exam Mode
 - Store-basierte Kaufwiederherstellung und Abo-Verwaltung
 
+Die Kernanalyse funktioniert ohne externen KI-Provider, ohne API-Key und ohne laufende Modellkosten. Eine optionale Cloud-Analyse kann später separat aktiviert werden.
+
 Apple- und Google-Abos werden über RevenueCat zusammengeführt. Die App verwendet nur öffentliche RevenueCat SDK-Schlüssel. Der Server kann das Entitlement `pro` mit einem geheimen RevenueCat-Key verifizieren.
 
-## KI-Pipeline
+## Lokale Analyse
 
-Remote Analysis arbeitet zweistufig:
+SolvePath verwendet standardmäßig eine lokale, deterministische Analyse. Unterstützt werden derzeit unter anderem Rechenterme, lineare Gleichungen, Prozentrechnung, Steigungen, Satz des Pythagoras und das Ohmsche Gesetz. Zusätzlich stehen 27 vollständig kuratierte SolvePaths offline zur Verfügung.
 
-1. **Analysepass**: Der multimodale Provider erzeugt eine strukturierte `ProblemAnalysis`.
-2. **Verifikationspass**: Ein zweiter Modellaufruf prüft Prinzip, Formeln, Einheiten, Größenordnung, Ergebnis und Hint-Progression und kann die Analyse reparieren.
-
-Wenn eine Modellantwort das Schema verletzt, erhält das Modell bis zu zwei gezielte Reparaturversuche. Danach wird die Analyse abgelehnt statt unsichere Daten an die App weiterzugeben.
+Aufgabenbilder werden auf Android/iOS mit On-Device-OCR in Text umgewandelt. Die lokale Analyse erfindet bei nicht unterstützten freien Aufgaben kein Ergebnis, sondern weist darauf hin, dass der Aufgabentyp noch nicht sicher unterstützt wird.
 
 ## Lokaler Start
 
@@ -49,30 +48,11 @@ pnpm start
 
 Für echte In-App-Käufe ist ein EAS Development Build oder Store-Testbuild erforderlich. Expo Go kann den Flow nur im Preview-Modus darstellen.
 
-## Remote Analysis
+## Optionale Cloud Analysis
 
-Die Produktionskonfiguration verwendet derzeit die Gemini Developer API über Googles OpenAI-kompatiblen Chat-Completions-Endpunkt. Das aktuell vorgesehene Modell ist `gemini-3.8-flash`.
+Cloud Analysis ist im Release-Build standardmäßig deaktiviert. Sie wird nur angezeigt, wenn `EXPO_PUBLIC_SOLVEPATH_API_URL` gesetzt ist. Ein späterer OpenAI-kompatibler Provider kann über `LLM_API_KEY`, `LLM_MODEL` und `LLM_BASE_URL` serverseitig angeschlossen werden.
 
-Serverseitig erforderlich:
-
-```text
-LLM_API_KEY
-LLM_MODEL
-LLM_BASE_URL
-REVENUECAT_SECRET_KEY
-REVENUECAT_ENTITLEMENT_ID=pro
-```
-
-Mobil:
-
-```text
-EXPO_PUBLIC_SOLVEPATH_API_URL
-EXPO_PUBLIC_REVENUECAT_ANDROID_KEY
-EXPO_PUBLIC_REVENUECAT_IOS_KEY
-EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID=pro
-```
-
-`EXPO_PUBLIC_*` darf ausschließlich öffentliche SDK-/Konfigurationswerte enthalten. Der Gemini API-Key bleibt ausschließlich serverseitig in `LLM_API_KEY`.
+RevenueCat bleibt davon unabhängig und verwendet ausschließlich seine öffentlichen mobilen SDK-Schlüssel sowie optional einen serverseitigen Secret Key.
 
 ## Eingaben
 
@@ -81,7 +61,7 @@ EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID=pro
 - Kamera
 - Galerie / Screenshot
 
-Bilder sind auf JPEG, PNG und WebP sowie 8 MB begrenzt. Aufgabenbilder werden nicht dauerhaft in AsyncStorage gespeichert.
+Bilder sind auf JPEG, PNG und WebP sowie 8 MB begrenzt. Bei lokaler Analyse wird der Aufgabentext direkt auf dem Gerät erkannt; Aufgabenbilder werden nicht an einen KI-Dienst hochgeladen und nicht dauerhaft in AsyncStorage gespeichert.
 
 ## API-Schutz
 
@@ -116,4 +96,4 @@ pnpm build:export
 
 ## Veröffentlichung
 
-Siehe `RELEASE_CHECKLIST.md`. Vor einem öffentlichen Store-Release sind weiterhin echte Store-/RevenueCat-Produkte, ein HTTPS-Backend, physische Gerätetests, Store-Assets, Support-/Privacy-URLs und verbundene Developer-Konten nötig.
+Siehe `RELEASE_CHECKLIST.md`. Vor einem öffentlichen Store-Release sind weiterhin echte Store-/RevenueCat-Produkte, physische Gerätetests, Store-Assets, Support-/Privacy-URLs und verbundene Developer-Konten nötig. Ein KI-Backend ist für die lokale Kernfunktion nicht erforderlich.
