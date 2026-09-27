@@ -29,14 +29,14 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Format beta files
-        run: pnpm prettier --write src/app/index.tsx src/app/input.tsx src/app/settings.tsx src/app/exam.tsx src/app/pro.tsx src/app/_layout.tsx src/services/problem-analyzer.ts scripts/release-check.mjs
+      - name: Format repository
+        run: pnpm format
 
       - name: Commit formatting
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src scripts
+          git add -A
           if git diff --cached --quiet; then
             echo "Nothing to format"
           else
