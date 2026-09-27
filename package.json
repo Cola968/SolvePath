@@ -44,15 +44,15 @@
     "expo-image-manipulator": "~57.0.20"
   },
   "devDependencies": {
-    "@types/node": "^22.20.4",
+    "@types/node": "^26.6.2",
     "@types/react": "~19.2.0",
     "babel-preset-expo": "~57.0.13",
-    "eslint": "^9.0.0",
+    "eslint": "^10.11.0",
     "eslint-config-expo": "~57.0.2",
     "prettier": "^3.0.0",
     "tsx": "^4.23.15",
-    "typescript": "~5.9.0",
-    "vitest": "^3.0.0"
+    "typescript": "~7.0.2",
+    "vitest": "^5.0.1"
   },
   "packageManager": "pnpm@11.19.0"
 }
