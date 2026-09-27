@@ -95,7 +95,9 @@ export default function InputScreen() {
       </Card>
 
       <View style={{ gap: spacing.md }}>
-        <SectionTitle aside={<Pill label="8 DEMOS" tone="neutral" />}>Sofort ausprobieren</SectionTitle>
+        <SectionTitle aside={<Pill label="8 DEMOS" tone="neutral" />}>
+          Sofort ausprobieren
+        </SectionTitle>
 
         <View style={{ gap: spacing.sm }}>
           <Choice label="Alle" selected={filter === 'all'} onPress={() => setFilter('all')} />
@@ -104,12 +106,18 @@ export default function InputScreen() {
             selected={filter === 'physics'}
             onPress={() => setFilter('physics')}
           />
-          <Choice label="Mathematik" selected={filter === 'math'} onPress={() => setFilter('math')} />
+          <Choice
+            label="Mathematik"
+            selected={filter === 'math'}
+            onPress={() => setFilter('math')}
+          />
         </View>
 
         {visibleProblems.map((problem) => (
           <Card key={problem.id}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
+            <View
+              style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}
+            >
               <View style={{ flex: 1, gap: spacing.xs }}>
                 <AppText style={{ fontWeight: '800' }}>{problem.title}</AppText>
                 <AppText variant="caption" muted>

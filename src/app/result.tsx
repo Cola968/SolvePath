@@ -98,11 +98,7 @@ export default function ResultScreen() {
           <Pill label="DENKFEHLER ERKANNT" tone="warning" />
           <AppText variant="title">{result.mistake.label}</AppText>
           <AppText>{result.message}</AppText>
-          <Feedback
-            title="Korrektur"
-            message={result.mistake.correction}
-            kind="error"
-          />
+          <Feedback title="Korrektur" message={result.mistake.correction} kind="error" />
           <AppText muted>
             Dieser Fehlertyp wird lokal deinem Lernprofil hinzugefügt, damit der Exam Mode ihn
             später gezielt trainieren kann.
@@ -140,7 +136,9 @@ export default function ResultScreen() {
             </AppText>
           )}
           <AppButton
-            label={getNextHint(problem, hintState) ? 'Nächsten Hinweis öffnen' : 'Alle Hinweise offen'}
+            label={
+              getNextHint(problem, hintState) ? 'Nächsten Hinweis öffnen' : 'Alle Hinweise offen'
+            }
             variant="secondary"
             disabled={!getNextHint(problem, hintState)}
             onPress={nextHint}

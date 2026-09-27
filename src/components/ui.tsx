@@ -340,9 +340,7 @@ export function Choice({
               backgroundColor: selected ? colors.primary : colors.surfaceAlt,
             }}
           >
-            <AppText
-              style={{ color: selected ? colors.white : colors.primary, fontWeight: '800' }}
-            >
+            <AppText style={{ color: selected ? colors.white : colors.primary, fontWeight: '800' }}>
               {prefix}
             </AppText>
           </View>
@@ -504,13 +502,7 @@ export function StatTile({
   );
 }
 
-export function PathRail({
-  steps,
-  current,
-}: {
-  steps: string[];
-  current: number;
-}) {
+export function PathRail({ steps, current }: { steps: string[]; current: number }) {
   const { colors } = useTheme();
 
   return (
@@ -522,7 +514,11 @@ export function PathRail({
           return (
             <View
               key={step}
-              style={{ flex: index === steps.length - 1 ? 0 : 1, flexDirection: 'row', alignItems: 'center' }}
+              style={{
+                flex: index === steps.length - 1 ? 0 : 1,
+                flexDirection: 'row',
+                alignItems: 'center',
+              }}
             >
               <View
                 accessibilityLabel={step}
@@ -641,13 +637,7 @@ export function Feedback({
   );
 }
 
-export function SectionTitle({
-  children,
-  aside,
-}: {
-  children: ReactNode;
-  aside?: ReactNode;
-}) {
+export function SectionTitle({ children, aside }: { children: ReactNode; aside?: ReactNode }) {
   return (
     <View
       style={{

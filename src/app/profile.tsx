@@ -103,12 +103,14 @@ export default function ProfileScreen() {
             const score = topicScore(progress);
             return (
               <Card key={key}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
+                <View
+                  style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}
+                >
                   <View style={{ flex: 1 }}>
                     <AppText variant="lead">{key.split(':')[1]}</AppText>
                     <AppText variant="caption" muted>
-                      {progress.attempts} Versuche · {progress.solved} richtig · {progress.hintsUsed}{' '}
-                      Hinweise
+                      {progress.attempts} Versuche · {progress.solved} richtig ·{' '}
+                      {progress.hintsUsed} Hinweise
                     </AppText>
                   </View>
                   <Pill

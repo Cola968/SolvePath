@@ -83,8 +83,7 @@ export default function ExamScreen() {
     const riskyTopic = risks[0]?.topic;
     const next =
       candidates.find(
-        (problem) =>
-          problem.topic === riskyTopic && !profile.solvedProblemIds.includes(problem.id),
+        (problem) => problem.topic === riskyTopic && !profile.solvedProblemIds.includes(problem.id),
       ) ??
       candidates.find((problem) => !profile.solvedProblemIds.includes(problem.id)) ??
       candidates[0];
@@ -142,9 +141,7 @@ export default function ExamScreen() {
 
       <Card>
         <SectionTitle>2. Themen eingrenzen</SectionTitle>
-        <AppText muted>
-          Ohne Auswahl trainiert SolvePath alle verfügbaren Themen des Fachs.
-        </AppText>
+        <AppText muted>Ohne Auswahl trainiert SolvePath alle verfügbaren Themen des Fachs.</AppText>
         <View style={{ gap: spacing.sm }}>
           {topics.map((topic, index) => (
             <Choice
@@ -185,28 +182,26 @@ export default function ExamScreen() {
       <Card elevated>
         <Pill label="PRIORISIERUNG" tone="warning" />
         <SectionTitle>Deine größten Risiken</SectionTitle>
-        {risks.length ? (
-          risks.map((risk, index) => (
-            <View key={risk.misconceptionId} style={{ flexDirection: 'row', gap: spacing.md }}>
-              <Pill label={`#${index + 1}`} tone="warning" />
-              <View style={{ flex: 1 }}>
-                <AppText style={{ fontWeight: '800' }}>
-                  {misconceptionLabel(risk.misconceptionId)}
-                </AppText>
-                <AppText variant="caption" muted>
-                  {risk.topic} · {risk.count}× erkannt
-                </AppText>
+        {risks.length
+          ? risks.map((risk, index) => (
+              <View key={risk.misconceptionId} style={{ flexDirection: 'row', gap: spacing.md }}>
+                <Pill label={`#${index + 1}`} tone="warning" />
+                <View style={{ flex: 1 }}>
+                  <AppText style={{ fontWeight: '800' }}>
+                    {misconceptionLabel(risk.misconceptionId)}
+                  </AppText>
+                  <AppText variant="caption" muted>
+                    {risk.topic} · {risk.count}× erkannt
+                  </AppText>
+                </View>
               </View>
-            </View>
-          ))
-        ) : (
-          demoRisks.map((risk, index) => (
-            <View key={risk} style={{ flexDirection: 'row', gap: spacing.md }}>
-              <Pill label={`#${index + 1}`} tone="neutral" />
-              <AppText style={{ flex: 1 }}>{risk}</AppText>
-            </View>
-          ))
-        )}
+            ))
+          : demoRisks.map((risk, index) => (
+              <View key={risk} style={{ flexDirection: 'row', gap: spacing.md }}>
+                <Pill label={`#${index + 1}`} tone="neutral" />
+                <AppText style={{ flex: 1 }}>{risk}</AppText>
+              </View>
+            ))}
         <AppText variant="caption" muted>
           {risks.length
             ? 'Priorität aus deinem lokalen Fehlerprofil.'

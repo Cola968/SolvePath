@@ -152,7 +152,9 @@ export default function HomeScreen() {
             if (!problem) return null;
             return (
               <Card key={id}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
+                <View
+                  style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}
+                >
                   <View style={{ flex: 1, gap: spacing.xs }}>
                     <AppText style={{ fontWeight: '800' }}>{problem.title}</AppText>
                     <AppText variant="caption" muted>
