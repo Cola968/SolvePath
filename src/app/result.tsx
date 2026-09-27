@@ -7,20 +7,19 @@ import {
   AppText,
   Card,
   Feedback,
-  HeroCard,
   Page,
   PathRail,
-  Pill,
   SectionTitle,
 } from '../components/ui';
 import { getNextHint, visibleHints } from '../domain/hints/engine';
 import type { AnswerCheck } from '../domain/misconceptions/check';
 import { useProblem } from '../features/problems/use-problem';
 import { useSession } from '../features/session/store';
-import { spacing } from '../theme/tokens';
+import { spacing, useTheme } from '../theme/tokens';
 
 export default function ResultScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
   const problem = useProblem();
   const checkAnswer = useSession((state) => state.checkAnswer);
   const nextHint = useSession((state) => state.nextHint);
@@ -42,30 +41,28 @@ export default function ResultScreen() {
 
   return (
     <Page
-      title="Prüfe deinen Weg."
-      subtitle="Nicht nur richtig oder falsch: SolvePath versucht zu erkennen, welche Entscheidung hinter einem Fehler steckt."
-      eyebrow="05 · Prüfen"
+      title="Ergebnis prüfen"
+      subtitle="Gib dein Ergebnis ein. SolvePath prüft nicht nur den Wert, sondern auch typische Fehler."
+      eyebrow="Schritt 5"
     >
       <PathRail
         current={4}
-        steps={['Aufgabe', 'Diagnose', 'Methode', 'Lösen', 'Prüfen', 'Lernprofil']}
+        steps={['Aufgabe', 'Diagnose', 'Methode', 'Lösen', 'Prüfen', 'Profil']}
       />
 
       {error ? <Feedback title="Speichern fehlgeschlagen" message={error} kind="error" /> : null}
 
-      <Card elevated>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
-          <View style={{ flex: 1, gap: spacing.xs }}>
-            <Pill label="DEIN ERGEBNIS" tone="accent" />
-            <SectionTitle>
-              {problem.unknowns.map((item) => item.symbol).join(', ')} gesucht
-            </SectionTitle>
-          </View>
-        </View>
+      <Card>
+        <AppText variant="caption" muted>
+          GESUCHT
+        </AppText>
+        <AppText variant="lead">
+          {problem.unknowns.map((item) => item.symbol).join(', ')}
+        </AppText>
 
         <AppInput
           accessibilityLabel="Eigenes Ergebnis"
-          placeholder="Ergebnis mit Einheit, z. B. 7,67 km/s"
+          placeholder="z. B. 7,67 km/s"
           value={answer}
           onChangeText={(value) => {
             setAnswer(value);
@@ -74,81 +71,80 @@ export default function ResultScreen() {
         />
 
         <AppButton
-          label="Ergebnis diagnostizieren"
+          label="Prüfen"
           disabled={!answer.trim()}
           onPress={() => setResult(checkAnswer(answer))}
         />
       </Card>
 
       {result?.status === 'correct' ? (
-        <HeroCard
-          kicker="Pfad abgeschlossen"
-          title="Richtig – und der Lösungsweg zählt."
-          body={problem.correctResult.explanation}
-        >
-          <AppText variant="title" style={{ color: '#FFFFFF' }}>
-            {problem.correctResult.display}
-          </AppText>
-          <AppButton label="Lernprofil aktualisieren →" onPress={() => router.push('/profile')} />
-        </HeroCard>
+        <View style={{ gap: spacing.md }}>
+          <Feedback
+            title="Richtig"
+            message={problem.correctResult.explanation}
+            kind="success"
+          />
+          <Card style={{ backgroundColor: colors.successSoft }}>
+            <AppText variant="caption" style={{ color: colors.success, fontWeight: '700' }}>
+              ERGEBNIS
+            </AppText>
+            <AppText variant="title">{problem.correctResult.display}</AppText>
+          </Card>
+          <AppButton label="Zum Lernprofil" onPress={() => router.push('/profile')} />
+        </View>
       ) : null}
 
       {result?.status === 'misconception' ? (
-        <Card elevated>
-          <Pill label="DENKFEHLER ERKANNT" tone="warning" />
-          <AppText variant="title">{result.mistake.label}</AppText>
-          <AppText>{result.message}</AppText>
-          <Feedback title="Korrektur" message={result.mistake.correction} kind="error" />
-          <AppText muted>
-            Dieser Fehlertyp wird lokal deinem Lernprofil hinzugefügt, damit der Exam Mode ihn
-            später gezielt trainieren kann.
-          </AppText>
+        <View style={{ gap: spacing.md }}>
+          <Feedback title={result.mistake.label} message={result.message} kind="error" />
+          <Card>
+            <SectionTitle>So korrigierst du es</SectionTitle>
+            <AppText>{result.mistake.correction}</AppText>
+          </Card>
           <AppButton
-            label="An dieser Stelle weiterlernen →"
+            label="An der Stelle weiterlernen"
             variant="secondary"
             onPress={() => router.push('/guide')}
           />
-        </Card>
+        </View>
       ) : null}
 
       {result && result.status !== 'correct' && result.status !== 'misconception' ? (
-        <Card>
+        <View style={{ gap: spacing.md }}>
           <Feedback title="Noch nicht ganz" message={result.message} kind="error" />
           <AppButton
-            label="Lösungsweg wieder öffnen"
+            label="Lösungsweg öffnen"
             variant="secondary"
             onPress={() => router.push('/guide')}
           />
-        </Card>
+        </View>
       ) : null}
 
       {result?.status !== 'correct' ? (
-        <Card>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
-            <SectionTitle>Kleiner Hinweis</SectionTitle>
-            <Pill label={`${shownHints.length} / 6`} tone="accent" />
-          </View>
+        <View style={{ gap: spacing.md }}>
+          <SectionTitle>Hinweis</SectionTitle>
           {lastHint ? (
-            <AppText>{lastHint.text}</AppText>
+            <Card style={{ backgroundColor: colors.primarySoft }}>
+              <AppText>{lastHint.text}</AppText>
+              <AppText variant="caption" muted>
+                {shownHints.length} von 6 Hinweisen geöffnet
+              </AppText>
+            </Card>
           ) : (
             <AppText muted>
-              Du kannst erst selbst prüfen und dann genau eine weitere Hilfestufe öffnen.
+              Öffne einen Hinweis, wenn du deinen Fehler nicht selbst findest.
             </AppText>
           )}
           <AppButton
-            label={
-              getNextHint(problem, hintState) ? 'Nächsten Hinweis öffnen' : 'Alle Hinweise offen'
-            }
+            label={getNextHint(problem, hintState) ? 'Einen Hinweis öffnen' : 'Alle Hinweise geöffnet'}
             variant="secondary"
             disabled={!getNextHint(problem, hintState)}
             onPress={nextHint}
           />
-        </Card>
+        </View>
       ) : null}
 
-      <View style={{ gap: spacing.sm }}>
-        <AppButton label="Neue Aufgabe" variant="ghost" onPress={() => router.replace('/input')} />
-      </View>
+      <AppButton label="Neue Aufgabe" variant="ghost" onPress={() => router.replace('/input')} />
     </Page>
   );
 }
