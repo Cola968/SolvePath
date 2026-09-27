@@ -122,13 +122,13 @@ export const useSubscription = create<SubscriptionState>((set, get) => ({
     } catch (error) {
       set({
         busy: false,
-        error: error instanceof Error ? error.message : 'Abo-Verwaltung konnte nicht geöffnet werden.',
+        error:
+          error instanceof Error ? error.message : 'Abo-Verwaltung konnte nicht geöffnet werden.',
       });
     }
   },
 
-  canAnalyzeRemote: () =>
-    get().pro || get().freeAnalysesUsed < FREE_REMOTE_ANALYSES_PER_DAY,
+  canAnalyzeRemote: () => get().pro || get().freeAnalysesUsed < FREE_REMOTE_ANALYSES_PER_DAY,
 
   remainingFreeAnalyses: () =>
     get().pro

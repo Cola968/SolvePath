@@ -736,7 +736,9 @@ const rawProblems: ProblemAnalysis[] = [
   },
 ];
 
-export const demoProblems = problemAnalysisSchema.array().parse([...rawProblems, ...extendedProblems]);
+export const demoProblems = problemAnalysisSchema
+  .array()
+  .parse([...rawProblems, ...extendedProblems]);
 export const problemById = (id: string): ProblemAnalysis | undefined =>
   demoProblems.find((problem) => problem.id === id);
 

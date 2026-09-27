@@ -68,7 +68,11 @@ export const extendedProblems: ProblemAnalysis[] = [
     strategySelection: {
       type: 'strategySelection',
       question: 'Wie gehst du bei diesem Term am sichersten vor?',
-      options: ['Von links nach rechts rechnen', 'Zuerst multiplizieren', 'Eine Gleichung aufstellen'],
+      options: [
+        'Von links nach rechts rechnen',
+        'Zuerst multiplizieren',
+        'Eine Gleichung aufstellen',
+      ],
       correctOption: 'Von links nach rechts rechnen',
       explanation: 'Es kommen nur Addition und Subtraktion vor.',
     },
@@ -91,7 +95,8 @@ export const extendedProblems: ProblemAnalysis[] = [
     principle: {
       id: 'mul_div_order',
       name: 'Multiplikation und Division',
-      explanation: 'Multiplikation und Division haben denselben Rang und werden von links nach rechts gerechnet.',
+      explanation:
+        'Multiplikation und Division haben denselben Rang und werden von links nach rechts gerechnet.',
     },
     formulas: [
       {
@@ -227,7 +232,11 @@ export const extendedProblems: ProblemAnalysis[] = [
     strategySelection: {
       type: 'strategySelection',
       question: 'Was ist der entscheidende erste Schritt?',
-      options: ['Gemeinsamen Nenner bilden', 'Zähler und Nenner addieren', 'Beide Brüche quadrieren'],
+      options: [
+        'Gemeinsamen Nenner bilden',
+        'Zähler und Nenner addieren',
+        'Beide Brüche quadrieren',
+      ],
       correctOption: 'Gemeinsamen Nenner bilden',
       explanation: 'Nur gleichnamige Brüche können direkt addiert werden.',
     },
@@ -491,7 +500,8 @@ export const extendedProblems: ProblemAnalysis[] = [
     principle: {
       id: 'square_root',
       name: 'Quadratwurzel',
-      explanation: 'Die Quadratwurzel ist die nichtnegative Zahl, deren Quadrat den Radikanden ergibt.',
+      explanation:
+        'Die Quadratwurzel ist die nichtnegative Zahl, deren Quadrat den Radikanden ergibt.',
     },
     formulas: [
       {
@@ -546,7 +556,11 @@ export const extendedProblems: ProblemAnalysis[] = [
     strategySelection: {
       type: 'strategySelection',
       question: 'Wie löst du den Term?',
-      options: ['Beide Wurzeln einzeln berechnen', 'Radikanden addieren', 'Beide Zahlen quadrieren'],
+      options: [
+        'Beide Wurzeln einzeln berechnen',
+        'Radikanden addieren',
+        'Beide Zahlen quadrieren',
+      ],
       correctOption: 'Beide Wurzeln einzeln berechnen',
       explanation: 'Beide Radikanden sind vollständige Quadratzahlen.',
     },
@@ -801,7 +815,8 @@ export const extendedProblems: ProblemAnalysis[] = [
     subject: 'math',
     topic: 'Geometrie',
     title: 'Satz des Pythagoras',
-    originalText: 'Ein rechtwinkliges Dreieck hat Kathetenlängen 6 cm und 8 cm. Berechne die Hypotenuse c.',
+    originalText:
+      'Ein rechtwinkliges Dreieck hat Kathetenlängen 6 cm und 8 cm. Berechne die Hypotenuse c.',
     given: [
       { symbol: 'a', value: '6 cm', meaning: 'erste Kathete' },
       { symbol: 'b', value: '8 cm', meaning: 'zweite Kathete' },
@@ -1040,13 +1055,15 @@ export const extendedProblems: ProblemAnalysis[] = [
     subject: 'math',
     topic: 'Wahrscheinlichkeit',
     title: 'Zwei Münzwürfe',
-    originalText: 'Eine faire Münze wird zweimal geworfen. Wie groß ist die Wahrscheinlichkeit für genau einmal Kopf?',
+    originalText:
+      'Eine faire Münze wird zweimal geworfen. Wie groß ist die Wahrscheinlichkeit für genau einmal Kopf?',
     given: [{ symbol: 'Versuche', value: '2 faire Münzwürfe', meaning: 'Zufallsexperiment' }],
     unknowns: [{ symbol: 'P', meaning: 'Wahrscheinlichkeit für genau einmal Kopf' }],
     principle: {
       id: 'sample_space',
       name: 'Ergebnisraum',
-      explanation: 'Bei zwei fairen Würfen gibt es vier gleich wahrscheinliche geordnete Ergebnisse.',
+      explanation:
+        'Bei zwei fairen Würfen gibt es vier gleich wahrscheinliche geordnete Ergebnisse.',
     },
     formulas: [
       {
@@ -1125,7 +1142,8 @@ export const extendedProblems: ProblemAnalysis[] = [
     principle: {
       id: 'inequality_transform',
       name: 'Äquivalenzumformung',
-      explanation: 'Solange nicht mit einer negativen Zahl multipliziert oder dividiert wird, bleibt das Ungleichheitszeichen gleich.',
+      explanation:
+        'Solange nicht mit einer negativen Zahl multipliziert oder dividiert wird, bleibt das Ungleichheitszeichen gleich.',
     },
     formulas: [
       {
@@ -1172,7 +1190,8 @@ export const extendedProblems: ProblemAnalysis[] = [
       {
         id: 'inequality_flip_positive',
         label: 'Ungleichheitszeichen unnötig gedreht',
-        explanation: 'Das Zeichen wird nur bei Multiplikation oder Division mit einer negativen Zahl gedreht.',
+        explanation:
+          'Das Zeichen wird nur bei Multiplikation oder Division mit einer negativen Zahl gedreht.',
         correction: 'Bei Division durch +3 bleibt > erhalten.',
         triggers: ['x < 4', 'x<4'],
       },
@@ -1278,7 +1297,8 @@ export const extendedProblems: ProblemAnalysis[] = [
     subject: 'physics',
     topic: 'Energie',
     title: 'Kinetische Energie',
-    originalText: 'Ein Körper mit 2 kg Masse bewegt sich mit 5 m/s. Berechne seine kinetische Energie.',
+    originalText:
+      'Ein Körper mit 2 kg Masse bewegt sich mit 5 m/s. Berechne seine kinetische Energie.',
     given: [
       { symbol: 'm', value: '2 kg', meaning: 'Masse' },
       { symbol: 'v', value: '5 m/s', meaning: 'Geschwindigkeit' },
@@ -1287,7 +1307,8 @@ export const extendedProblems: ProblemAnalysis[] = [
     principle: {
       id: 'kinetic_energy',
       name: 'Bewegungsenergie',
-      explanation: 'Die kinetische Energie wächst mit der Masse und mit dem Quadrat der Geschwindigkeit.',
+      explanation:
+        'Die kinetische Energie wächst mit der Masse und mit dem Quadrat der Geschwindigkeit.',
     },
     formulas: [
       {
@@ -1444,7 +1465,8 @@ export const extendedProblems: ProblemAnalysis[] = [
     subject: 'physics',
     topic: 'Mechanik',
     title: 'Dichte berechnen',
-    originalText: 'Ein Körper hat eine Masse von 540 g und ein Volumen von 200 cm³. Berechne seine Dichte ρ.',
+    originalText:
+      'Ein Körper hat eine Masse von 540 g und ein Volumen von 200 cm³. Berechne seine Dichte ρ.',
     given: [
       { symbol: 'm', value: '540 g', meaning: 'Masse' },
       { symbol: 'V', value: '200 cm³', meaning: 'Volumen' },

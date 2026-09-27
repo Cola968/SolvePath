@@ -8,7 +8,11 @@ const features = [
   ['∞', 'Unbegrenzte KI-Analysen', 'Freie Mathe- und Physikaufgaben ohne Tageslimit analysieren.'],
   ['◎', 'Foto & Screenshot', 'Aufgaben direkt mit Kamera oder Galerie in SolvePath übernehmen.'],
   ['↗', 'Exam Mode', 'Fehlermuster priorisieren und gezielt für Prüfungen trainieren.'],
-  ['◇', 'Volles Denkprofil', 'Risiken, Selbstständigkeit und typische Lösungsfehler langfristig verfolgen.'],
+  [
+    '◇',
+    'Volles Denkprofil',
+    'Risiken, Selbstständigkeit und typische Lösungsfehler langfristig verfolgen.',
+  ],
 ];
 
 export default function ProScreen() {
@@ -33,7 +37,9 @@ export default function ProScreen() {
     >
       <HeroCard
         kicker={pro ? 'AKTIV' : 'PRO'}
-        title={pro ? 'Alle Pro-Funktionen freigeschaltet' : 'Dein persönlicher Lernpfad ohne Tageslimit'}
+        title={
+          pro ? 'Alle Pro-Funktionen freigeschaltet' : 'Dein persönlicher Lernpfad ohne Tageslimit'
+        }
         body={
           pro
             ? 'Danke für deine Unterstützung. Store-Abos werden über Apple bzw. Google verwaltet.'

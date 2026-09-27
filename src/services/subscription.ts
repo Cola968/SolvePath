@@ -11,8 +11,7 @@ let configured = false;
 function platformKey(): string | null {
   if (Platform.OS === 'android')
     return process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY?.trim() || null;
-  if (Platform.OS === 'ios')
-    return process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY?.trim() || null;
+  if (Platform.OS === 'ios') return process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY?.trim() || null;
   return null;
 }
 

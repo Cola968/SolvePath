@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import { RevenueCatEntitlementVerifier } from './revenuecat';
 
-function response(entitlement?: { expires_date?: string | null; grace_period_expires_date?: string | null }) {
+function response(entitlement?: {
+  expires_date?: string | null;
+  grace_period_expires_date?: string | null;
+}) {
   return new Response(
     JSON.stringify({
       subscriber: {

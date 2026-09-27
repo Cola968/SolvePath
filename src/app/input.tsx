@@ -210,7 +210,11 @@ export default function InputScreen() {
         <View style={{ gap: spacing.sm }}>
           <AppText variant="lead">Analysemodus</AppText>
           <Choice
-            label={pro ? 'Remote Analysis · Pro ohne Tageslimit' : `Remote Analysis · ${remaining} Free-Analysen heute`}
+            label={
+              pro
+                ? 'Remote Analysis · Pro ohne Tageslimit'
+                : `Remote Analysis · ${remaining} Free-Analysen heute`
+            }
             selected={mode === 'remote'}
             onPress={() => {
               setMode('remote');

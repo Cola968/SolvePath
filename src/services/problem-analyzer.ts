@@ -77,9 +77,7 @@ export class RemoteProblemAnalyzer implements ProblemAnalyzer {
     try {
       let body: string | FormData;
       const appUserId = getSubscriptionAppUserId();
-      const headers: Record<string, string> = appUserId
-        ? { 'x-solvepath-user-id': appUserId }
-        : {};
+      const headers: Record<string, string> = appUserId ? { 'x-solvepath-user-id': appUserId } : {};
       if (image) {
         const form = new FormData();
         form.append('image', {

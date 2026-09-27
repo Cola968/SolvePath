@@ -3,10 +3,7 @@ import multipart from '@fastify/multipart';
 import { problemAnalysisSchema } from '../../src/domain/problem/schema';
 import type { AnalysisProvider } from './providers/analysis-provider';
 import { RemoteAnalysisProvider } from './providers/remote-analysis-provider';
-import {
-  RevenueCatEntitlementVerifier,
-  type EntitlementVerifier,
-} from './services/revenuecat';
+import { RevenueCatEntitlementVerifier, type EntitlementVerifier } from './services/revenuecat';
 import {
   ApiError,
   MAX_IMAGE_BYTES,

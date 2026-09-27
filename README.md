@@ -18,11 +18,13 @@ Physik enthält unter anderem Gravitation, Kepler, Kreisbewegung, Gravitationsfe
 ## Free & Pro
 
 Free:
+
 - lokale Übungsbibliothek
 - drei Remote-KI-Analysen pro Tag
 - kompletter SolvePath mit Stuck Mode und Hint Ladder
 
 Pro:
+
 - kein Free-Tageslimit für KI-Analysen; serverseitiges Fair-Use-/Missbrauchslimit bleibt bestehen
 - adaptiver Exam Mode
 - Store-basierte Kaufwiederherstellung und Abo-Verwaltung
@@ -82,6 +84,7 @@ Bilder sind auf JPEG, PNG und WebP sowie 8 MB begrenzt. Aufgabenbilder werden ni
 ## API-Schutz
 
 Der Server verwendet unter anderem:
+
 - Zod-Validierung
 - Request IDs
 - Provider-Timeout
