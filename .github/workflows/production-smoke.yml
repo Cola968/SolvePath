@@ -1,4 +1,5 @@
 name: Production Smoke Test
+# rerun after provider diagnostics deploy
 
 on:
   workflow_dispatch:
