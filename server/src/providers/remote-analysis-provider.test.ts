@@ -26,9 +26,11 @@ describe('RemoteAnalysisProvider', () => {
     const first = JSON.parse(fetcher.mock.calls[0]![1]!.body as string);
     const second = JSON.parse(fetcher.mock.calls[1]![1]!.body as string);
     expect(first.messages[0].content).toContain('Hinweis 1');
-    expect(second.messages.some((message: { content: string }) => message.content.includes('Repariere'))).toBe(
-      true,
-    );
+    expect(
+      second.messages.some((message: { content: string }) =>
+        message.content.includes('Repariere'),
+      ),
+    ).toBe(true);
   });
 
   it('reports timeout without leaking provider details', async () => {
