@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { View } from 'react-native';
 import { z } from 'zod';
@@ -28,6 +28,11 @@ export default function ExamScreen() {
   const setExam = useSession((state) => state.setExam);
   const selectProblem = useSession((state) => state.selectProblem);
   const [date, setDate] = useState(savedDate);
+  const [todayMs, setTodayMs] = useState<number | null>(null);
+
+  useEffect(() => {
+    setTodayMs(Date.now());
+  }, []);
 
   const topics = useMemo(
     () => [
@@ -69,8 +74,8 @@ export default function ExamScreen() {
             selectedTopicProgress.length,
         );
 
-  const daysUntilExam = dateIsValid
-    ? Math.ceil((new Date(`${date}T12:00:00`).getTime() - Date.now()) / 86_400_000)
+  const daysUntilExam = dateIsValid && todayMs !== null
+    ? Math.ceil((new Date(`${date}T12:00:00`).getTime() - todayMs) / 86_400_000)
     : null;
 
   function toggleTopic(topic: string) {
