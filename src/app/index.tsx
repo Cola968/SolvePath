@@ -70,12 +70,7 @@ export default function HomeScreen() {
           detail={topicProgress.length ? 'aus deinen Versuchen' : 'noch keine Daten'}
           tone="accent"
         />
-        <StatTile
-          value="LOCAL"
-          label="Analyse"
-          detail="kein API-Key nötig"
-          tone="primary"
-        />
+        <StatTile value="LOCAL" label="Analyse" detail="kein API-Key nötig" tone="primary" />
       </View>
 
       <Card elevated>
@@ -83,9 +78,9 @@ export default function HomeScreen() {
           <Pill label="BETA" tone="accent" />
           <AppText variant="lead">{BETA_VERSION_LABEL}</AppText>
           <AppText muted>
-            Alle aktuellen Lernfunktionen sind im Beta-Test freigeschaltet. Käufe und
-            Cloud-Analyse sind bewusst deaktiviert. Wenn etwas falsch erkannt wird, schick uns
-            direkt einen Beta-Report.
+            Alle aktuellen Lernfunktionen sind im Beta-Test freigeschaltet. Käufe und Cloud-Analyse
+            sind bewusst deaktiviert. Wenn etwas falsch erkannt wird, schick uns direkt einen
+            Beta-Report.
           </AppText>
         </View>
         <AppButton

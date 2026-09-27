@@ -246,7 +246,6 @@ export default function InputScreen() {
 
         {error ? <Feedback title="Noch nicht erkannt" message={error} kind="error" /> : null}
 
-
         {busy ? (
           <Card>
             {stages.map((stage, index) => (

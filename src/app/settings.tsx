@@ -44,8 +44,8 @@ export default function SettingsScreen() {
           <View style={{ flex: 1, gap: spacing.xs }}>
             <SectionTitle>Beta-Test</SectionTitle>
             <AppText muted>
-              Käufe und Cloud-Analyse sind in diesem Build deaktiviert. Alle aktuellen Lernfunktionen
-              einschließlich Exam Mode stehen Testern frei zur Verfügung.
+              Käufe und Cloud-Analyse sind in diesem Build deaktiviert. Alle aktuellen
+              Lernfunktionen einschließlich Exam Mode stehen Testern frei zur Verfügung.
             </AppText>
           </View>
           <Pill label="BETA" tone="accent" />
