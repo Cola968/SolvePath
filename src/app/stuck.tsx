@@ -9,7 +9,6 @@ import {
   Feedback,
   Page,
   PathRail,
-  Pill,
   ProgressBar,
   SectionTitle,
 } from '../components/ui';
@@ -17,15 +16,6 @@ import { diagnosticPrompts, stuckReasons, type StuckReason } from '../domain/pro
 import { useProblem } from '../features/problems/use-problem';
 import { useSession } from '../features/session/store';
 import { spacing } from '../theme/tokens';
-
-const reasonSymbols: Record<StuckReason, string> = {
-  start: '01',
-  text: '02',
-  formula: '03',
-  rearrange: '04',
-  calculate: '05',
-  check: '06',
-};
 
 export default function StuckScreen() {
   const router = useRouter();
@@ -54,93 +44,81 @@ export default function StuckScreen() {
 
   return (
     <Page
-      title="Wo stockt dein Weg?"
-      subtitle="Wähle nicht das Thema, sondern exakt die Stelle, an der du gerade nicht weiterkommst."
-      eyebrow="02 · Diagnose"
+      title="Wo hängst du?"
+      subtitle="Wähle die Stelle, an der du gerade nicht weiterkommst."
+      eyebrow="Schritt 2"
     >
       <PathRail
         current={1}
-        steps={['Aufgabe', 'Diagnose', 'Methode', 'Lösen', 'Prüfen', 'Lernprofil']}
+        steps={['Aufgabe', 'Diagnose', 'Methode', 'Lösen', 'Prüfen', 'Profil']}
       />
 
-      <Card elevated>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
-          <View style={{ flex: 1, gap: spacing.xs }}>
-            <AppText variant="lead">{problem.title}</AppText>
-            <AppText muted>{problem.originalText}</AppText>
-          </View>
-          <Pill
-            label={problem.subject === 'physics' ? 'PHYSIK' : 'MATHE'}
-            tone={problem.subject === 'physics' ? 'primary' : 'accent'}
-          />
-        </View>
+      <Card>
+        <AppText variant="caption" muted>
+          DEINE AUFGABE
+        </AppText>
+        <AppText variant="lead">{problem.title}</AppText>
+        <AppText muted>{problem.originalText}</AppText>
       </Card>
 
       <View style={{ gap: spacing.md }}>
-        <View style={{ gap: spacing.xs }}>
-          <SectionTitle>Markiere deinen Engpass</SectionTitle>
-          <AppText muted>
-            SolvePath passt die Hilfe daran an. Du kannst die Auswahl jederzeit ändern.
-          </AppText>
+        <SectionTitle>Was ist gerade das Problem?</SectionTitle>
+        <View style={{ gap: spacing.sm }}>
+          {stuckReasons.map((item) => (
+            <Choice
+              key={item.id}
+              label={item.label}
+              selected={reason === item.id}
+              onPress={() => chooseReason(item.id)}
+            />
+          ))}
         </View>
-        {stuckReasons.map((item) => (
-          <Choice
-            key={item.id}
-            prefix={reasonSymbols[item.id]}
-            label={item.label}
-            selected={reason === item.id}
-            onPress={() => chooseReason(item.id)}
-          />
-        ))}
       </View>
 
       {reason && !prompt ? (
         <Feedback
-          title="Engpass gespeichert"
-          message="Für diesen Pfad ist keine zusätzliche Diagnosefrage nötig. Du kannst direkt in die Analyse wechseln."
+          title="Verstanden"
+          message="Für diesen Engpass ist keine weitere Diagnose nötig."
           kind="success"
         />
       ) : null}
 
       {prompt ? (
-        <Card elevated>
-          <View style={{ gap: spacing.sm }}>
-            <Pill label="MINI-DIAGNOSE" tone="accent" />
-            <ProgressBar
-              value={Math.round(((promptIndex + 1) / prompts.length) * 100)}
-              label={`Denkfrage ${promptIndex + 1} von ${prompts.length}`}
-            />
-          </View>
+        <View style={{ gap: spacing.md }}>
+          <ProgressBar
+            value={Math.round(((promptIndex + 1) / prompts.length) * 100)}
+            label={`Kurze Rückfrage ${promptIndex + 1} von ${prompts.length}`}
+          />
 
-          <AppText variant="lead">{prompt.question}</AppText>
+          <Card>
+            <AppText variant="lead">{prompt.question}</AppText>
+            <View style={{ gap: spacing.sm }}>
+              {prompt.options.map((option) => (
+                <Choice
+                  key={option}
+                  label={option}
+                  selected={selected === option}
+                  onPress={() => setSelected(option)}
+                />
+              ))}
+            </View>
 
-          <View style={{ gap: spacing.sm }}>
-            {prompt.options.map((option, index) => (
-              <Choice
-                key={option}
-                prefix={String.fromCharCode(65 + index)}
-                label={option}
-                selected={selected === option}
-                onPress={() => setSelected(option)}
+            {selected ? (
+              <Feedback
+                title={correct ? 'Passt' : 'Noch nicht'}
+                message={
+                  correct
+                    ? prompt.feedback
+                    : 'Prüfe noch einmal, welche Antwort direkt zur Frage passt.'
+                }
+                kind={correct ? 'success' : 'error'}
               />
-            ))}
-          </View>
-
-          {selected ? (
-            <Feedback
-              title={correct ? 'Genau hier setzen wir an' : 'Noch nicht passend'}
-              message={
-                correct
-                  ? prompt.feedback
-                  : 'Prüfe, welche Antwort direkt zur Frage passt. SolvePath zeigt die Formel noch bewusst nicht.'
-              }
-              kind={correct ? 'success' : 'error'}
-            />
-          ) : null}
+            ) : null}
+          </Card>
 
           {correct && promptIndex < prompts.length - 1 ? (
             <AppButton
-              label="Nächste Denkfrage →"
+              label="Nächste Frage"
               onPress={() => {
                 setPromptIndex(promptIndex + 1);
                 setSelected(null);
@@ -150,14 +128,14 @@ export default function StuckScreen() {
 
           {correct && promptIndex === prompts.length - 1 ? (
             <AppButton
-              label={reason === 'check' ? 'Ergebnis prüfen →' : 'Lösungsweg aufbauen →'}
+              label={reason === 'check' ? 'Ergebnis prüfen' : 'Methode wählen'}
               onPress={() => router.push(reason === 'check' ? '/result' : '/analysis')}
             />
           ) : null}
-        </Card>
+        </View>
       ) : reason ? (
         <AppButton
-          label={reason === 'check' ? 'Ergebnis prüfen →' : 'Analyse starten →'}
+          label={reason === 'check' ? 'Ergebnis prüfen' : 'Weiter zur Methode'}
           onPress={() => router.push(reason === 'check' ? '/result' : '/analysis')}
         />
       ) : null}
