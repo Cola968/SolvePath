@@ -1,0 +1,68 @@
+name: Beta APK
+
+on:
+  push:
+    branches: ["main", "feat/v0.5-beta-release"]
+    paths:
+      - "src/**"
+      - "app.json"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "babel.config.js"
+      - ".github/workflows/beta-apk.yml"
+  workflow_dispatch:
+
+jobs:
+  android-beta:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+          run_install: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Release checks
+        run: |
+          pnpm typecheck
+          pnpm lint
+          pnpm test
+          pnpm release:check
+
+      - name: Generate Android project
+        run: npx expo prebuild --platform android --clean --no-install
+
+      - name: Build standalone release APK
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Rename APK
+        run: cp android/app/build/outputs/apk/release/app-release.apk SolvePath-0.5.0-beta.apk
+
+      - name: Upload beta APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: SolvePath-0.5.0-beta-android
+          path: SolvePath-0.5.0-beta.apk
+          if-no-files-found: error
+          retention-days: 30
