@@ -1,8 +1,8 @@
-# SolvePath 0.5.0 Beta
+# SolvePath 0.5.1 Beta
 
 SolvePath begleitet Mathematik- und Physikaufgaben über **Aufgabe → Diagnose → Methode → sechs gestufte Hinweise → eigener Lösungsweg → Ergebnisprüfung → Lernprofil**.
 
-Die 0.5.0-Beta ist bewusst **local-first**: Die Kernfunktionen benötigen keinen KI-API-Key, kein Backend und keine laufenden Modellkosten.
+Die 0.5.1-Beta ist bewusst **local-first**: Die Kernfunktionen benötigen keinen KI-API-Key, kein Backend und keine laufenden Modellkosten.
 
 ## Beta-Funktionsumfang
 
@@ -45,7 +45,7 @@ Google-Play-Test-AAB:
 eas build --platform android --profile beta-store
 ```
 
-Zusätzlich baut GitHub Actions über **Beta APK** ein direkt installierbares `SolvePath-0.5.0-beta.apk` ohne Expo- oder Store-Konto. Dieses Artefakt ist nur für geschlossene Tests vorgesehen.
+Zusätzlich baut GitHub Actions über **Beta APK** ein direkt installierbares `SolvePath-0.5.1-beta.apk` ohne Expo- oder Store-Konto. Dieses Artefakt ist nur für geschlossene Tests vorgesehen.
 
 ## Lokaler Start
 
