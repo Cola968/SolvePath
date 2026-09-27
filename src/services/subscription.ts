@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 import Purchases, { LOG_LEVEL, type CustomerInfo } from 'react-native-purchases';
 import RevenueCatUI, { PAYWALL_RESULT } from 'react-native-purchases-ui';
+import { setSubscriptionAppUserId } from './subscription-identity';
 
 export const PRO_ENTITLEMENT_ID =
   process.env.EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID?.trim() || 'pro';
@@ -39,6 +40,7 @@ export async function configureSubscriptions(): Promise<SubscriptionSnapshot> {
     Purchases.getCustomerInfo(),
     Purchases.getAppUserID(),
   ]);
+  setSubscriptionAppUserId(appUserId);
   return { configured: true, pro: hasPro(info), appUserId };
 }
 
@@ -48,6 +50,7 @@ export async function refreshSubscription(): Promise<SubscriptionSnapshot> {
     Purchases.getCustomerInfo(),
     Purchases.getAppUserID(),
   ]);
+  setSubscriptionAppUserId(appUserId);
   return { configured: true, pro: hasPro(info), appUserId };
 }
 
