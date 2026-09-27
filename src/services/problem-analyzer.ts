@@ -1,6 +1,7 @@
 import { demoProblems } from '../data/problems';
 import type { ProblemAnalysis } from '../domain/problem/schema';
 import { problemAnalysisSchema } from '../domain/problem/schema';
+import { getSubscriptionAppUserId } from './subscription-identity';
 
 export type AnalysisImage = { uri: string; name: string; mimeType: string; size?: number };
 export type AnalysisMode = 'remote' | 'demo';
@@ -75,7 +76,10 @@ export class RemoteProblemAnalyzer implements ProblemAnalyzer {
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
     try {
       let body: string | FormData;
-      let headers: Record<string, string> | undefined;
+      const appUserId = getSubscriptionAppUserId();
+      const headers: Record<string, string> = appUserId
+        ? { 'x-solvepath-user-id': appUserId }
+        : {};
       if (image) {
         const form = new FormData();
         form.append('image', {
@@ -87,7 +91,7 @@ export class RemoteProblemAnalyzer implements ProblemAnalyzer {
         body = form;
       } else {
         body = JSON.stringify({ text: text.trim() });
-        headers = { 'content-type': 'application/json' };
+        headers['content-type'] = 'application/json';
       }
       const response = await this.fetcher(`${this.baseUrl.replace(/\/$/, '')}/api/analyze`, {
         method: 'POST',
