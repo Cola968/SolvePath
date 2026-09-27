@@ -5,7 +5,6 @@ import {
   AppText,
   Card,
   Page,
-  Pill,
   ProgressBar,
   SectionTitle,
   StatTile,
@@ -13,10 +12,11 @@ import {
 import { demoProblems, misconceptionLabel, problemById } from '../data/problems';
 import { topicScore, topRisks } from '../domain/profile/progress';
 import { useSession } from '../features/session/store';
-import { spacing } from '../theme/tokens';
+import { spacing, useTheme } from '../theme/tokens';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
   const profile = useSession((state) => state.profile);
   const selectProblem = useSession((state) => state.selectProblem);
 
@@ -36,141 +36,144 @@ export default function ProfileScreen() {
 
   return (
     <Page
-      title="Dein Denkprofil"
-      subtitle="Nicht nur Noten oder richtige Antworten: Hier siehst du, an welchen Entscheidungen dein Lösungsweg häufig scheitert."
-      eyebrow="Lernprofil"
+      title="Lernprofil"
+      subtitle="Hier siehst du, wo dein Lösungsweg wiederholt unsicher wird."
+      eyebrow="Fortschritt"
     >
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md }}>
-        <StatTile
-          value={profile.solvedProblemIds.length.toString()}
-          label="Aufgaben gelöst"
-          detail={`${totalAttempts} Prüfversuche`}
-        />
-        <StatTile
-          value={topics.length ? `${mastery}%` : '–'}
-          label="Selbstständigkeit"
-          detail="Trefferquote minus Hint-Bedarf"
-          tone="accent"
-        />
-        <StatTile
-          value={totalHints.toString()}
-          label="Hinweise genutzt"
-          detail={risks.length ? `${risks.length} Fehlermuster aktiv` : 'keine Muster erkannt'}
-          tone="warning"
-        />
-      </View>
+      <Card>
+        <View style={{ flexDirection: 'row', gap: spacing.lg }}>
+          <StatTile value={profile.solvedProblemIds.length.toString()} label="Gelöst" />
+          <StatTile
+            value={topics.length ? `${mastery}%` : '–'}
+            label="Sicherheit"
+            tone="accent"
+          />
+          <StatTile value={totalHints.toString()} label="Hinweise" tone="warning" />
+        </View>
+        <AppText variant="caption" muted>
+          {totalAttempts} Ergebnisprüfungen insgesamt
+        </AppText>
+      </Card>
 
       {risks.length ? (
-        <Card elevated>
-          <Pill label="NÄCHSTER FOKUS" tone="warning" />
-          <AppText variant="title">{misconceptionLabel(risks[0]!.misconceptionId)}</AppText>
-          <AppText muted>
-            Dieser Denkfehler wurde {risks[0]!.count} Mal erkannt. Statt mehr vom gleichen Stoff zu
-            machen, solltest du genau diese Entscheidung trainieren.
-          </AppText>
-          {focusProblem ? (
-            <AppButton
-              label="Gezielt trainieren →"
-              onPress={() => {
-                selectProblem(focusProblem.id);
-                router.push('/stuck');
-              }}
-            />
-          ) : (
-            <AppButton label="Prüfungsmodus öffnen →" onPress={() => router.push('/exam')} />
-          )}
-        </Card>
+        <View style={{ gap: spacing.md }}>
+          <SectionTitle>Nächster Fokus</SectionTitle>
+          <Card style={{ backgroundColor: colors.warningSoft }}>
+            <AppText variant="lead">{misconceptionLabel(risks[0]!.misconceptionId)}</AppText>
+            <AppText muted>
+              {risks[0]!.topic} · {risks[0]!.count}× erkannt
+            </AppText>
+            {focusProblem ? (
+              <AppButton
+                label="Gezielt trainieren"
+                onPress={() => {
+                  selectProblem(focusProblem.id);
+                  router.push('/stuck');
+                }}
+              />
+            ) : (
+              <AppButton label="Prüfungsmodus öffnen" onPress={() => router.push('/exam')} />
+            )}
+          </Card>
+        </View>
       ) : (
         <Card>
-          <Pill label="NOCH KEIN MUSTER" tone="accent" />
-          <AppText variant="lead">SolvePath braucht ein paar echte Versuche.</AppText>
+          <AppText variant="lead">Noch kein wiederkehrendes Fehlermuster</AppText>
           <AppText muted>
-            Prüfe eigene Ergebnisse. Erst dann kann die App zwischen Rechenfehlern und typischen
-            Denkfehlern unterscheiden.
+            Bearbeite ein paar Aufgaben und prüfe deine eigenen Ergebnisse. Danach kann SolvePath
+            gezielter priorisieren.
           </AppText>
-          <AppButton label="Aufgabe starten" onPress={() => router.push('/input')} />
         </Card>
       )}
 
       <View style={{ gap: spacing.md }}>
-        <SectionTitle>Themenfortschritt</SectionTitle>
+        <SectionTitle>Themen</SectionTitle>
         {topics.length === 0 ? (
-          <Card>
-            <AppText muted>Noch keine Daten. Prüfe zuerst ein eigenes Ergebnis.</AppText>
-          </Card>
+          <AppText muted>Noch keine Daten vorhanden.</AppText>
         ) : (
-          topics.map(([key, progress]) => {
-            const score = topicScore(progress);
-            return (
-              <Card key={key}>
+          <Card>
+            {topics.map(([key, progress], index) => {
+              const score = topicScore(progress);
+              return (
                 <View
-                  style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}
+                  key={key}
+                  style={{
+                    gap: spacing.sm,
+                    paddingBottom: index === topics.length - 1 ? 0 : spacing.lg,
+                    marginBottom: index === topics.length - 1 ? 0 : spacing.lg,
+                    borderBottomWidth: index === topics.length - 1 ? 0 : 1,
+                    borderBottomColor: colors.border,
+                  }}
                 >
-                  <View style={{ flex: 1 }}>
-                    <AppText variant="lead">{key.split(':')[1]}</AppText>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      gap: spacing.md,
+                    }}
+                  >
+                    <AppText style={{ fontWeight: '700', flex: 1 }}>{key.split(':')[1]}</AppText>
                     <AppText variant="caption" muted>
-                      {progress.attempts} Versuche · {progress.solved} richtig ·{' '}
-                      {progress.hintsUsed} Hinweise
+                      {progress.solved}/{progress.attempts} richtig
                     </AppText>
                   </View>
-                  <Pill
-                    label={score >= 80 ? 'SICHER' : score >= 50 ? 'AUFBAU' : 'FOKUS'}
-                    tone={score >= 80 ? 'primary' : score >= 50 ? 'accent' : 'warning'}
-                  />
+                  <ProgressBar value={score} />
                 </View>
-                <ProgressBar label="Selbstständigkeit" value={score} />
-              </Card>
-            );
-          })
-        )}
-      </View>
-
-      <View style={{ gap: spacing.md }}>
-        <SectionTitle aside={<Pill label={`${risks.length}`} tone="warning" />}>
-          Erkannte Fehlermuster
-        </SectionTitle>
-        {risks.length === 0 ? (
-          <Card>
-            <AppText muted>Noch keine typischen Denkfehler erkannt.</AppText>
+              );
+            })}
           </Card>
-        ) : (
-          risks.map((risk, index) => (
-            <Card key={risk.misconceptionId}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-                <Pill label={`#${index + 1}`} tone="warning" />
-                <View style={{ flex: 1, gap: spacing.xs }}>
-                  <AppText style={{ fontWeight: '800' }}>
-                    {misconceptionLabel(risk.misconceptionId)}
-                  </AppText>
-                  <AppText variant="caption" muted>
-                    {risk.topic} · {risk.count}× erkannt
-                  </AppText>
-                </View>
-              </View>
-            </Card>
-          ))
         )}
       </View>
 
-      <View style={{ gap: spacing.md }}>
-        <SectionTitle>Abgeschlossene Pfade</SectionTitle>
-        {profile.solvedProblemIds.length === 0 ? (
-          <AppText muted>Noch keine Aufgabe abgeschlossen.</AppText>
-        ) : (
-          profile.solvedProblemIds.map((id) => (
-            <Card key={id}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-                <Pill label="✓" tone="primary" />
-                <AppText style={{ flex: 1, fontWeight: '700' }}>
-                  {problemById(id)?.title ?? id}
+      {risks.length ? (
+        <View style={{ gap: spacing.md }}>
+          <SectionTitle>Fehlermuster</SectionTitle>
+          <Card>
+            {risks.map((risk, index) => (
+              <View
+                key={risk.misconceptionId}
+                style={{
+                  paddingBottom: index === risks.length - 1 ? 0 : spacing.md,
+                  marginBottom: index === risks.length - 1 ? 0 : spacing.md,
+                  borderBottomWidth: index === risks.length - 1 ? 0 : 1,
+                  borderBottomColor: colors.border,
+                  gap: spacing.xs,
+                }}
+              >
+                <AppText style={{ fontWeight: '700' }}>
+                  {misconceptionLabel(risk.misconceptionId)}
+                </AppText>
+                <AppText variant="caption" muted>
+                  {risk.topic} · {risk.count}× erkannt
                 </AppText>
               </View>
-            </Card>
-          ))
-        )}
-      </View>
+            ))}
+          </Card>
+        </View>
+      ) : null}
 
-      <AppButton label="Prüfung gezielt vorbereiten →" onPress={() => router.push('/exam')} />
+      {profile.solvedProblemIds.length ? (
+        <View style={{ gap: spacing.md }}>
+          <SectionTitle>Zuletzt abgeschlossen</SectionTitle>
+          <Card>
+            {profile.solvedProblemIds.slice(-5).reverse().map((id, index, arr) => (
+              <View
+                key={id}
+                style={{
+                  paddingBottom: index === arr.length - 1 ? 0 : spacing.md,
+                  marginBottom: index === arr.length - 1 ? 0 : spacing.md,
+                  borderBottomWidth: index === arr.length - 1 ? 0 : 1,
+                  borderBottomColor: colors.border,
+                }}
+              >
+                <AppText style={{ fontWeight: '600' }}>{problemById(id)?.title ?? id}</AppText>
+              </View>
+            ))}
+          </Card>
+        </View>
+      ) : null}
+
+      <AppButton label="Prüfung vorbereiten" onPress={() => router.push('/exam')} />
     </Page>
   );
 }
