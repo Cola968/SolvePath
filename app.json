@@ -7,8 +7,19 @@
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "ios": { "supportsTablet": true, "bundleIdentifier": "app.solvepath.mobile" },
-    "android": { "package": "app.solvepath.mobile", "edgeToEdgeEnabled": true },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "app.solvepath.mobile",
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "app.solvepath.mobile",
+      "versionCode": 1,
+      "edgeToEdgeEnabled": true
+    },
     "plugins": [
       "expo-router",
       [
