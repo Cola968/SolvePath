@@ -2,7 +2,7 @@ services:
   - type: web
     name: solvepath-api
     runtime: node
-    buildCommand: corepack enable && pnpm install --frozen-lockfile
+    buildCommand: corepack enable && pnpm install --frozen-lockfile --prod=false
     startCommand: pnpm server:start
     healthCheckPath: /health
     autoDeploy: true
