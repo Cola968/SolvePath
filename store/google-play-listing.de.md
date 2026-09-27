@@ -1,44 +1,52 @@
-# SolvePath – Google Play Listing (DE)
+# SolvePath – Google Play Beta Listing (DE)
 
 ## App-Name
+
 SolvePath
 
 ## Kurzbeschreibung
+
 Verstehe Mathe- und Physikaufgaben Schritt für Schritt – statt nur die Lösung zu sehen.
 
-## Ausführliche Beschreibung
+## Beschreibung
+
 SolvePath hilft dir dabei, den richtigen Lösungsweg für Mathematik- und Physikaufgaben zu finden.
 
-Statt nach einem Foto sofort nur ein Endergebnis auszugeben, analysiert SolvePath, wo du im Lösungsprozess festhängst: beim Verstehen der Aufgabe, bei der Wahl der Methode, bei der Formel, beim Umstellen, beim Rechnen oder bei der Ergebnisprüfung.
+Die 0.5.0-Beta konzentriert sich auf einen local-first Lernablauf: Aufgabe eingeben oder fotografieren, Engpass erkennen, Methode auswählen, gestufte Hinweise nutzen, selbst rechnen und Ergebnis prüfen.
 
-### Funktionen
-- Aufgaben als Text eingeben oder aus der Zwischenablage einfügen
-- Aufgaben fotografieren oder als Screenshot auswählen
+### Beta-Funktionen
+
+- freie lokale Analyse unterstützter Aufgaben
+- lokale Texterkennung für Foto und Screenshot
 - Stuck Mode zur Diagnose des konkreten Engpasses
-- schrittweise Hint Ladder mit sechs Hilfestufen
+- sechs progressive Hinweisstufen
 - Methodenwahl vor der vollständigen Lösung
-- Ergebnisprüfung mit Einheiten und wissenschaftlicher Schreibweise
+- Ergebnisprüfung
 - Erkennung typischer Denkfehler
 - lokales Lernprofil
-- 27 vollständige Übungspfade, davon 19 Mathematik und 8 Physik
-- Themen wie Grundrechenarten, Brüche, Prozentrechnung, Dreisatz, Potenzen, Wurzeln, Gleichungen, Geometrie, Statistik, Wahrscheinlichkeit, Bewegung, Energie und Elektrizitätslehre
-- lokale Übungsaufgaben funktionieren auch ohne KI-Server
+- Exam Mode
+- 27 vollständige Offline-Übungspfade
 
-### Free & Pro
-Die kostenlose Version enthält drei KI-Analysen pro Tag und die lokale Übungsbibliothek.
+### Datenschutz im Beta-Build
 
-SolvePath Pro schaltet unbegrenzte KI-Analysen im normalen Fair-Use-Rahmen und den adaptiven Exam Mode frei. Preis und Laufzeit werden vor dem Kauf direkt in Google Play angezeigt. Käufe können wiederhergestellt und im Store verwaltet werden.
+Cloud-Analyse, Nutzerkonten und In-App-Käufe sind deaktiviert. Aufgabenbilder werden lokal in Text umgewandelt. Lernfortschritt bleibt auf dem Gerät und kann in den Einstellungen gelöscht werden.
 
-SolvePath ist als Lernbegleiter gedacht. KI-generierte Analysen können Fehler enthalten und sollten bei wichtigen schulischen Entscheidungen mit Unterrichtsmaterial oder Lehrkräften abgeglichen werden.
+### Beta-Hinweis
+
+Die freie lokale Analyse unterstützt noch nicht jeden Aufgabentyp. OCR kann bei Handschrift, unscharfen Bildern oder komplexer mathematischer Notation Fehler machen. Die Beta dient ausdrücklich dazu, diese Fälle zu finden.
 
 ## Kategorie
+
 Bildung
 
 ## Zielgruppe
-Schülerinnen und Schüler, Studierende und Lernende in Mathematik und Physik.
 
-## Noch vor Veröffentlichung ergänzen
-- Support-E-Mail
-- Datenschutzerklärungs-URL
-- App-Icon
-- Feature Graphic / Screenshots
+Lernende in Mathematik und Physik.
+
+## Beta-URLs
+
+Datenschutz:
+https://github.com/Cola968/SolvePath/blob/main/docs/privacy-policy-beta.md
+
+Support / Feedback:
+https://github.com/Cola968/SolvePath/issues

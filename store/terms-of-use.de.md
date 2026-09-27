@@ -1,39 +1,31 @@
-# Nutzungsbedingungen für SolvePath – Veröffentlichungsentwurf
+# Nutzungsbedingungen – SolvePath 0.5.0 Beta
 
-> Vor Veröffentlichung müssen Betreibername, ladungsfähige Anschrift, Kontaktangaben, öffentliche URL und eine rechtliche Prüfung ergänzt werden.
+## 1. Zweck
 
-## 1. Dienst
-SolvePath ist eine Lern-App für Mathematik und Physik. Die App unterstützt beim Verstehen und Bearbeiten von Aufgaben durch Diagnose, gestufte Hinweise, Ergebnisprüfung und KI-gestützte Analyse.
+SolvePath ist eine Lern-App für Mathematik und Physik. Die Beta dient dem Test von lokaler Aufgabenanalyse, OCR, Diagnose, Hinweisen, Ergebnisprüfung, Lernprofil und Exam Mode.
 
-## 2. Kein Anspruch auf Fehlerfreiheit
-KI-generierte Analysen und Lernhinweise können fachliche Fehler enthalten. SolvePath ersetzt keine Lehrkraft, keine verbindliche Musterlösung und keine Prüfungsentscheidung.
+## 2. Beta-Charakter
 
-## 3. Free-Version
-Die Free-Version enthält die lokale Übungsbibliothek sowie eine begrenzte Anzahl erfolgreicher Remote-KI-Analysen pro Tag. Umfang und technische Fair-Use-Grenzen können in angemessenem Umfang angepasst werden, sofern bereits erworbene Rechte aus einem laufenden Abonnement nicht beeinträchtigt werden.
+Die Software befindet sich im Test. Funktionen können unvollständig sein oder Fehler enthalten. Tester sollen Ergebnisse bei wichtigen schulischen Aufgaben eigenständig mit Unterrichtsmaterial prüfen.
 
-## 4. SolvePath Pro
-SolvePath Pro ist ein automatisch verlängerbares Abonnement, das insbesondere das tägliche Free-Limit für KI-Analysen entfernt und den adaptiven Exam Mode freischaltet. Technische Fair-Use-, Sicherheits- und Missbrauchsgrenzen gelten weiterhin.
+## 3. Keine Käufe
 
-Preis, Abrechnungszeitraum, mögliche Testphase und die konkreten Bedingungen werden vor dem Kauf im Apple App Store bzw. in Google Play angezeigt.
+Im Beta-Build sind In-App-Käufe und Abonnements deaktiviert. Für die Nutzung der aktuellen Beta-Funktionen wird innerhalb der App kein Entgelt verlangt.
 
-## 5. Verlängerung und Kündigung
-Das Abonnement wird durch den jeweiligen App Store abgerechnet und verlängert sich gemäß den beim Kauf angezeigten Store-Bedingungen automatisch, sofern es nicht rechtzeitig über die Store-Einstellungen gekündigt wird.
+## 4. Lokale Analyse
 
-Eine Kündigung beendet den bereits bezahlten Nutzungszeitraum grundsätzlich nicht vorzeitig. Maßgeblich sind die Bedingungen des jeweiligen Stores.
+Die freie lokale Analyse unterstützt nur bestimmte Aufgabenstrukturen. Kann SolvePath eine Aufgabe nicht sicher einordnen, soll die App die Aufgabe ablehnen statt ein Ergebnis zu erfinden.
 
-## 6. Kaufwiederherstellung
-Bereits erworbene, noch aktive Berechtigungen können über „Käufe wiederherstellen“ erneut dem Gerät zugeordnet werden, soweit der jeweilige Store dies unterstützt.
+## 5. Nutzerinhalte
 
-## 7. Verfügbarkeit und Fair Use
-SolvePath darf technische Schutzmaßnahmen gegen automatisierten Missbrauch, ungewöhnlich hohe Last und Angriffe einsetzen. Ein Pro-Abonnement hebt diese Sicherheitsmaßnahmen nicht auf.
+Aufgabenbilder sollen keine unnötigen personenbezogenen Daten enthalten. Tester dürfen nur Inhalte verwenden, zu deren Verarbeitung sie berechtigt sind.
 
-## 8. Nutzerinhalte
-Nutzer dürfen nur Inhalte hochladen, zu deren Verarbeitung sie berechtigt sind. Aufgabenbilder sollen keine unnötigen personenbezogenen Daten enthalten.
+## 6. Feedback
 
-## 9. Datenschutz
-Die Verarbeitung personenbezogener und technischer Daten richtet sich nach der veröffentlichten Datenschutzerklärung von SolvePath.
+Freiwilliges Beta-Feedback kann über das SolvePath-GitHub-Repository erfolgen. Vor dem Hochladen von Screenshots sollen personenbezogene Daten entfernt werden.
 
-## 10. Schlussbestimmungen
-Vor Veröffentlichung müssen die für den tatsächlichen Betreiber und Zielmarkt erforderlichen Verbraucher-, Gewährleistungs-, Haftungs-, Streitbeilegungs- und Rechtswahlregelungen ergänzt und geprüft werden.
+## 7. Spätere Funktionen
 
-Stand des Entwurfs: September 2026.
+Cloud-Dienste, Nutzerkonten und Abonnements sind nicht Bestandteil dieser Beta. Falls sie später aktiviert werden, werden Nutzungsbedingungen und Datenschutzhinweise vorher entsprechend aktualisiert.
+
+Stand: September 2026.

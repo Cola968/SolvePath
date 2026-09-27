@@ -1,45 +1,47 @@
-# SolvePath – App Store Listing (DE)
+# SolvePath – App Store Beta Listing (DE)
 
 ## Name
+
 SolvePath
 
 ## Untertitel
+
 Mathe & Physik verstehen
 
 ## Werbetext
+
 Finde den richtigen Lösungsweg, bekomme nur den nächsten sinnvollen Hinweis und erkenne typische Denkfehler.
 
 ## Beschreibung
+
 SolvePath unterstützt dich bei Mathematik- und Physikaufgaben, ohne dir sofort die komplette Lösung vorzugeben.
 
-Du kannst Aufgaben als Text eingeben, aus der Zwischenablage übernehmen, fotografieren oder als Bild auswählen. Danach führt dich SolvePath durch Diagnose, Methodenwahl, gestufte Hinweise, eigenen Lösungsweg und Ergebnisprüfung.
+Die 0.5.0-Beta arbeitet local-first. Aufgaben können als Text eingegeben, aus der Zwischenablage übernommen, fotografiert oder als Bild ausgewählt werden.
 
 ### Funktionen
-- freie Text- und Bildanalyse
+
+- freie lokale Analyse unterstützter Aufgaben
+- lokale Foto- und Screenshot-Texterkennung
 - Stuck Mode
 - sechs progressive Hinweisstufen
-- Methodenwahl vor der fertigen Lösung
-- Einheiten- und Ergebnisprüfung
-- Erkennung typischer Denkfehler
+- Methodenwahl
+- Ergebnisprüfung
 - Lernprofil
-- 27 vollständige lokale Übungspfade
-- breite Mathe-Abdeckung von Grundrechenarten bis Wahrscheinlichkeit und Geometrie
-- Physikpfade zu Gravitation, Bewegung, Energie, Elektrizitätslehre und Mechanik
-- lokale Übungsaufgaben als Offline-Fallback
+- Exam Mode
+- 27 vollständige Offline-Übungspfade
 
-### Free & Pro
-Free enthält drei KI-Analysen pro Tag und die lokale Übungsbibliothek.
+Cloud-Analyse, Nutzerkonten und In-App-Käufe sind im Beta-Build deaktiviert.
 
-SolvePath Pro bietet unbegrenzte KI-Analysen im normalen Fair-Use-Rahmen und den adaptiven Exam Mode. Preis, Abrechnungszeitraum und gegebenenfalls Testphase werden vor dem Kauf im App Store angezeigt. Käufe können wiederhergestellt werden.
-
-KI-generierte Analysen können Fehler enthalten. SolvePath ist ein Lernbegleiter und kein Ersatz für verbindliche Unterrichtsmaterialien oder Lehrkräfte.
+Die lokale Analyse deckt noch nicht jeden Aufgabentyp ab. OCR kann bei Handschrift oder komplexer Notation Fehler machen.
 
 ## Kategorie
+
 Bildung
 
-## Noch vor Veröffentlichung ergänzen
-- Support-URL
-- Marketing-URL optional
-- Datenschutzerklärungs-URL
-- App-Icon
-- Screenshots
+## Beta-URLs
+
+Datenschutz:
+https://github.com/Cola968/SolvePath/blob/main/docs/privacy-policy-beta.md
+
+Support / Feedback:
+https://github.com/Cola968/SolvePath/issues

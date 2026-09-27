@@ -1,3 +1,4 @@
+import { CLOUD_ANALYSIS_ENABLED } from '../config/release';
 import { demoProblems } from '../data/problems';
 import type { ProblemAnalysis } from '../domain/problem/schema';
 import { problemAnalysisSchema } from '../domain/problem/schema';
@@ -7,7 +8,9 @@ import { getSubscriptionAppUserId } from './subscription-identity';
 export type AnalysisImage = { uri: string; name: string; mimeType: string; size?: number };
 export type AnalysisMode = 'local' | 'remote' | 'demo';
 
-export const remoteApiUrl = process.env.EXPO_PUBLIC_SOLVEPATH_API_URL?.trim() || '';
+export const remoteApiUrl = CLOUD_ANALYSIS_ENABLED
+  ? process.env.EXPO_PUBLIC_SOLVEPATH_API_URL?.trim() || ''
+  : '';
 
 export interface ProblemAnalyzer {
   analyze(

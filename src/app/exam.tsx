@@ -17,7 +17,6 @@ import {
 import { demoProblems, misconceptionLabel } from '../data/problems';
 import { topicScore, topRisks } from '../domain/profile/progress';
 import { useSession } from '../features/session/store';
-import { useSubscription } from '../features/subscription/store';
 import { spacing } from '../theme/tokens';
 
 export default function ExamScreen() {
@@ -28,7 +27,6 @@ export default function ExamScreen() {
   const profile = useSession((state) => state.profile);
   const setExam = useSession((state) => state.setExam);
   const selectProblem = useSession((state) => state.selectProblem);
-  const pro = useSubscription((state) => state.pro);
   const [date, setDate] = useState(savedDate);
 
   const topics = useMemo(
@@ -82,11 +80,6 @@ export default function ExamScreen() {
   }
 
   function startTraining() {
-    if (!pro) {
-      router.push('/pro');
-      return;
-    }
-
     const riskyTopic = risks[0]?.topic;
     const next =
       candidates.find(
@@ -107,17 +100,13 @@ export default function ExamScreen() {
       subtitle="SolvePath priorisiert Fehlermuster und unsichere Entscheidungen für deine nächste Prüfung."
       eyebrow="Exam Mode"
     >
-      {!pro ? (
-        <Card elevated>
-          <Pill label="PRO" tone="accent" />
-          <AppText variant="title">Exam Mode ist eine Pro-Funktion</AppText>
-          <AppText muted>
-            Du kannst Themen und Termin bereits konfigurieren. Das adaptive Fokus-Training startet
-            nach der Pro-Freischaltung.
-          </AppText>
-          <AppButton label="SolvePath Pro ansehen" onPress={() => router.push('/pro')} />
-        </Card>
-      ) : null}
+      <Card elevated>
+        <Pill label="BETA FREIGESCHALTET" tone="accent" />
+        <AppText variant="title">Exam Mode ist im Beta-Test vollständig verfügbar.</AppText>
+        <AppText muted>
+          Teste besonders die Themenauswahl, Priorisierung und den Wechsel in das Fokus-Training.
+        </AppText>
+      </Card>
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md }}>
         <StatTile
@@ -229,9 +218,9 @@ export default function ExamScreen() {
       </Card>
 
       <AppButton
-        label={pro ? 'Fokus-Training starten →' : 'Pro freischalten →'}
+        label="Fokus-Training starten →"
         onPress={startTraining}
-        disabled={pro && (!dateIsValid || candidates.length === 0)}
+        disabled={!dateIsValid || candidates.length === 0}
       />
     </Page>
   );

@@ -1,125 +1,32 @@
-import { View } from 'react-native';
-import { AppButton, AppText, Card, HeroCard, Page, Pill, SectionTitle } from '../components/ui';
-import { useSubscription } from '../features/subscription/store';
-import { FREE_REMOTE_ANALYSES_PER_DAY } from '../storage/quota-repository';
-import { spacing } from '../theme/tokens';
-
-const features = [
-  [
-    '∞',
-    'Kein Free-Tageslimit',
-    'Freie Mathe- und Physikaufgaben ohne das tägliche Free-Limit analysieren.',
-  ],
-  ['◎', 'Foto & Screenshot', 'Aufgaben direkt mit Kamera oder Galerie in SolvePath übernehmen.'],
-  ['↗', 'Exam Mode', 'Fehlermuster priorisieren und gezielt für Prüfungen trainieren.'],
-  [
-    '◇',
-    'Volles Denkprofil',
-    'Risiken, Selbstständigkeit und typische Lösungsfehler langfristig verfolgen.',
-  ],
-];
+import { useRouter } from 'expo-router';
+import { AppButton, AppText, Card, HeroCard, Page, Pill } from '../components/ui';
 
 export default function ProScreen() {
-  const pro = useSubscription((state) => state.pro);
-  const configured = useSubscription((state) => state.configured);
-  const busy = useSubscription((state) => state.busy);
-  const error = useSubscription((state) => state.error);
-  const showPaywall = useSubscription((state) => state.showPaywall);
-  const restore = useSubscription((state) => state.restore);
-  const manage = useSubscription((state) => state.manage);
-  const remaining = useSubscription((state) => state.remainingFreeAnalyses());
+  const router = useRouter();
 
   return (
     <Page
-      title={pro ? 'SolvePath Pro ist aktiv.' : 'Mehr lernen. Weniger festhängen.'}
-      subtitle={
-        pro
-          ? 'Dein Pro-Entitlement ist aktiv. Die Store-Verwaltung bleibt jederzeit erreichbar.'
-          : `Free enthält ${FREE_REMOTE_ANALYSES_PER_DAY} KI-Analysen pro Tag. Pro entfernt das Tageslimit und schaltet die erweiterten Lernfunktionen frei.`
-      }
-      eyebrow="SolvePath Pro"
+      title="Pro ist in der Beta deaktiviert."
+      subtitle="Für den Beta-Test sind alle aktuellen Lernfunktionen kostenlos freigeschaltet."
+      eyebrow="Beta"
     >
       <HeroCard
-        kicker={pro ? 'AKTIV' : 'PRO'}
-        title={
-          pro
-            ? 'Alle Pro-Funktionen freigeschaltet'
-            : 'Dein persönlicher Lernpfad ohne Free-Tageslimit'
-        }
-        body={
-          pro
-            ? 'Danke für deine Unterstützung. Store-Abos werden über Apple bzw. Google verwaltet.'
-            : 'Preis, Laufzeit und mögliche Testphase werden direkt aus deinem App Store oder Google Play angezeigt.'
-        }
+        kicker="BETA TEST"
+        title="Keine Käufe. Keine Paywall."
+        body="Wir testen zuerst, ob SolvePath zuverlässig hilft. Abos und Store-Käufe werden erst nach der Beta separat getestet und aktiviert."
       >
-        <Pill label={pro ? 'PRO AKTIV' : `${remaining} FREE-ANALYSEN HEUTE`} tone="primary" />
+        <Pill label="ALLE BETA-FUNKTIONEN FREI" tone="primary" />
       </HeroCard>
 
-      <View style={{ gap: spacing.md }}>
-        <SectionTitle>In Pro enthalten</SectionTitle>
-        {features.map(([symbol, title, detail]) => (
-          <Card key={title}>
-            <View style={{ flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' }}>
-              <Pill label={symbol!} tone="accent" />
-              <View style={{ flex: 1, gap: spacing.xs }}>
-                <AppText style={{ fontWeight: '800' }}>{title}</AppText>
-                <AppText muted>{detail}</AppText>
-              </View>
-            </View>
-          </Card>
-        ))}
-      </View>
+      <Card>
+        <AppText variant="lead">Was du jetzt testen kannst</AppText>
+        <AppText muted>
+          Lokale Aufgabenanalyse, Foto- und Screenshot-Erkennung, Stuck Mode, sechs Hinweisstufen,
+          Ergebnisprüfung, Lernprofil und Exam Mode.
+        </AppText>
+      </Card>
 
-      {error ? (
-        <Card>
-          <AppText style={{ fontWeight: '800' }}>Abo-Hinweis</AppText>
-          <AppText muted>{error}</AppText>
-        </Card>
-      ) : null}
-
-      {!configured && !pro ? (
-        <Card>
-          <AppText style={{ fontWeight: '800' }}>Store-Konfiguration fehlt noch</AppText>
-          <AppText muted>
-            Der Release-Build benötigt die öffentlichen RevenueCat SDK-Keys und ein Offering mit dem
-            Entitlement „pro“. Ohne diese Werte bleibt die App im Free-Modus.
-          </AppText>
-        </Card>
-      ) : null}
-
-      {pro ? (
-        <AppButton
-          label="Abo verwalten"
-          busy={busy}
-          onPress={() => {
-            void manage();
-          }}
-        />
-      ) : (
-        <AppButton
-          label="Pro-Angebote anzeigen"
-          busy={busy}
-          disabled={!configured}
-          onPress={() => {
-            void showPaywall();
-          }}
-        />
-      )}
-
-      <AppButton
-        label="Käufe wiederherstellen"
-        variant="ghost"
-        busy={busy}
-        disabled={!configured}
-        onPress={() => {
-          void restore();
-        }}
-      />
-
-      <AppText variant="caption" muted style={{ textAlign: 'center' }}>
-        Abos verlängern sich automatisch, sofern sie nicht rechtzeitig im jeweiligen Store gekündigt
-        werden. Preis und Abrechnungszeitraum werden vor dem Kauf im Store angezeigt.
-      </AppText>
+      <AppButton label="Zurück zu SolvePath" onPress={() => router.replace('/')} />
     </Page>
   );
 }

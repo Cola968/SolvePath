@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { View } from 'react-native';
+import { Linking, View } from 'react-native';
 import {
   ActionTile,
   AppButton,
@@ -11,10 +11,10 @@ import {
   SectionTitle,
   StatTile,
 } from '../components/ui';
+import { BETA_FEEDBACK_URL, BETA_VERSION_LABEL } from '../config/release';
 import { problemById } from '../data/problems';
 import { topicScore, topRisks } from '../domain/profile/progress';
 import { useSession } from '../features/session/store';
-import { useSubscription } from '../features/subscription/store';
 import { spacing } from '../theme/tokens';
 
 export default function HomeScreen() {
@@ -24,8 +24,6 @@ export default function HomeScreen() {
   const profile = useSession((state) => state.profile);
   const remoteProblems = useSession((state) => state.remoteProblems);
   const selectProblem = useSession((state) => state.selectProblem);
-  const pro = useSubscription((state) => state.pro);
-  const remaining = useSubscription((state) => state.remainingFreeAnalyses());
 
   const topicProgress = Object.values(profile.topics);
   const mastery =
@@ -45,12 +43,12 @@ export default function HomeScreen() {
       title="SolvePath"
       subtitle="Dein persönlicher Lösungsweg für Mathe und Physik."
       back={false}
-      eyebrow="Lernen mit System"
+      eyebrow="Beta · Local first"
     >
       <HeroCard
-        kicker={pro ? 'PRO AKTIV' : 'Nicht vorsagen. Weiterbringen.'}
+        kicker="BETA TEST"
         title="Wo hängt dein Lösungsweg?"
-        body="Gib eine Aufgabe ein. SolvePath erkennt den nächsten sinnvollen Schritt und zeigt nur so viel Hilfe, wie du brauchst."
+        body="Gib eine Aufgabe ein oder fotografiere sie. Die Beta analysiert unterstützte Aufgaben lokal auf deinem Gerät und zeigt nur so viel Hilfe, wie du brauchst."
       >
         <AppButton label="Aufgabe analysieren" onPress={() => router.push('/input')} />
         <AppButton
@@ -72,29 +70,27 @@ export default function HomeScreen() {
           detail={topicProgress.length ? 'aus deinen Versuchen' : 'noch keine Daten'}
           tone="accent"
         />
-        <StatTile
-          value={pro ? '∞' : remaining.toString()}
-          label={pro ? 'KI-Analysen' : 'Free-Analysen'}
-          detail={pro ? 'Pro ohne Tageslimit' : 'heute noch verfügbar'}
-          tone={pro ? 'primary' : 'warning'}
-        />
+        <StatTile value="LOCAL" label="Analyse" detail="kein API-Key nötig" tone="primary" />
       </View>
 
-      {!pro ? (
-        <Card elevated>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
-            <View style={{ flex: 1, gap: spacing.xs }}>
-              <Pill label="SOLVEPATH PRO" tone="accent" />
-              <AppText variant="lead">Unbegrenzte KI-Analysen + Exam Mode</AppText>
-              <AppText muted>
-                Free bleibt nutzbar. Pro entfernt das Tageslimit und schaltet die erweiterten
-                Lernfunktionen frei.
-              </AppText>
-            </View>
-          </View>
-          <AppButton label="Pro ansehen" variant="secondary" onPress={() => router.push('/pro')} />
-        </Card>
-      ) : null}
+      <Card elevated>
+        <View style={{ gap: spacing.xs }}>
+          <Pill label="BETA" tone="accent" />
+          <AppText variant="lead">{BETA_VERSION_LABEL}</AppText>
+          <AppText muted>
+            Alle aktuellen Lernfunktionen sind im Beta-Test freigeschaltet. Käufe und Cloud-Analyse
+            sind bewusst deaktiviert. Wenn etwas falsch erkannt wird, schick uns direkt einen
+            Beta-Report.
+          </AppText>
+        </View>
+        <AppButton
+          label="Beta-Feedback geben"
+          variant="secondary"
+          onPress={() => {
+            void Linking.openURL(BETA_FEEDBACK_URL);
+          }}
+        />
+      </Card>
 
       {continueProblem ? (
         <View style={{ gap: spacing.md }}>
@@ -130,27 +126,27 @@ export default function HomeScreen() {
           <ActionTile
             symbol="＋"
             title="Text eingeben"
-            subtitle="Aufgabe direkt analysieren"
+            subtitle="Aufgabe lokal analysieren"
             onPress={() => router.push('/input')}
             accent
           />
           <ActionTile
             symbol="◎"
             title="Prüfungsmodus"
-            subtitle={pro ? 'Risiken gezielt trainieren' : 'Pro-Funktion ansehen'}
+            subtitle="Risiken gezielt trainieren"
             onPress={() => router.push('/exam')}
           />
           <ActionTile
             symbol="↗"
             title="Lernprofil"
-            subtitle="Fehlermuster verstehen"
+            subtitle={risks.length ? `${risks.length} Risiken erkannt` : 'Fehlermuster verstehen'}
             onPress={() => router.push('/profile')}
           />
           <ActionTile
-            symbol={pro ? '★' : 'PRO'}
-            title={pro ? 'Pro aktiv' : 'SolvePath Pro'}
-            subtitle={pro ? 'Abo verwalten' : 'Abo & Vorteile'}
-            onPress={() => router.push('/pro')}
+            symbol="⚙"
+            title="Beta & Einstellungen"
+            subtitle="Daten, Version, Feedback"
+            onPress={() => router.push('/settings')}
           />
         </View>
       </View>
@@ -164,8 +160,8 @@ export default function HomeScreen() {
             <Pill label="START" tone="accent" />
             <AppText variant="lead">Noch kein Verlauf.</AppText>
             <AppText muted>
-              Starte mit einer Demo-Aufgabe. Schon nach wenigen Versuchen kann SolvePath erste
-              Fehlermuster sichtbar machen.
+              Starte mit einer Aufgabe oder einem der lokalen Übungspfade. Schon nach wenigen
+              Versuchen kann SolvePath erste Fehlermuster sichtbar machen.
             </AppText>
           </Card>
         ) : (

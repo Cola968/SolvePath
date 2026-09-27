@@ -1,52 +1,67 @@
-# SolvePath v0.4 Release Checklist
+# SolvePath 0.5.0 Beta Release Checklist
 
-## Technisch im Repository
+## Repository / App
+
+- [x] Version 0.5.0
+- [x] Android versionCode 3
+- [x] iOS buildNumber 3
 - [x] TypeScript strict
 - [x] Mobile- und Backend-Lint
 - [x] automatisierte Tests
 - [x] Android-Export in CI
-- [x] serverseitige Secret-Trennung
-- [x] Bildgrößen- und MIME-Prüfung
-- [x] Rate-Limit-Grundschutz
-- [x] zweite KI-Prüfstufe
-- [x] EAS Build-Profile
-- [x] Android versionCode und iOS buildNumber
-- [x] Store-Listing-Entwürfe
-- [x] Datenschutzerklärungs-Entwurf
-- [x] RevenueCat SDK für Apple/Google Store-Abos
-- [x] Restore Purchases und Abo-Verwaltung
-- [x] Free-Tier mit drei KI-Analysen pro Tag
-- [x] Pro-Entitlement `pro`
-- [x] Exam Mode als Pro-Funktion
+- [x] On-Device-OCR integriert
+- [x] lokale Analyse ist Standard
+- [x] Cloud Analysis im Beta-Build hart deaktiviert
+- [x] In-App-Käufe im Beta-Build hart deaktiviert
+- [x] Exam Mode für Beta-Tester freigeschaltet
+- [x] Beta-Feedback-Link in der App
+- [x] EAS-Profil `beta` für internes APK
+- [x] EAS-Profil `beta-store` für Store-AAB
+- [x] GitHub-Workflow für direkt installierbares Beta-APK
+- [x] Beta-Testmatrix
+- [x] Beta-Data-Safety-Arbeitsblatt
+- [x] Beta-Datenschutzhinweise
 
-## RevenueCat / Stores
-- [ ] RevenueCat-Projekt anlegen
-- [ ] Android-App mit Package `app.solvepath.mobile` verbinden
-- [ ] iOS-App mit Bundle-ID `app.solvepath.mobile` verbinden
-- [ ] Entitlement mit Identifier `pro` anlegen
-- [ ] mindestens Monats- und Jahresabo in Google Play und App Store Connect anlegen
-- [ ] Produkte an das Entitlement `pro` hängen
-- [ ] RevenueCat Offering `default` mit Paywall konfigurieren
-- [ ] öffentliche Android/iOS SDK-Keys als EAS Environment Variables setzen
-- [ ] Sandbox-/Lizenztester für beide Stores einrichten
-- [ ] Kauf, Kündigung, Restore und abgelaufenes Abo testen
+## Geschlossener APK-Test
 
-## Backend / KI
-- [ ] echten multimodalen KI-Provider auswählen und Server-Secrets setzen
-- [ ] Backend öffentlich über HTTPS deployen
-- [ ] `EXPO_PUBLIC_SOLVEPATH_API_URL` auf die produktive HTTPS-URL setzen
-- [ ] echten Android-Gerätetest: Kamera, Galerie, Remote Analysis, Stuck Mode, Ergebnisprüfung
+- [ ] finales GitHub-Actions-Beta-APK erfolgreich gebaut
+- [ ] APK auf mindestens einem physischen Android-Gerät installieren
+- [ ] Kamera-Test
+- [ ] Galerie-/Screenshot-Test
+- [ ] OCR mit gedruckter Aufgabe
+- [ ] lokaler Solver mit mehreren Aufgabentypen
+- [ ] nicht unterstützte Aufgabe muss sicher abgelehnt werden
+- [ ] Stuck Mode + alle Hint-Stufen
+- [ ] Ergebnisprüfung
+- [ ] Lernprofil-Persistenz nach App-Neustart
+- [ ] Exam Mode
+- [ ] Offline-/Flugmodus
+- [ ] Daten-Löschen in Einstellungen
 
-## Recht / Store
-- [ ] Betreiber-/Kontaktangaben in Datenschutzerklärung ergänzen
-- [ ] Datenschutzerklärung öffentlich hosten
-- [ ] Support-E-Mail für Store-Eintrag festlegen
-- [ ] finales App-Icon, Screenshots und Feature Graphic erstellen
-- [ ] Package IDs vor dem ersten Store-Upload endgültig bestätigen
-- [ ] EAS-Projekt mit `eas init` dem richtigen Expo-Konto zuordnen
-- [ ] Google-Play-Developer-Konto bzw. Apple-Developer-Konto verbinden
-- [ ] Data-Safety-/App-Privacy-Angaben ausfüllen
-- [ ] internen Testkanal vor Production verwenden
+## Google Play interner/geschlossener Test
+
+Extern erforderlich:
+
+- [ ] Google-Play-Developer-Konto
+- [ ] App `app.solvepath.mobile` in Play Console anlegen
+- [ ] Play App Signing / Upload-Key einrichten
+- [ ] EAS-Projekt einmalig dem richtigen Expo-Konto zuordnen
+- [ ] Data-Safety-Formular anhand `store/beta-data-safety.de.md` prüfen und ausfüllen
+- [ ] öffentliche Datenschutzerklärungs-URL hinterlegen
+- [ ] Support-E-Mail im Play-Store-Eintrag hinterlegen
+- [ ] Tester-Liste oder Google Group einrichten
+- [ ] `eas build --platform android --profile beta-store`
+- [ ] AAB in den internen/geschlossenen Testkanal hochladen
+- [ ] Installationslink mit Testern prüfen
+
+## Bewusst nicht Teil dieser Beta
+
+- Cloud-KI
+- RevenueCat / Abos
+- Nutzerkonten
+- Cloud-Synchronisation
+
+Diese Funktionen werden erst separat aktiviert, wenn ihr eigener Testpfad vollständig eingerichtet ist.
 
 ## Release-Kommandos
 
@@ -62,13 +77,3 @@ pnpm format:check
 pnpm release:check
 pnpm build:export
 ```
-
-Danach:
-
-```bash
-eas build --platform android --profile preview
-eas build --platform android --profile production
-eas submit --platform android --profile production
-```
-
-Für echte In-App-Käufe reicht Expo Go nicht; nutze einen EAS Development Build oder Store-Testbuild.

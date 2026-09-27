@@ -3,21 +3,21 @@
     "name": "SolvePath",
     "slug": "solvepath",
     "scheme": "solvepath",
-    "version": "0.4.0",
+    "version": "0.5.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "app.solvepath.mobile",
-      "buildNumber": "2",
+      "buildNumber": "3",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "package": "app.solvepath.mobile",
-      "versionCode": 2,
+      "versionCode": 3,
       "edgeToEdgeEnabled": true
     },
     "plugins": [

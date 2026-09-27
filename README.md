@@ -1,8 +1,22 @@
-# SolvePath v0.4 Release Candidate
+# SolvePath 0.5.0 Beta
 
 SolvePath begleitet Mathematik- und Physikaufgaben über **Aufgabe → Diagnose → Methode → sechs gestufte Hinweise → eigener Lösungsweg → Ergebnisprüfung → Lernprofil**.
 
-v0.4 ergänzt ein Store-konformes Free/Pro-Abo-Modell, serverseitige Entitlement-Prüfung und eine deutlich größere lokale Übungsbibliothek.
+Die 0.5.0-Beta ist bewusst **local-first**: Die Kernfunktionen benötigen keinen KI-API-Key, kein Backend und keine laufenden Modellkosten.
+
+## Beta-Funktionsumfang
+
+- lokale freie Analyse für unterstützte Aufgaben
+- On-Device-OCR für Kamera, Galerie und Screenshots
+- 27 kuratierte Offline-SolvePaths
+- Stuck Mode
+- sechs progressive Hinweisstufen
+- Methodenwahl vor der vollständigen Lösung
+- Ergebnisprüfung und Fehlermuster
+- lokales Lernprofil
+- Exam Mode vollständig für Tester freigeschaltet
+
+Cloud Analysis und Store-Abos sind in diesem Beta-Build deaktiviert.
 
 ## Lerninhalte
 
@@ -11,74 +25,34 @@ Die lokale Bibliothek enthält 27 vollständige SolvePaths:
 - 19 Mathematik-Aufgaben
 - 8 Physik-Aufgaben
 
-Mathematik deckt unter anderem Grundrechenarten, Dezimalzahlen, Bruchrechnung, Prozentrechnung, Dreisatz, Potenzen, Wurzeln, lineare Funktionen, Gleichungssysteme, quadratische Gleichungen, Geometrie, Statistik, Wahrscheinlichkeit, Ungleichungen und Ableitungen ab.
+Die freie lokale Analyse unterstützt derzeit unter anderem Rechenterme, lineare Gleichungen, Prozentrechnung, Steigungen, den Satz des Pythagoras und das Ohmsche Gesetz. Nicht sicher unterstützte freie Aufgaben werden abgelehnt, statt ein Ergebnis zu erfinden.
 
-Physik enthält unter anderem Gravitation, Kepler, Kreisbewegung, Gravitationsfeld, gleichförmige Bewegung, kinetische Energie, Ohmsches Gesetz und Dichte.
+## Bilder
 
-## Free & Pro
+Aufgabenbilder werden auf Android/iOS per On-Device-OCR in Text umgewandelt. Der Beta-Build sendet Aufgabenbilder und erkannten Text nicht an einen externen KI-Anbieter.
 
-Free:
+## Beta-Build
 
-- lokale Übungsbibliothek
-- lokale freie Analyse für unterstützte Mathe-/Physikaufgaben
-- On-Device-Texterkennung für Aufgabenfotos
-- kompletter SolvePath mit Stuck Mode und Hint Ladder
+Direkt installierbares Android-APK über EAS:
 
-Pro:
+```bash
+eas build --platform android --profile beta
+```
 
-- adaptiver Exam Mode
-- Store-basierte Kaufwiederherstellung und Abo-Verwaltung
+Google-Play-Test-AAB:
 
-Die Kernanalyse funktioniert ohne externen KI-Provider, ohne API-Key und ohne laufende Modellkosten. Eine optionale Cloud-Analyse kann später separat aktiviert werden.
+```bash
+eas build --platform android --profile beta-store
+```
 
-Apple- und Google-Abos werden über RevenueCat zusammengeführt. Die App verwendet nur öffentliche RevenueCat SDK-Schlüssel. Der Server kann das Entitlement `pro` mit einem geheimen RevenueCat-Key verifizieren.
-
-## Lokale Analyse
-
-SolvePath verwendet standardmäßig eine lokale, deterministische Analyse. Unterstützt werden derzeit unter anderem Rechenterme, lineare Gleichungen, Prozentrechnung, Steigungen, Satz des Pythagoras und das Ohmsche Gesetz. Zusätzlich stehen 27 vollständig kuratierte SolvePaths offline zur Verfügung.
-
-Aufgabenbilder werden auf Android/iOS mit On-Device-OCR in Text umgewandelt. Die lokale Analyse erfindet bei nicht unterstützten freien Aufgaben kein Ergebnis, sondern weist darauf hin, dass der Aufgabentyp noch nicht sicher unterstützt wird.
+Zusätzlich baut GitHub Actions über **Beta APK** ein direkt installierbares `SolvePath-0.5.0-beta.apk` ohne Expo- oder Store-Konto. Dieses Artefakt ist nur für geschlossene Tests vorgesehen.
 
 ## Lokaler Start
 
 ```bash
-pnpm install
+pnpm install --frozen-lockfile
 pnpm start
 ```
-
-Für echte In-App-Käufe ist ein EAS Development Build oder Store-Testbuild erforderlich. Expo Go kann den Flow nur im Preview-Modus darstellen.
-
-## Optionale Cloud Analysis
-
-Cloud Analysis ist im Release-Build standardmäßig deaktiviert. Sie wird nur angezeigt, wenn `EXPO_PUBLIC_SOLVEPATH_API_URL` gesetzt ist. Ein späterer OpenAI-kompatibler Provider kann über `LLM_API_KEY`, `LLM_MODEL` und `LLM_BASE_URL` serverseitig angeschlossen werden.
-
-RevenueCat bleibt davon unabhängig und verwendet ausschließlich seine öffentlichen mobilen SDK-Schlüssel sowie optional einen serverseitigen Secret Key.
-
-## Eingaben
-
-- freie Textaufgabe
-- Zwischenablage
-- Kamera
-- Galerie / Screenshot
-
-Bilder sind auf JPEG, PNG und WebP sowie 8 MB begrenzt. Bei lokaler Analyse wird der Aufgabentext direkt auf dem Gerät erkannt; Aufgabenbilder werden nicht an einen KI-Dienst hochgeladen und nicht dauerhaft in AsyncStorage gespeichert.
-
-## API-Schutz
-
-Der Server verwendet unter anderem:
-
-- Zod-Validierung
-- Request IDs
-- Provider-Timeout
-- Secret-Trennung
-- MIME- und Dateisignaturprüfung
-- Minuten-/Tageslimits
-- serverseitige RevenueCat-Prüfung für Pro
-- Free-Limit pro RevenueCat App User ID
-- `Cache-Control: no-store`
-- `X-Content-Type-Options: nosniff`
-
-Wenn RevenueCat vorübergehend nicht erreichbar ist, wird der Entitlement-Status als unbekannt behandelt, damit zahlende Nutzer nicht durch einen externen Ausfall ausgesperrt werden. Das globale Fair-Use-Limit bleibt aktiv.
 
 ## Qualität
 
@@ -94,6 +68,14 @@ pnpm release:check
 pnpm build:export
 ```
 
+## Beta-Test
+
+Siehe [BETA_TESTING.md](BETA_TESTING.md).
+
+Feedback wird über das GitHub-Issue-Template **Beta feedback** gesammelt.
+
 ## Veröffentlichung
 
-Siehe `RELEASE_CHECKLIST.md`. Vor einem öffentlichen Store-Release sind weiterhin echte Store-/RevenueCat-Produkte, physische Gerätetests, Store-Assets, Support-/Privacy-URLs und verbundene Developer-Konten nötig. Ein KI-Backend ist für die lokale Kernfunktion nicht erforderlich.
+Für einen direkten geschlossenen APK-Test ist kein KI-Provider und kein Store-Konto erforderlich.
+
+Für einen späteren Google-Play-internen/geschlossenen Test fehlen extern noch das verbundene Google-Play-/Expo-Konto, ein finaler Store-Upload-Key bzw. Play App Signing sowie die im Store verlangten Kontaktangaben. Diese Zugangsdaten gehören nicht in das Repository.

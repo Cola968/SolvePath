@@ -18,9 +18,22 @@
       "android": {
         "buildType": "app-bundle"
       }
+    },
+    "beta": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "beta-store": {
+      "distribution": "store",
+      "android": {
+        "buildType": "app-bundle"
+      }
     }
   },
   "submit": {
-    "production": {}
+    "production": {},
+    "beta-store": {}
   }
 }
