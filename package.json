@@ -17,7 +17,8 @@
     "server:start": "tsx server/src/index.ts",
     "server:typecheck": "tsc --noEmit -p server/tsconfig.json",
     "server:lint": "eslint server --no-ignore",
-    "server:test": "vitest run server"
+    "server:test": "vitest run server",
+    "release:check": "node scripts/release-check.mjs"
   },
   "dependencies": {
     "@fastify/multipart": "^9.4.0",
