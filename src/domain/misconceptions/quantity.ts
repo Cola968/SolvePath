@@ -109,7 +109,7 @@ const units: Record<string, UnitInfo> = {
   mv: { dimension: 'voltage', scale: 0.001 },
   kv: { dimension: 'voltage', scale: 1000 },
   ω: { dimension: 'resistance', scale: 1 },
-  'kω': { dimension: 'resistance', scale: 1000 },
+  kω: { dimension: 'resistance', scale: 1000 },
   c: { dimension: 'charge', scale: 1 },
   'n/c': { dimension: 'electric_field', scale: 1 },
   'v/m': { dimension: 'electric_field', scale: 1 },
