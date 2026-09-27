@@ -5,7 +5,7 @@ import { FREE_REMOTE_ANALYSES_PER_DAY } from '../storage/quota-repository';
 import { spacing } from '../theme/tokens';
 
 const features = [
-  ['∞', 'Unbegrenzte KI-Analysen', 'Freie Mathe- und Physikaufgaben ohne Tageslimit analysieren.'],
+  ['∞', 'Kein Free-Tageslimit', 'Freie Mathe- und Physikaufgaben ohne das tägliche Free-Limit analysieren.'],
   ['◎', 'Foto & Screenshot', 'Aufgaben direkt mit Kamera oder Galerie in SolvePath übernehmen.'],
   ['↗', 'Exam Mode', 'Fehlermuster priorisieren und gezielt für Prüfungen trainieren.'],
   [
