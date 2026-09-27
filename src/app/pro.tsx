@@ -5,7 +5,11 @@ import { FREE_REMOTE_ANALYSES_PER_DAY } from '../storage/quota-repository';
 import { spacing } from '../theme/tokens';
 
 const features = [
-  ['∞', 'Kein Free-Tageslimit', 'Freie Mathe- und Physikaufgaben ohne das tägliche Free-Limit analysieren.'],
+  [
+    '∞',
+    'Kein Free-Tageslimit',
+    'Freie Mathe- und Physikaufgaben ohne das tägliche Free-Limit analysieren.',
+  ],
   ['◎', 'Foto & Screenshot', 'Aufgaben direkt mit Kamera oder Galerie in SolvePath übernehmen.'],
   ['↗', 'Exam Mode', 'Fehlermuster priorisieren und gezielt für Prüfungen trainieren.'],
   [
@@ -38,7 +42,9 @@ export default function ProScreen() {
       <HeroCard
         kicker={pro ? 'AKTIV' : 'PRO'}
         title={
-          pro ? 'Alle Pro-Funktionen freigeschaltet' : 'Dein persönlicher Lernpfad ohne Tageslimit'
+          pro
+            ? 'Alle Pro-Funktionen freigeschaltet'
+            : 'Dein persönlicher Lernpfad ohne Free-Tageslimit'
         }
         body={
           pro
