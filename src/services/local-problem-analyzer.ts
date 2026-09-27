@@ -123,7 +123,9 @@ function arithmeticAnalysis(text: string): ProblemAnalysis | null {
     topic: 'Grundrechenarten',
     title: 'Rechenausdruck',
     originalText: text.trim(),
-    given: [{ symbol: 'Term', value: raw.replace(/\*/g, '·'), meaning: 'Zu berechnender Ausdruck' }],
+    given: [
+      { symbol: 'Term', value: raw.replace(/\*/g, '·'), meaning: 'Zu berechnender Ausdruck' },
+    ],
     unknowns: [{ symbol: 'Wert', meaning: 'Wert des Rechenausdrucks' }],
     principle: {
       id: 'operator_precedence',
@@ -141,9 +143,15 @@ function arithmeticAnalysis(text: string): ProblemAnalysis | null {
     hints: [
       { level: 1, text: 'Markiere zuerst die Operationen mit dem höchsten Vorrang.' },
       { level: 2, text: 'Rechne immer nur einen sicheren Teilschritt und setze danach neu an.' },
-      { level: 3, text: 'Beachte: Multiplikation und Division kommen vor Addition und Subtraktion.' },
+      {
+        level: 3,
+        text: 'Beachte: Multiplikation und Division kommen vor Addition und Subtraktion.',
+      },
       { level: 4, text: `Der Ausgangsterm lautet ${raw.replace(/\*/g, '·')}.` },
-      { level: 5, text: 'Kontrolliere dein Zwischenergebnis mit einer groben Überschlagsrechnung.' },
+      {
+        level: 5,
+        text: 'Kontrolliere dein Zwischenergebnis mit einer groben Überschlagsrechnung.',
+      },
       { level: 6, text: `Der vollständig berechnete Wert ist ${display}.` },
     ],
     reasoningSteps: [
@@ -168,7 +176,8 @@ function arithmeticAnalysis(text: string): ProblemAnalysis | null {
         title: 'Ergebnis prüfen',
         question: 'Welchen Wert erhältst du am Ende?',
         answer: display,
-        explanation: 'Der Term wurde unter Beachtung der Rechenreihenfolge vollständig ausgewertet.',
+        explanation:
+          'Der Term wurde unter Beachtung der Rechenreihenfolge vollständig ausgewertet.',
         hint: 'Vergleiche Vorzeichen und Größenordnung mit deinem Überschlag.',
       },
     ],
@@ -177,14 +186,19 @@ function arithmeticAnalysis(text: string): ProblemAnalysis | null {
         id: 'arithmetic_order',
         label: 'Reihenfolge vertauscht',
         explanation: 'Punkt- und Strichrechnung wurden in der falschen Reihenfolge ausgeführt.',
-        correction: 'Arbeite nach Klammern, Potenzen, Punktrechnung und anschließend Strichrechnung.',
+        correction:
+          'Arbeite nach Klammern, Potenzen, Punktrechnung und anschließend Strichrechnung.',
         triggers: ['Punkt vor Strich vergessen', 'von links ohne Vorrang'],
       },
     ],
     strategySelection: {
       type: 'strategySelection',
       question: 'Welche Strategie ist für diesen Term sinnvoll?',
-      options: ['Rechenvorrang systematisch anwenden', 'Alle Zahlen zuerst addieren', 'Nur von links nach rechts rechnen'],
+      options: [
+        'Rechenvorrang systematisch anwenden',
+        'Alle Zahlen zuerst addieren',
+        'Nur von links nach rechts rechnen',
+      ],
       correctOption: 'Rechenvorrang systematisch anwenden',
       explanation: 'Der Rechenvorrang verhindert falsche Zwischenschritte.',
     },
@@ -202,7 +216,9 @@ function linearEquationAnalysis(text: string): ProblemAnalysis | null {
   const compact = clean(text).replace(/\s+/g, '');
   if (!compact.includes('=') || !compact.includes('x')) return null;
   const equation = compact.replace(/^.*?(?=[+\-]?\d*\.?\d*x)/, '').replace(/[.;!?].*$/, '');
-  const match = equation.match(/^([+\-]?(?:\d+(?:\.\d+)?)?)x([+\-]\d+(?:\.\d+)?)?=([+\-]?\d+(?:\.\d+)?)$/);
+  const match = equation.match(
+    /^([+\-]?(?:\d+(?:\.\d+)?)?)x([+\-]\d+(?:\.\d+)?)?=([+\-]?\d+(?:\.\d+)?)$/,
+  );
   if (!match) return null;
   const aRaw = match[1] ?? '';
   const a = aRaw === '' || aRaw === '+' ? 1 : aRaw === '-' ? -1 : Number(aRaw);
@@ -218,24 +234,34 @@ function linearEquationAnalysis(text: string): ProblemAnalysis | null {
     topic: 'Lineare Gleichungen',
     title: 'Lineare Gleichung lösen',
     originalText: text.trim(),
-    given: [{ symbol: 'Gleichung', value: equation.replace(/\*/g, '·'), meaning: 'Ausgangsgleichung' }],
+    given: [
+      { symbol: 'Gleichung', value: equation.replace(/\*/g, '·'), meaning: 'Ausgangsgleichung' },
+    ],
     unknowns: [{ symbol: 'x', meaning: 'Unbekannte der Gleichung' }],
     principle: {
       id: 'equivalence_transformations',
       name: 'Äquivalenzumformungen',
-      explanation: 'Auf beiden Seiten der Gleichung wird immer dieselbe Rechenoperation durchgeführt.',
+      explanation:
+        'Auf beiden Seiten der Gleichung wird immer dieselbe Rechenoperation durchgeführt.',
     },
     formulas: [
       {
         id: 'linear_solution',
         expression: 'ax + b = c  ⇒  x = (c − b) / a',
-        explanation: 'Zuerst wird der konstante Term entfernt und anschließend durch den x-Faktor geteilt.',
+        explanation:
+          'Zuerst wird der konstante Term entfernt und anschließend durch den x-Faktor geteilt.',
       },
     ],
     hints: [
       { level: 1, text: 'Bringe zuerst den Term ohne x auf die andere Seite.' },
       { level: 2, text: 'Führe jede Umformung auf beiden Seiten der Gleichung aus.' },
-      { level: 3, text: b === 0 ? 'Der konstante Term neben x ist bereits 0.' : `Entferne zunächst ${fmt(b)} neben dem x-Term.` },
+      {
+        level: 3,
+        text:
+          b === 0
+            ? 'Der konstante Term neben x ist bereits 0.'
+            : `Entferne zunächst ${fmt(b)} neben dem x-Term.`,
+      },
       { level: 4, text: `Danach steht links nur noch ${fmt(a)}x.` },
       { level: 5, text: `Teile anschließend beide Seiten durch ${fmt(a)}.` },
       { level: 6, text: `Die Lösung lautet ${display}.` },
@@ -245,7 +271,10 @@ function linearEquationAnalysis(text: string): ProblemAnalysis | null {
         id: 'linear-isolate-term',
         title: 'Konstanten entfernen',
         question: 'Welche Operation isoliert zunächst den x-Term?',
-        answer: b === 0 ? 'Keine weitere Konstante muss entfernt werden.' : `${fmt(-b)} auf beiden Seiten anwenden`,
+        answer:
+          b === 0
+            ? 'Keine weitere Konstante muss entfernt werden.'
+            : `${fmt(-b)} auf beiden Seiten anwenden`,
         explanation: 'Der konstante Summand neben x wird durch die Gegenoperation beseitigt.',
         hint: 'Nutze die Gegenoperation zum konstanten Summanden.',
       },
@@ -271,7 +300,8 @@ function linearEquationAnalysis(text: string): ProblemAnalysis | null {
         id: 'linear_sign',
         code: 'sign_error',
         label: 'Vorzeichen beim Umstellen',
-        explanation: 'Beim Entfernen eines Summanden wurde die Gegenoperation mit falschem Vorzeichen verwendet.',
+        explanation:
+          'Beim Entfernen eines Summanden wurde die Gegenoperation mit falschem Vorzeichen verwendet.',
         correction: 'Schreibe die gleiche Operation ausdrücklich auf beide Seiten.',
         triggers: [fmt(-x), 'Vorzeichenfehler'],
       },
@@ -387,7 +417,9 @@ function percentageAnalysis(text: string): ProblemAnalysis | null {
 
 function slopeAnalysis(text: string): ProblemAnalysis | null {
   const source = clean(text);
-  const match = source.match(/(?:a|p1)?\s*\(?\s*([+\-]?\d+(?:\.\d+)?)\s*[|;,]\s*([+\-]?\d+(?:\.\d+)?)\s*\)?.*?(?:b|p2)?\s*\(?\s*([+\-]?\d+(?:\.\d+)?)\s*[|;,]\s*([+\-]?\d+(?:\.\d+)?)\s*\)?/);
+  const match = source.match(
+    /(?:a|p1)?\s*\(?\s*([+\-]?\d+(?:\.\d+)?)\s*[|;,]\s*([+\-]?\d+(?:\.\d+)?)\s*\)?.*?(?:b|p2)?\s*\(?\s*([+\-]?\d+(?:\.\d+)?)\s*[|;,]\s*([+\-]?\d+(?:\.\d+)?)\s*\)?/,
+  );
   if (!match || !/(steigung|slope|gerade|linear)/.test(source)) return null;
   const values = match.slice(1, 5).map(Number);
   const x1 = values[0];
@@ -491,7 +523,9 @@ function slopeAnalysis(text: string): ProblemAnalysis | null {
 function pythagorasAnalysis(text: string): ProblemAnalysis | null {
   const source = clean(text);
   if (!/(pythagoras|rechtwink|kathete|hypotenuse)/.test(source)) return null;
-  const nums = [...source.matchAll(/(?<![\p{L}\d])([0-9]+(?:\.[0-9]+)?)/gu)].map((m) => Number(m[1]));
+  const nums = [...source.matchAll(/(?<![\p{L}\d])([0-9]+(?:\.[0-9]+)?)/gu)].map((m) =>
+    Number(m[1]),
+  );
   if (nums.length < 2) return null;
   const a = nums[0]!;
   const b = nums[1]!;
@@ -512,7 +546,8 @@ function pythagorasAnalysis(text: string): ProblemAnalysis | null {
     principle: {
       id: 'pythagorean_theorem',
       name: 'Satz des Pythagoras',
-      explanation: 'Im rechtwinkligen Dreieck ist das Quadrat der Hypotenuse die Summe der Kathetenquadrate.',
+      explanation:
+        'Im rechtwinkligen Dreieck ist das Quadrat der Hypotenuse die Summe der Kathetenquadrate.',
     },
     formulas: [
       {
@@ -598,11 +633,17 @@ function ohmAnalysis(text: string): ProblemAnalysis | null {
   let result: number;
   let unit: string;
   if (U === undefined && I !== undefined && R !== undefined) {
-    symbol = 'U'; result = I * R; unit = 'V';
+    symbol = 'U';
+    result = I * R;
+    unit = 'V';
   } else if (I === undefined && U !== undefined && R !== undefined && R !== 0) {
-    symbol = 'I'; result = U / R; unit = 'A';
+    symbol = 'I';
+    result = U / R;
+    unit = 'A';
   } else if (R === undefined && U !== undefined && I !== undefined && I !== 0) {
-    symbol = 'R'; result = U / I; unit = 'Ω';
+    symbol = 'R';
+    result = U / I;
+    unit = 'Ω';
   } else return null;
 
   const display = `${symbol} = ${fmt(result)} ${unit}`;
@@ -619,11 +660,17 @@ function ohmAnalysis(text: string): ProblemAnalysis | null {
     title: 'Ohmsches Gesetz',
     originalText: text.trim(),
     given,
-    unknowns: [{ symbol, meaning: symbol === 'U' ? 'Spannung' : symbol === 'I' ? 'Stromstärke' : 'Widerstand' }],
+    unknowns: [
+      {
+        symbol,
+        meaning: symbol === 'U' ? 'Spannung' : symbol === 'I' ? 'Stromstärke' : 'Widerstand',
+      },
+    ],
     principle: {
       id: 'ohms_law',
       name: 'Ohmsches Gesetz',
-      explanation: 'Spannung, Stromstärke und Widerstand sind über das Ohmsche Gesetz miteinander verknüpft.',
+      explanation:
+        'Spannung, Stromstärke und Widerstand sind über das Ohmsche Gesetz miteinander verknüpft.',
     },
     formulas: [
       {
