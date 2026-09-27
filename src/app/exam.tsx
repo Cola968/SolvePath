@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useRouter } from 'expo-router';
 import { View } from 'react-native';
 import { z } from 'zod';
 import {
@@ -19,6 +20,7 @@ import { useSession } from '../features/session/store';
 import { spacing } from '../theme/tokens';
 
 export default function ExamScreen() {
+  const router = useRouter();
   const subject = useSession((state) => state.examSubject);
   const chosenTopics = useSession((state) => state.examTopics);
   const savedDate = useSession((state) => state.examDate);
