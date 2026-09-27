@@ -1,9 +1,9 @@
 ---
 name: Beta feedback
 about: Fehler, OCR-Probleme oder Verbesserungsvorschläge für SolvePath 0.5.0 Beta
-title: "[Beta] "
+title: '[Beta] '
 labels: beta
-assignees: ""
+assignees: ''
 ---
 
 ## Gerät
