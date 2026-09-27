@@ -17,6 +17,7 @@ import {
 } from '../components/ui';
 import { demoProblems } from '../data/problems';
 import { useSession } from '../features/session/store';
+import { useSubscription } from '../features/subscription/store';
 import { remoteApiUrl, type AnalysisImage, type AnalysisMode } from '../services/problem-analyzer';
 import { spacing } from '../theme/tokens';
 
@@ -35,6 +36,8 @@ export default function InputScreen() {
   const busy = useSession((state) => state.busy);
   const error = useSession((state) => state.error);
   const analysisStage = useSession((state) => state.analysisStage);
+  const pro = useSubscription((state) => state.pro);
+  const remaining = useSubscription((state) => state.remainingFreeAnalyses());
 
   const visibleProblems = useMemo(
     () =>
@@ -207,7 +210,11 @@ export default function InputScreen() {
         <View style={{ gap: spacing.sm }}>
           <AppText variant="lead">Analysemodus</AppText>
           <Choice
-            label="Remote Analysis · freie Aufgaben und Bilder"
+            label={
+              pro
+                ? 'Remote Analysis · Pro ohne Tageslimit'
+                : `Remote Analysis · ${remaining} Free-Analysen heute`
+            }
             selected={mode === 'remote'}
             onPress={() => {
               setMode('remote');
@@ -215,7 +222,7 @@ export default function InputScreen() {
             }}
           />
           <Choice
-            label="Lokale Demo · acht Beispielaufgaben"
+            label={`Lokale Demo · ${demoProblems.length} Beispielaufgaben`}
             selected={mode === 'demo'}
             onPress={() => {
               setMode('demo');
@@ -241,6 +248,17 @@ export default function InputScreen() {
         {inputError ? <Feedback title="Eingabe prüfen" message={inputError} kind="error" /> : null}
 
         {error ? <Feedback title="Noch nicht erkannt" message={error} kind="error" /> : null}
+
+        {!pro && mode === 'remote' && remaining === 0 ? (
+          <Card>
+            <Pill label="FREE-LIMIT ERREICHT" tone="warning" />
+            <AppText muted>
+              Deine drei kostenlosen KI-Analysen für heute sind verbraucht. Die lokalen
+              Übungsaufgaben bleiben verfügbar.
+            </AppText>
+            <AppButton label="SolvePath Pro ansehen" onPress={() => router.push('/pro')} />
+          </Card>
+        ) : null}
 
         {busy ? (
           <Card>
@@ -279,7 +297,7 @@ export default function InputScreen() {
       </Card>
 
       <View style={{ gap: spacing.md }}>
-        <SectionTitle aside={<Pill label="8 DEMOS" tone="neutral" />}>
+        <SectionTitle aside={<Pill label={`${demoProblems.length} DEMOS`} tone="neutral" />}>
           Sofort ausprobieren
         </SectionTitle>
 

@@ -1,8 +1,35 @@
-# SolvePath v0.3 Beta
+# SolvePath v0.4 Release Candidate
 
 SolvePath begleitet Mathematik- und Physikaufgaben über **Aufgabe → Diagnose → Methode → sechs gestufte Hinweise → eigener Lösungsweg → Ergebnisprüfung → Lernprofil**.
 
-v0.3 ergänzt freie Textaufgaben, Zwischenablage, Kamera, Galerie und Screenshots über eine serverseitige Analyse. Die acht lokalen Demo-Aufgaben bleiben als Offline-Fallback erhalten.
+v0.4 ergänzt ein Store-konformes Free/Pro-Abo-Modell, serverseitige Entitlement-Prüfung und eine deutlich größere lokale Übungsbibliothek.
+
+## Lerninhalte
+
+Die lokale Bibliothek enthält 27 vollständige SolvePaths:
+
+- 19 Mathematik-Aufgaben
+- 8 Physik-Aufgaben
+
+Mathematik deckt unter anderem Grundrechenarten, Dezimalzahlen, Bruchrechnung, Prozentrechnung, Dreisatz, Potenzen, Wurzeln, lineare Funktionen, Gleichungssysteme, quadratische Gleichungen, Geometrie, Statistik, Wahrscheinlichkeit, Ungleichungen und Ableitungen ab.
+
+Physik enthält unter anderem Gravitation, Kepler, Kreisbewegung, Gravitationsfeld, gleichförmige Bewegung, kinetische Energie, Ohmsches Gesetz und Dichte.
+
+## Free & Pro
+
+Free:
+
+- lokale Übungsbibliothek
+- drei Remote-KI-Analysen pro Tag
+- kompletter SolvePath mit Stuck Mode und Hint Ladder
+
+Pro:
+
+- kein Free-Tageslimit für KI-Analysen; serverseitiges Fair-Use-/Missbrauchslimit bleibt bestehen
+- adaptiver Exam Mode
+- Store-basierte Kaufwiederherstellung und Abo-Verwaltung
+
+Apple- und Google-Abos werden über RevenueCat zusammengeführt. Die App verwendet nur öffentliche RevenueCat SDK-Schlüssel. Der Server kann das Entitlement `pro` mit einem geheimen RevenueCat-Key verifizieren.
 
 ## KI-Pipeline
 
@@ -11,78 +38,65 @@ Remote Analysis arbeitet zweistufig:
 1. **Analysepass**: Der multimodale Provider erzeugt eine strukturierte `ProblemAnalysis`.
 2. **Verifikationspass**: Ein zweiter Modellaufruf prüft Prinzip, Formeln, Einheiten, Größenordnung, Ergebnis und Hint-Progression und kann die Analyse reparieren.
 
-Wenn eine Modellantwort das Schema verletzt, erhält das Modell bis zu zwei gezielte Reparaturversuche mit einer kompakten Validierungsbeschreibung. Danach wird die Analyse abgelehnt statt unsichere Daten an die App weiterzugeben.
+Wenn eine Modellantwort das Schema verletzt, erhält das Modell bis zu zwei gezielte Reparaturversuche. Danach wird die Analyse abgelehnt statt unsichere Daten an die App weiterzugeben.
 
-Der Verifikationspass ist standardmäßig aktiv und kann serverseitig mit `LLM_VERIFY_ANALYSIS=false` abgeschaltet werden.
-
-Wichtig: Auch eine zweistufig geprüfte KI kann fachliche Fehler machen. SolvePath ist ein Lernbegleiter und kein Ersatz für Lehrkräfte oder verbindliche Musterlösungen.
-
-## Starten
-
-Voraussetzungen: Node.js 22.13+ und pnpm 11.19.0+.
+## Lokaler Start
 
 ```bash
 pnpm install
 pnpm start
 ```
 
-Ohne Server-URL startet die App im lokalen Demo-Modus.
+Für echte In-App-Käufe ist ein EAS Development Build oder Store-Testbuild erforderlich. Expo Go kann den Flow nur im Preview-Modus darstellen.
 
-Für Remote Analysis:
+## Remote Analysis
 
-1. `.env.example` als Vorlage verwenden.
-2. Serverseitig `LLM_API_KEY`, `LLM_MODEL` und `LLM_BASE_URL` setzen.
-3. Das Modell muss Bilder verarbeiten und JSON ausgeben können.
-4. Backend mit `pnpm server:start` starten.
-5. In der App ausschließlich `EXPO_PUBLIC_SOLVEPATH_API_URL` auf die HTTPS-Adresse des Backends setzen.
+Serverseitig erforderlich:
 
-**Nie einen Provider-Key als `EXPO_PUBLIC_*` Variable setzen.**
+```text
+LLM_API_KEY
+LLM_MODEL
+LLM_BASE_URL
+REVENUECAT_SECRET_KEY
+REVENUECAT_ENTITLEMENT_ID=pro
+```
+
+Mobil:
+
+```text
+EXPO_PUBLIC_SOLVEPATH_API_URL
+EXPO_PUBLIC_REVENUECAT_ANDROID_KEY
+EXPO_PUBLIC_REVENUECAT_IOS_KEY
+EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID=pro
+```
+
+`EXPO_PUBLIC_*` darf ausschließlich öffentliche SDK-/Konfigurationswerte enthalten.
 
 ## Eingaben
 
 - freie Textaufgabe
-- Text aus Zwischenablage
+- Zwischenablage
 - Kamera
-- Bild aus Galerie
-- Screenshot über Galerie
+- Galerie / Screenshot
 
-Bilder sind auf JPEG, PNG und WebP sowie 8 MB begrenzt. Auf dem Server werden Dateisignatur und MIME-Type geprüft. Bilddateien werden nicht in AsyncStorage gespeichert.
-
-## Ergebnisprüfung
-
-SolvePath berücksichtigt unter anderem:
-
-- Dezimalkomma und Dezimalpunkt
-- wissenschaftliche Schreibweise
-- Toleranzen
-- kompatible Einheiten wie `7,67 km/s` und `7670 m/s`
-- strukturierte Fehlermuster wie Einheitenfehler, Vorzeichenfehler und Exponentenfehler
+Bilder sind auf JPEG, PNG und WebP sowie 8 MB begrenzt. Aufgabenbilder werden nicht dauerhaft in AsyncStorage gespeichert.
 
 ## API-Schutz
 
-`POST /api/analyze` akzeptiert JSON oder Multipart.
+Der Server verwendet unter anderem:
 
-Der Server verwendet:
-
-- Zod-Validierung für jede Analyse
+- Zod-Validierung
 - Request IDs
 - Provider-Timeout
-- Secret-Trennung zwischen App und Backend
+- Secret-Trennung
 - MIME- und Dateisignaturprüfung
-- einfache IP-basierte Rate-Limits
-- `Cache-Control: no-store` für Analyseantworten
+- Minuten-/Tageslimits
+- serverseitige RevenueCat-Prüfung für Pro
+- Free-Limit pro RevenueCat App User ID
+- `Cache-Control: no-store`
 - `X-Content-Type-Options: nosniff`
-- optionales `TRUST_PROXY=true` hinter einem vertrauenswürdigen Reverse Proxy
 
-Für großen öffentlichen Betrieb sollte zusätzlich ein dauerhaftes Rate-Limit am Gateway oder Hosting-Anbieter genutzt werden.
-
-## Datenschutz
-
-Die aktuelle Beta hat keine Nutzerkonten.
-
-Lokal gespeichert werden Verlauf, Hinweise, Lernfortschritt, Fehlermuster und validierte Textanalysen. Bei Remote Analysis werden Aufgabentext und gegebenenfalls Aufgabenbild an den SolvePath-Server und den konfigurierten KI-Provider übertragen.
-
-Ein Veröffentlichungsentwurf der Datenschutzerklärung liegt unter `store/privacy-policy.de.md`.
+Wenn RevenueCat vorübergehend nicht erreichbar ist, wird der Entitlement-Status als unbekannt behandelt, damit zahlende Nutzer nicht durch einen externen Ausfall ausgesperrt werden. Das globale Fair-Use-Limit bleibt aktiv.
 
 ## Qualität
 
@@ -98,22 +112,6 @@ pnpm release:check
 pnpm build:export
 ```
 
-GitHub Actions führt diese Prüfungen aus.
+## Veröffentlichung
 
-## Release
-
-`eas.json` enthält Development-, Preview- und Production-Profile. Android `versionCode` und iOS `buildNumber` sind gesetzt.
-
-Die vollständige Veröffentlichungsliste steht in `RELEASE_CHECKLIST.md`.
-
-Vor einem öffentlichen Store-Release müssen außerhalb des Codes noch erledigt werden:
-
-- produktives HTTPS-Backend
-- echter KI-Provider und Secrets
-- realer Android-Gerätetest
-- finales App-Icon und Store-Screenshots
-- öffentliche Datenschutzerklärungs-URL
-- Support-Kontakt
-- endgültige Bestätigung der Package IDs
-- EAS/Google-Play- bzw. Apple-Developer-Verbindung
-- Data-Safety-/App-Privacy-Angaben passend zu Hoster und KI-Provider
+Siehe `RELEASE_CHECKLIST.md`. Vor einem öffentlichen Store-Release sind weiterhin echte Store-/RevenueCat-Produkte, ein HTTPS-Backend, physische Gerätetests, Store-Assets, Support-/Privacy-URLs und verbundene Developer-Konten nötig.

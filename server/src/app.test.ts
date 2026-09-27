@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { demoProblems } from '../../src/data/problems';
 import type { AnalysisProvider } from './providers/analysis-provider';
 import { RemoteProblemAnalyzer } from '../../src/services/problem-analyzer';
+import type { EntitlementVerifier } from './services/revenuecat';
 import { buildServer } from './app';
 
 const valid = demoProblems[0]!;
@@ -126,6 +127,53 @@ describe('POST /api/analyze', () => {
       else process.env.RATE_LIMIT_PER_MINUTE = previousMinute;
       if (previousDay === undefined) delete process.env.RATE_LIMIT_PER_DAY;
       else process.env.RATE_LIMIT_PER_DAY = previousDay;
+      await app.close();
+    }
+  });
+
+  it('enforces the free daily AI quota for a verified non-Pro user', async () => {
+    const verifier: EntitlementVerifier = { isPro: vi.fn(async () => false) };
+    const app = buildServer(mockProvider(), verifier);
+    try {
+      for (let index = 0; index < 3; index++) {
+        const response = await app.inject({
+          method: 'POST',
+          url: '/api/analyze',
+          headers: { 'x-solvepath-user-id': 'free-user' },
+          payload: { text: `Eine neue Aufgabe mit Zahlen und Frage ${index}` },
+        });
+        expect(response.statusCode).toBe(200);
+        expect(response.headers['x-solvepath-entitlement']).toBe('free');
+      }
+
+      const limited = await app.inject({
+        method: 'POST',
+        url: '/api/analyze',
+        headers: { 'x-solvepath-user-id': 'free-user' },
+        payload: { text: 'Eine vierte Aufgabe mit Zahlen und Frage' },
+      });
+      expect(limited.statusCode).toBe(429);
+      expect(limited.json().code).toBe('free_quota_reached');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('does not apply the free quota to a verified Pro user', async () => {
+    const verifier: EntitlementVerifier = { isPro: vi.fn(async () => true) };
+    const app = buildServer(mockProvider(), verifier);
+    try {
+      for (let index = 0; index < 4; index++) {
+        const response = await app.inject({
+          method: 'POST',
+          url: '/api/analyze',
+          headers: { 'x-solvepath-user-id': 'pro-user' },
+          payload: { text: `Eine Pro-Aufgabe mit Zahlen und Frage ${index}` },
+        });
+        expect(response.statusCode).toBe(200);
+        expect(response.headers['x-solvepath-entitlement']).toBe('pro');
+      }
+    } finally {
       await app.close();
     }
   });

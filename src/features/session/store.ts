@@ -14,6 +14,7 @@ import {
   progressRepository,
   type StoredProgress,
 } from '../../storage/progress-repository';
+import { useSubscription } from '../subscription/store';
 
 type SessionState = StoredProgress & {
   hydrated: boolean;
@@ -58,6 +59,7 @@ export const useSession = create<SessionState>((set, get) => ({
   examSubject: 'physics',
   examTopics: [],
   examDate: '',
+
   hydrate: async () => {
     try {
       const progress = await progressRepository.load();
@@ -66,7 +68,20 @@ export const useSession = create<SessionState>((set, get) => ({
       set({ hydrated: true, error: 'Lokaler Fortschritt konnte nicht geladen werden.' });
     }
   },
+
   analyze: async (text, image, mode = 'remote') => {
+    if (mode === 'remote') {
+      await useSubscription.getState().initialize();
+      if (!useSubscription.getState().canAnalyzeRemote()) {
+        set({
+          busy: false,
+          error:
+            'Deine drei kostenlosen KI-Analysen für heute sind verbraucht. Mit SolvePath Pro gibt es kein Tageslimit.',
+        });
+        return false;
+      }
+    }
+
     set({ busy: true, error: null, analysisStage: 0 });
     try {
       const problem = await analyzerForMode(mode).analyze(text, image, (analysisStage) =>
@@ -82,6 +97,7 @@ export const useSession = create<SessionState>((set, get) => ({
               Object.entries({ ...get().remoteProblems, [problem.id]: problem }).slice(-24),
             )
           : get().remoteProblems;
+
       set({
         currentProblemId: problem.id,
         remoteProblems: nextRemoteProblems,
@@ -90,6 +106,8 @@ export const useSession = create<SessionState>((set, get) => ({
         stuckReason: null,
         stepIndex: 0,
       });
+
+      if (mode === 'remote') await useSubscription.getState().recordRemoteAnalysis();
       await progressRepository.save(snapshot(get()));
       return true;
     } catch (error) {
@@ -100,11 +118,14 @@ export const useSession = create<SessionState>((set, get) => ({
       return false;
     }
   },
+
   selectProblem: (id) => {
     if (problemById(id) || get().remoteProblems[id])
       set({ currentProblemId: id, stuckReason: null, stepIndex: 0, error: null });
   },
+
   setStuckReason: (reason) => set({ stuckReason: reason }),
+
   nextHint: () => {
     const id = get().currentProblemId;
     const problem = id ? (get().remoteProblems[id] ?? problemById(id)) : undefined;
@@ -118,7 +139,9 @@ export const useSession = create<SessionState>((set, get) => ({
       .save(snapshot(get()))
       .catch(() => set({ error: 'Hinweise konnten nicht gespeichert werden.' }));
   },
+
   setStepIndex: (index) => set({ stepIndex: index }),
+
   checkAnswer: (answer) => {
     const id = get().currentProblemId;
     const problem = id ? (get().remoteProblems[id] ?? problemById(id)) : undefined;
@@ -140,8 +163,10 @@ export const useSession = create<SessionState>((set, get) => ({
     }
     return result;
   },
+
   setExam: (subject, topics, date) =>
     set({ examSubject: subject, examTopics: topics, examDate: date }),
+
   resetProgress: async () => {
     await progressRepository.clear();
     set({ ...emptyProgress, currentProblemId: null, stepIndex: 0, stuckReason: null });

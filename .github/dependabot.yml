@@ -8,7 +8,7 @@ updates:
     groups:
       expo:
         patterns:
-          - "expo*"
-          - "react-native*"
+          - expo*
+          - react-native*
       tooling:
         dependency-type: development

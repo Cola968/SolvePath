@@ -14,6 +14,7 @@ import {
 import { problemById } from '../data/problems';
 import { topicScore, topRisks } from '../domain/profile/progress';
 import { useSession } from '../features/session/store';
+import { useSubscription } from '../features/subscription/store';
 import { spacing } from '../theme/tokens';
 
 export default function HomeScreen() {
@@ -23,6 +24,8 @@ export default function HomeScreen() {
   const profile = useSession((state) => state.profile);
   const remoteProblems = useSession((state) => state.remoteProblems);
   const selectProblem = useSession((state) => state.selectProblem);
+  const pro = useSubscription((state) => state.pro);
+  const remaining = useSubscription((state) => state.remainingFreeAnalyses());
 
   const topicProgress = Object.values(profile.topics);
   const mastery =
@@ -45,7 +48,7 @@ export default function HomeScreen() {
       eyebrow="Lernen mit System"
     >
       <HeroCard
-        kicker="Nicht vorsagen. Weiterbringen."
+        kicker={pro ? 'PRO AKTIV' : 'Nicht vorsagen. Weiterbringen.'}
         title="Wo hängt dein Lösungsweg?"
         body="Gib eine Aufgabe ein. SolvePath erkennt den nächsten sinnvollen Schritt und zeigt nur so viel Hilfe, wie du brauchst."
       >
@@ -70,12 +73,28 @@ export default function HomeScreen() {
           tone="accent"
         />
         <StatTile
-          value={risks.length.toString()}
-          label="aktive Risiken"
-          detail={risks.length ? 'gezielt trainierbar' : 'noch keine erkannt'}
-          tone="warning"
+          value={pro ? '∞' : remaining.toString()}
+          label={pro ? 'KI-Analysen' : 'Free-Analysen'}
+          detail={pro ? 'Pro ohne Tageslimit' : 'heute noch verfügbar'}
+          tone={pro ? 'primary' : 'warning'}
         />
       </View>
+
+      {!pro ? (
+        <Card elevated>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
+            <View style={{ flex: 1, gap: spacing.xs }}>
+              <Pill label="SOLVEPATH PRO" tone="accent" />
+              <AppText variant="lead">Unbegrenzte KI-Analysen + Exam Mode</AppText>
+              <AppText muted>
+                Free bleibt nutzbar. Pro entfernt das Tageslimit und schaltet die erweiterten
+                Lernfunktionen frei.
+              </AppText>
+            </View>
+          </View>
+          <AppButton label="Pro ansehen" variant="secondary" onPress={() => router.push('/pro')} />
+        </Card>
+      ) : null}
 
       {continueProblem ? (
         <View style={{ gap: spacing.md }}>
@@ -118,7 +137,7 @@ export default function HomeScreen() {
           <ActionTile
             symbol="◎"
             title="Prüfungsmodus"
-            subtitle="Risiken gezielt trainieren"
+            subtitle={pro ? 'Risiken gezielt trainieren' : 'Pro-Funktion ansehen'}
             onPress={() => router.push('/exam')}
           />
           <ActionTile
@@ -128,10 +147,10 @@ export default function HomeScreen() {
             onPress={() => router.push('/profile')}
           />
           <ActionTile
-            symbol="⚙"
-            title="Einstellungen"
-            subtitle="Daten und Darstellung"
-            onPress={() => router.push('/settings')}
+            symbol={pro ? '★' : 'PRO'}
+            title={pro ? 'Pro aktiv' : 'SolvePath Pro'}
+            subtitle={pro ? 'Abo verwalten' : 'Abo & Vorteile'}
+            onPress={() => router.push('/pro')}
           />
         </View>
       </View>

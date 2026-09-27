@@ -2,6 +2,7 @@ import { Alert, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AppButton, AppText, Card, Page, Pill, SectionTitle } from '../components/ui';
 import { useSession } from '../features/session/store';
+import { useSubscription } from '../features/subscription/store';
 import { spacing, useTheme } from '../theme/tokens';
 
 export default function SettingsScreen() {
@@ -10,11 +11,17 @@ export default function SettingsScreen() {
   const profile = useSession((state) => state.profile);
   const recent = useSession((state) => state.recentProblemIds);
   const reset = useSession((state) => state.resetProgress);
+  const pro = useSubscription((state) => state.pro);
+  const configured = useSubscription((state) => state.configured);
+  const appUserId = useSubscription((state) => state.appUserId);
+  const busy = useSubscription((state) => state.busy);
+  const restore = useSubscription((state) => state.restore);
+  const manage = useSubscription((state) => state.manage);
 
   function confirmReset() {
     Alert.alert(
       'Lernfortschritt löschen?',
-      'Verlauf, gelöste Aufgaben, Hinweise und Fehlerprofil werden lokal entfernt.',
+      'Verlauf, gelöste Aufgaben, Hinweise und Fehlerprofil werden lokal entfernt. Dein Store-Abo bleibt unverändert.',
       [
         { text: 'Abbrechen', style: 'cancel' },
         {
@@ -35,16 +42,53 @@ export default function SettingsScreen() {
   return (
     <Page
       title="Einstellungen"
-      subtitle="Der aktuelle MVP arbeitet local-first und benötigt für den Kernflow kein Konto."
+      subtitle="SolvePath speichert Lernfortschritt lokal; Abos werden über deinen App Store verwaltet."
       eyebrow="App"
     >
       <Card elevated>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
           <View style={{ flex: 1, gap: spacing.xs }}>
+            <SectionTitle>SolvePath Pro</SectionTitle>
+            <AppText muted>
+              {pro
+                ? 'Pro ist aktiv. Dein Abo wird über Apple oder Google abgerechnet und verwaltet.'
+                : 'Free enthält drei KI-Analysen pro Tag. Pro entfernt das Tageslimit.'}
+            </AppText>
+          </View>
+          <Pill label={pro ? 'PRO' : 'FREE'} tone={pro ? 'primary' : 'neutral'} />
+        </View>
+
+        <AppButton
+          label={pro ? 'Abo verwalten' : 'Pro ansehen'}
+          onPress={() => {
+            if (pro) void manage();
+            else router.push('/pro');
+          }}
+          busy={busy}
+        />
+        <AppButton
+          label="Käufe wiederherstellen"
+          variant="ghost"
+          disabled={!configured}
+          busy={busy}
+          onPress={() => {
+            void restore();
+          }}
+        />
+        {appUserId ? (
+          <AppText variant="caption" muted>
+            Support-ID: {appUserId}
+          </AppText>
+        ) : null}
+      </Card>
+
+      <Card>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
+          <View style={{ flex: 1, gap: spacing.xs }}>
             <SectionTitle>Local-first</SectionTitle>
             <AppText muted>
-              Lernfortschritt, Hint-Nutzung und Fehlerprofil bleiben in dieser Version auf deinem
-              Gerät.
+              Verlauf, Hint-Nutzung und Lernprofil bleiben lokal auf deinem Gerät. Aufgabenbilder
+              werden nicht dauerhaft gespeichert.
             </AppText>
           </View>
           <Pill label="PRIVAT" tone="primary" />
@@ -75,12 +119,11 @@ export default function SettingsScreen() {
       <Card>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
           <SectionTitle>SolvePath</SectionTitle>
-          <Pill label="v0.2 MVP" tone="primary" />
+          <Pill label="v0.4 RC" tone="primary" />
         </View>
         <AppText muted>
-          Acht lokale Demo-Aufgaben, Stuck Mode, Hint Ladder, Denkfehler-Diagnose, Lernprofil und
-          Exam Mode. Eine echte Foto-/Freitext-KI benötigt als nächstes einen sicheren
-          Backend-Service.
+          Freie Text- und Bildanalyse, Stuck Mode, Hint Ladder, Denkfehler-Diagnose, Lernprofil,
+          Exam Mode und Store-Abos über RevenueCat.
         </AppText>
       </Card>
     </Page>

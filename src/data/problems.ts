@@ -1,4 +1,5 @@
 import { problemAnalysisSchema, type ProblemAnalysis } from '../domain/problem/schema';
+import { extendedProblems } from './extended-problems';
 
 const rawProblems: ProblemAnalysis[] = [
   {
@@ -735,7 +736,9 @@ const rawProblems: ProblemAnalysis[] = [
   },
 ];
 
-export const demoProblems = problemAnalysisSchema.array().parse(rawProblems);
+export const demoProblems = problemAnalysisSchema
+  .array()
+  .parse([...rawProblems, ...extendedProblems]);
 export const problemById = (id: string): ProblemAnalysis | undefined =>
   demoProblems.find((problem) => problem.id === id);
 

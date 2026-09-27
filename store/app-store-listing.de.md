@@ -22,8 +22,15 @@ Du kannst Aufgaben als Text eingeben, aus der Zwischenablage übernehmen, fotogr
 - Einheiten- und Ergebnisprüfung
 - Erkennung typischer Denkfehler
 - Lernprofil
-- Exam Mode
-- lokale Demo-Aufgaben als Offline-Fallback
+- 27 vollständige lokale Übungspfade
+- breite Mathe-Abdeckung von Grundrechenarten bis Wahrscheinlichkeit und Geometrie
+- Physikpfade zu Gravitation, Bewegung, Energie, Elektrizitätslehre und Mechanik
+- lokale Übungsaufgaben als Offline-Fallback
+
+### Free & Pro
+Free enthält drei KI-Analysen pro Tag und die lokale Übungsbibliothek.
+
+SolvePath Pro bietet unbegrenzte KI-Analysen im normalen Fair-Use-Rahmen und den adaptiven Exam Mode. Preis, Abrechnungszeitraum und gegebenenfalls Testphase werden vor dem Kauf im App Store angezeigt. Käufe können wiederhergestellt werden.
 
 KI-generierte Analysen können Fehler enthalten. SolvePath ist ein Lernbegleiter und kein Ersatz für verbindliche Unterrichtsmaterialien oder Lehrkräfte.
 
