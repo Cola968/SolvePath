@@ -1,13 +1,13 @@
 import { demoProblems } from '../data/problems';
 import type { ProblemAnalysis } from '../domain/problem/schema';
 import { problemAnalysisSchema } from '../domain/problem/schema';
+import { localProblemAnalyzer } from './local-problem-analyzer';
 import { getSubscriptionAppUserId } from './subscription-identity';
 
 export type AnalysisImage = { uri: string; name: string; mimeType: string; size?: number };
-export type AnalysisMode = 'remote' | 'demo';
+export type AnalysisMode = 'local' | 'remote' | 'demo';
 
-export const remoteApiUrl =
-  process.env.EXPO_PUBLIC_SOLVEPATH_API_URL?.trim() || 'https://solvepath-api-prod.onrender.com';
+export const remoteApiUrl = process.env.EXPO_PUBLIC_SOLVEPATH_API_URL?.trim() || '';
 
 export interface ProblemAnalyzer {
   analyze(
@@ -131,5 +131,7 @@ export const mockProblemAnalyzer = new MockProblemAnalyzer();
 export const remoteProblemAnalyzer = new RemoteProblemAnalyzer(remoteApiUrl);
 
 export function analyzerForMode(mode: AnalysisMode): ProblemAnalyzer {
-  return mode === 'remote' ? remoteProblemAnalyzer : mockProblemAnalyzer;
+  if (mode === 'remote') return remoteProblemAnalyzer;
+  if (mode === 'demo') return mockProblemAnalyzer;
+  return localProblemAnalyzer;
 }
