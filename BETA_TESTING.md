@@ -47,16 +47,16 @@ Zusätzlich erzeugt GitHub Actions mit **Beta APK** ein direkt installierbares `
 6. Einen Screenshot aus der Galerie laden und OCR-Text kontrollieren.
 7. Ein Foto aus Google Fotos/Dateiauswahl laden und prüfen, ob die Bildnormalisierung funktioniert.
 8. Bei absichtlich schwer lesbarem Bild „Erkennung erneut versuchen“ testen und danach den Text manuell korrigieren.
-7. Eine nicht unterstützte Aufgabe eingeben; SolvePath darf kein Ergebnis erfinden.
-8. Stuck Mode für mindestens drei verschiedene Engpässe testen.
-9. Alle sechs Hint-Stufen einer Aufgabe durchlaufen.
-10. Ein korrektes und ein absichtlich falsches Ergebnis prüfen.
-11. Lernprofil nach mehreren Versuchen kontrollieren.
-12. Exam Mode: Fach, Themen, Datum und Fokus-Training testen.
-13. App schließen/öffnen und prüfen, ob Fortschritt erhalten bleibt.
-14. Lernfortschritt in Einstellungen löschen.
-15. Hell-/Dunkelmodus des Systems wechseln.
-16. App im Flugmodus erneut testen; lokale Kernfunktionen müssen weiterlaufen.
+9. Eine nicht unterstützte Aufgabe eingeben; SolvePath darf kein Ergebnis erfinden.
+10. Stuck Mode für mindestens drei verschiedene Engpässe testen.
+11. Alle sechs Hint-Stufen einer Aufgabe durchlaufen.
+12. Ein korrektes und ein absichtlich falsches Ergebnis prüfen.
+13. Lernprofil nach mehreren Versuchen kontrollieren.
+14. Exam Mode: Fach, Themen, Datum und Fokus-Training testen.
+15. App schließen/öffnen und prüfen, ob Fortschritt erhalten bleibt.
+16. Lernfortschritt in Einstellungen löschen.
+17. Hell-/Dunkelmodus des Systems wechseln.
+18. App im Flugmodus erneut testen; lokale Kernfunktionen müssen weiterlaufen.
 
 ## Bekannte Grenzen
 
