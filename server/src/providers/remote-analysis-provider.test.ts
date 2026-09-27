@@ -27,9 +27,7 @@ describe('RemoteAnalysisProvider', () => {
     const second = JSON.parse(fetcher.mock.calls[1]![1]!.body as string);
     expect(first.messages[0].content).toContain('Hinweis 1');
     expect(
-      second.messages.some((message: { content: string }) =>
-        message.content.includes('Repariere'),
-      ),
+      second.messages.some((message: { content: string }) => message.content.includes('Repariere')),
     ).toBe(true);
   });
 

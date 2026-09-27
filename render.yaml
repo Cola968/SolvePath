@@ -12,15 +12,15 @@ services:
       - key: HOST
         value: 0.0.0.0
       - key: TRUST_PROXY
-        value: "true"
+        value: 'true'
       - key: LLM_VERIFY_ANALYSIS
-        value: "true"
+        value: 'true'
       - key: LLM_TIMEOUT_MS
-        value: "18000"
+        value: '18000'
       - key: RATE_LIMIT_PER_MINUTE
-        value: "12"
+        value: '12'
       - key: RATE_LIMIT_PER_DAY
-        value: "120"
+        value: '120'
       - key: LLM_API_KEY
         sync: false
       - key: LLM_MODEL
