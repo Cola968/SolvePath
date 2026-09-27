@@ -29,6 +29,9 @@ export function AppText({
   numberOfLines?: number;
 }) {
   const { colors } = useTheme();
+  const fontWeight =
+    variant === 'hero' ? '700' : variant === 'title' ? '700' : variant === 'lead' ? '600' : '400';
+
   return (
     <Text
       numberOfLines={numberOfLines}
@@ -36,9 +39,17 @@ export function AppText({
         {
           color: muted ? colors.muted : colors.ink,
           fontSize: typeScale[variant],
-          lineHeight: typeScale[variant] * 1.35,
-          fontWeight:
-            variant === 'title' || variant === 'hero' ? '700' : variant === 'lead' ? '600' : '400',
+          lineHeight:
+            variant === 'caption'
+              ? 17
+              : variant === 'body'
+                ? 23
+                : variant === 'lead'
+                  ? 25
+                  : variant === 'title'
+                    ? 31
+                    : 37,
+          fontWeight,
         },
         style,
       ]}
@@ -69,43 +80,65 @@ export function Page({
       <ScrollView
         contentContainerStyle={{
           width: '100%',
-          maxWidth: 760,
+          maxWidth: 680,
           alignSelf: 'center',
-          paddingHorizontal: spacing.xl,
-          paddingTop: spacing.lg,
+          paddingHorizontal: spacing.lg,
+          paddingTop: spacing.md,
           paddingBottom: spacing.giant,
           gap: spacing.xl,
         }}
         keyboardShouldPersistTaps="handled"
       >
         <View style={{ gap: spacing.md }}>
-          {back ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Zurück"
-              onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
-              style={({ pressed }) => ({
-                minHeight: 44,
-                alignSelf: 'flex-start',
-                justifyContent: 'center',
-                opacity: pressed ? 0.6 : 1,
-              })}
-            >
-              <AppText style={{ color: colors.primary, fontWeight: '700' }}>‹ Zurück</AppText>
-            </Pressable>
-          ) : null}
+          <View
+            style={{
+              minHeight: 40,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: spacing.md,
+            }}
+          >
+            {back ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Zurück"
+                onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+                hitSlop={10}
+                style={({ pressed }) => ({
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: pressed ? colors.surfaceAlt : 'transparent',
+                })}
+              >
+                <AppText variant="lead" style={{ color: colors.ink }}>
+                  ‹
+                </AppText>
+              </Pressable>
+            ) : (
+              <View style={{ width: 40 }} />
+            )}
 
-          {eyebrow ? <Pill label={eyebrow.toUpperCase()} tone="primary" /> : null}
-
-          <View style={{ gap: spacing.sm }}>
-            <AppText variant="hero">{title}</AppText>
-            {subtitle ? (
-              <AppText muted style={{ maxWidth: 620 }}>
-                {subtitle}
+            {eyebrow ? (
+              <AppText
+                variant="caption"
+                muted
+                style={{ fontWeight: '700', letterSpacing: 0.3, textAlign: 'right' }}
+              >
+                {eyebrow}
               </AppText>
             ) : null}
           </View>
+
+          <View style={{ gap: spacing.xs }}>
+            <AppText variant="hero">{title}</AppText>
+            {subtitle ? <AppText muted>{subtitle}</AppText> : null}
+          </View>
         </View>
+
         {children}
       </ScrollView>
     </SafeAreaView>
@@ -131,15 +164,15 @@ export function Card({
           borderColor: colors.border,
           borderWidth: 1,
           borderRadius: radius.lg,
-          padding: spacing.xl,
+          padding: spacing.lg,
           gap: spacing.md,
           ...(elevated
             ? {
                 shadowColor: colors.shadow,
-                shadowOffset: { width: 0, height: 8 },
-                shadowOpacity: isDark ? 0.18 : 0.08,
-                shadowRadius: 18,
-                elevation: 3,
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: isDark ? 0.18 : 0.05,
+                shadowRadius: 10,
+                elevation: 2,
               }
             : {}),
         },
@@ -167,53 +200,24 @@ export function HeroCard({
   return (
     <View
       style={{
-        backgroundColor: colors.primaryStrong,
-        borderRadius: radius.xl,
-        padding: spacing.xxl,
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.border,
+        borderRadius: radius.lg,
+        padding: spacing.xl,
         gap: spacing.md,
-        overflow: 'hidden',
       }}
     >
-      <View
-        pointerEvents="none"
-        style={{
-          position: 'absolute',
-          width: 180,
-          height: 180,
-          borderRadius: 90,
-          backgroundColor: colors.primary,
-          opacity: 0.38,
-          right: -70,
-          top: -70,
-        }}
-      />
-      <View
-        pointerEvents="none"
-        style={{
-          position: 'absolute',
-          width: 120,
-          height: 120,
-          borderRadius: 60,
-          backgroundColor: colors.accent,
-          opacity: 0.18,
-          right: 36,
-          bottom: -68,
-        }}
-      />
       {kicker ? (
         <AppText
           variant="caption"
-          style={{ color: colors.primarySoft, fontWeight: '800', letterSpacing: 1.2 }}
+          style={{ color: colors.primary, fontWeight: '700', letterSpacing: 0.3 }}
         >
-          {kicker.toUpperCase()}
+          {kicker}
         </AppText>
       ) : null}
-      <AppText variant="title" style={{ color: colors.white, maxWidth: 520 }}>
-        {title}
-      </AppText>
-      {body ? (
-        <AppText style={{ color: colors.white, opacity: 0.82, maxWidth: 560 }}>{body}</AppText>
-      ) : null}
+      <AppText variant="title">{title}</AppText>
+      {body ? <AppText muted>{body}</AppText> : null}
       {children}
     </View>
   );
@@ -237,9 +241,9 @@ export function AppButton({
     variant === 'primary'
       ? colors.primary
       : variant === 'secondary'
-        ? colors.primarySoft
+        ? colors.surface
         : 'transparent';
-  const textColor = variant === 'primary' ? colors.white : colors.primary;
+  const textColor = variant === 'primary' ? colors.white : colors.ink;
 
   return (
     <Pressable
@@ -248,22 +252,21 @@ export function AppButton({
       onPress={onPress}
       disabled={disabled || busy}
       style={({ pressed }) => ({
-        minHeight: 56,
+        minHeight: 52,
         borderRadius: radius.md,
         backgroundColor,
-        borderWidth: variant === 'ghost' ? 1 : 0,
-        borderColor: colors.borderStrong,
-        opacity: disabled ? 0.42 : pressed ? 0.78 : 1,
+        borderWidth: variant === 'primary' ? 0 : 1,
+        borderColor: variant === 'ghost' ? 'transparent' : colors.borderStrong,
+        opacity: disabled ? 0.42 : pressed ? 0.72 : 1,
         alignItems: 'center',
         justifyContent: 'center',
         paddingHorizontal: spacing.lg,
-        transform: [{ scale: pressed && !disabled ? 0.992 : 1 }],
       })}
     >
       {busy ? (
-        <ActivityIndicator color={textColor} />
+        <ActivityIndicator color={variant === 'primary' ? colors.white : colors.primary} />
       ) : (
-        <AppText style={{ color: textColor, fontWeight: '800', textAlign: 'center' }}>
+        <AppText style={{ color: textColor, fontWeight: '700', textAlign: 'center' }}>
           {label}
         </AppText>
       )}
@@ -278,16 +281,19 @@ export function AppInput(props: TextInputProps) {
     <TextInput
       {...props}
       placeholderTextColor={colors.muted}
+      selectionColor={colors.primary}
       style={[
         {
-          minHeight: 56,
+          minHeight: 52,
           borderRadius: radius.md,
           borderWidth: 1,
           borderColor: colors.borderStrong,
           backgroundColor: colors.surface,
-          padding: spacing.lg,
+          paddingHorizontal: spacing.lg,
+          paddingVertical: spacing.md,
           color: colors.ink,
           fontSize: typeScale.body,
+          lineHeight: 23,
           textAlignVertical: 'top',
         },
         props.style,
@@ -318,13 +324,14 @@ export function Choice({
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => ({
-        minHeight: 58,
-        padding: spacing.lg,
+        minHeight: 54,
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.md,
         borderRadius: radius.md,
-        borderWidth: 1.5,
+        borderWidth: 1,
         borderColor: selected ? colors.primary : colors.border,
         backgroundColor: selected ? colors.primarySoft : colors.surface,
-        opacity: disabled ? 0.45 : pressed ? 0.75 : 1,
+        opacity: disabled ? 0.45 : pressed ? 0.72 : 1,
         justifyContent: 'center',
       })}
     >
@@ -332,23 +339,47 @@ export function Choice({
         {prefix ? (
           <View
             style={{
-              width: 34,
-              height: 34,
-              borderRadius: 17,
+              minWidth: 30,
+              height: 30,
+              paddingHorizontal: spacing.xs,
+              borderRadius: 15,
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: selected ? colors.primary : colors.surfaceAlt,
             }}
           >
-            <AppText style={{ color: selected ? colors.white : colors.primary, fontWeight: '800' }}>
+            <AppText
+              variant="caption"
+              style={{ color: selected ? colors.white : colors.muted, fontWeight: '700' }}
+            >
               {prefix}
             </AppText>
           </View>
-        ) : null}
-        <AppText style={{ flex: 1, fontWeight: selected ? '700' : '500' }}>{label}</AppText>
-        <AppText style={{ color: selected ? colors.primary : colors.muted }}>
-          {selected ? '✓' : '›'}
-        </AppText>
+        ) : (
+          <View
+            style={{
+              width: 20,
+              height: 20,
+              borderRadius: 10,
+              borderWidth: 2,
+              borderColor: selected ? colors.primary : colors.borderStrong,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {selected ? (
+              <View
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: 5,
+                  backgroundColor: colors.primary,
+                }}
+              />
+            ) : null}
+          </View>
+        )}
+        <AppText style={{ flex: 1, fontWeight: selected ? '600' : '500' }}>{label}</AppText>
       </View>
     </Pressable>
   );
@@ -385,14 +416,11 @@ export function Pill({
         alignSelf: 'flex-start',
         backgroundColor,
         borderRadius: radius.pill,
-        paddingHorizontal: spacing.md,
-        paddingVertical: spacing.sm,
+        paddingHorizontal: spacing.sm,
+        paddingVertical: spacing.xs,
       }}
     >
-      <AppText
-        variant="caption"
-        style={{ color: foreground, fontWeight: '800', letterSpacing: 0.6 }}
-      >
+      <AppText variant="caption" style={{ color: foreground, fontWeight: '700' }}>
         {label}
       </AppText>
     </View>
@@ -419,40 +447,43 @@ export function ActionTile({
       accessibilityRole="button"
       onPress={onPress}
       style={({ pressed }) => ({
-        flex: 1,
-        minWidth: 150,
-        borderRadius: radius.lg,
-        padding: spacing.lg,
+        width: '100%',
+        minHeight: 70,
+        borderRadius: radius.md,
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.md,
+        flexDirection: 'row',
+        alignItems: 'center',
         gap: spacing.md,
         backgroundColor: accent ? colors.primarySoft : colors.surface,
         borderWidth: 1,
-        borderColor: accent ? colors.borderStrong : colors.border,
-        opacity: pressed ? 0.74 : 1,
+        borderColor: accent ? colors.primary : colors.border,
+        opacity: pressed ? 0.72 : 1,
       })}
     >
       <View
         style={{
-          width: 44,
-          height: 44,
-          borderRadius: radius.md,
+          width: 40,
+          height: 40,
+          borderRadius: 12,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: accent ? colors.primary : colors.surfaceAlt,
         }}
       >
         <AppText
-          variant="lead"
-          style={{ color: accent ? colors.white : colors.primary, fontWeight: '800' }}
+          style={{ color: accent ? colors.white : colors.ink, fontWeight: '700' }}
         >
           {symbol}
         </AppText>
       </View>
-      <View style={{ gap: spacing.xs }}>
-        <AppText style={{ fontWeight: '800' }}>{title}</AppText>
+      <View style={{ flex: 1, gap: 2 }}>
+        <AppText style={{ fontWeight: '700' }}>{title}</AppText>
         <AppText variant="caption" muted>
           {subtitle}
         </AppText>
       </View>
+      <AppText muted>›</AppText>
     </Pressable>
   );
 }
@@ -471,30 +502,24 @@ export function StatTile({
   const { colors } = useTheme();
   const foreground =
     tone === 'accent' ? colors.accent : tone === 'warning' ? colors.warning : colors.primary;
-  const backgroundColor =
-    tone === 'accent'
-      ? colors.accentSoft
-      : tone === 'warning'
-        ? colors.warningSoft
-        : colors.primarySoft;
 
   return (
     <View
       style={{
         flex: 1,
-        minWidth: 130,
-        padding: spacing.lg,
-        borderRadius: radius.lg,
-        backgroundColor,
-        gap: spacing.xs,
+        minWidth: 108,
+        paddingVertical: spacing.sm,
+        gap: 2,
       }}
     >
-      <AppText variant="title" style={{ color: foreground }}>
+      <AppText variant="lead" style={{ color: foreground, fontWeight: '700' }}>
         {value}
       </AppText>
-      <AppText style={{ fontWeight: '700' }}>{label}</AppText>
+      <AppText variant="caption" style={{ fontWeight: '600' }}>
+        {label}
+      </AppText>
       {detail ? (
-        <AppText variant="caption" muted>
+        <AppText variant="caption" muted numberOfLines={1}>
           {detail}
         </AppText>
       ) : null}
@@ -504,63 +529,35 @@ export function StatTile({
 
 export function PathRail({ steps, current }: { steps: string[]; current: number }) {
   const { colors } = useTheme();
+  const safeCurrent = Math.max(0, Math.min(current, steps.length - 1));
+  const progress = ((safeCurrent + 1) / steps.length) * 100;
 
   return (
     <View style={{ gap: spacing.sm }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        {steps.map((step, index) => {
-          const done = index < current;
-          const active = index === current;
-          return (
-            <View
-              key={step}
-              style={{
-                flex: index === steps.length - 1 ? 0 : 1,
-                flexDirection: 'row',
-                alignItems: 'center',
-              }}
-            >
-              <View
-                accessibilityLabel={step}
-                style={{
-                  width: active ? 30 : 24,
-                  height: active ? 30 : 24,
-                  borderRadius: 15,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: done || active ? colors.primary : colors.surfaceAlt,
-                  borderWidth: active ? 4 : 0,
-                  borderColor: active ? colors.primarySoft : 'transparent',
-                }}
-              >
-                <AppText
-                  variant="caption"
-                  style={{
-                    color: done || active ? colors.white : colors.muted,
-                    fontWeight: '800',
-                  }}
-                >
-                  {done ? '✓' : index + 1}
-                </AppText>
-              </View>
-              {index < steps.length - 1 ? (
-                <View
-                  style={{
-                    height: 3,
-                    flex: 1,
-                    marginHorizontal: spacing.xs,
-                    borderRadius: radius.pill,
-                    backgroundColor: index < current ? colors.primary : colors.border,
-                  }}
-                />
-              ) : null}
-            </View>
-          );
-        })}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
+        <AppText variant="caption" muted>
+          Schritt {safeCurrent + 1} von {steps.length}
+        </AppText>
+        <AppText variant="caption" style={{ fontWeight: '600' }}>
+          {steps[safeCurrent]}
+        </AppText>
       </View>
-      <AppText variant="caption" muted>
-        {steps[Math.max(0, Math.min(current, steps.length - 1))]}
-      </AppText>
+      <View
+        style={{
+          height: 4,
+          borderRadius: radius.pill,
+          backgroundColor: colors.surfaceStrong,
+          overflow: 'hidden',
+        }}
+      >
+        <View
+          style={{
+            height: 4,
+            width: `${progress}%`,
+            backgroundColor: colors.primary,
+          }}
+        />
+      </View>
     </View>
   );
 }
@@ -576,22 +573,22 @@ export function ProgressBar({ value, label }: { value: number; label?: string })
           <AppText variant="caption" muted style={{ flex: 1 }}>
             {label}
           </AppText>
-          <AppText variant="caption" style={{ fontWeight: '700' }}>
+          <AppText variant="caption" style={{ fontWeight: '600' }}>
             {clamped}%
           </AppText>
         </View>
       ) : null}
       <View
         style={{
-          height: 8,
+          height: 6,
           borderRadius: radius.pill,
-          backgroundColor: colors.surfaceAlt,
+          backgroundColor: colors.surfaceStrong,
           overflow: 'hidden',
         }}
       >
         <View
           style={{
-            height: 8,
+            height: 6,
             width: `${clamped}%`,
             backgroundColor: colors.primary,
             borderRadius: radius.pill,
@@ -617,9 +614,9 @@ export function Feedback({
       ? colors.dangerSoft
       : kind === 'success'
         ? colors.successSoft
-        : colors.accentSoft;
+        : colors.primarySoft;
   const foreground =
-    kind === 'error' ? colors.danger : kind === 'success' ? colors.success : colors.accent;
+    kind === 'error' ? colors.danger : kind === 'success' ? colors.success : colors.primary;
 
   return (
     <View
@@ -631,7 +628,7 @@ export function Feedback({
         gap: spacing.xs,
       }}
     >
-      <AppText style={{ color: foreground, fontWeight: '800' }}>{title}</AppText>
+      <AppText style={{ color: foreground, fontWeight: '700' }}>{title}</AppText>
       <AppText>{message}</AppText>
     </View>
   );
@@ -647,7 +644,9 @@ export function SectionTitle({ children, aside }: { children: ReactNode; aside?:
         gap: spacing.md,
       }}
     >
-      <AppText variant="lead">{children}</AppText>
+      <AppText variant="lead" style={{ fontWeight: '700' }}>
+        {children}
+      </AppText>
       {aside}
     </View>
   );
