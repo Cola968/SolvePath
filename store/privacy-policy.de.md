@@ -16,10 +16,12 @@ SolvePath speichert derzeit lokal auf dem Gerät:
 
 Diese lokalen Daten können in der App zurückgesetzt werden. Ein bestehendes Store-Abo wird dadurch nicht gekündigt.
 
-## 3. Remote-Analyse
-Wenn Remote Analysis verwendet wird, werden der eingegebene Aufgabentext und – falls ausgewählt – das Aufgabenbild an den SolvePath-Server übertragen. Der Server übermittelt die für die Analyse erforderlichen Inhalte derzeit an die Google Gemini Developer API. In der kostenlosen Gemini-API-Stufe können übermittelte Inhalte nach den Bedingungen von Google zur Verbesserung von Google-Produkten verwendet werden. Deshalb soll SolvePath keine für die Aufgabenanalyse unnötigen personenbezogenen Daten an den KI-Dienst übermitteln.
+## 3. Lokale Aufgabenanalyse
+Die Standardanalyse erfolgt direkt auf dem Gerät. Aufgabenfotos werden lokal per Texterkennung verarbeitet; für die lokale Kernfunktion werden Aufgabentext und Aufgabenbild nicht an einen externen KI-Dienst übertragen.
 
 Bilder werden von der App nicht dauerhaft in AsyncStorage gespeichert. Nach erfolgreicher Analyse wird die aktuelle Bildauswahl aus dem App-Zustand entfernt.
+
+Eine optionale Cloud-Analyse kann in späteren Versionen oder speziellen Builds aktiviert werden. Falls dies geschieht, müssen der konkret eingesetzte Anbieter, Zweck, Rechtsgrundlage, Speicherdauer und etwaige internationale Datenübermittlungen vor Aktivierung in dieser Erklärung ergänzt werden.
 
 ## 4. Abonnements
 SolvePath verwendet RevenueCat zur technischen Verwaltung von In-App-Abonnements über Apple App Store und Google Play. Dabei wird eine App-User-ID verwendet, um den Abo-Status und das Entitlement „pro“ zuzuordnen.
@@ -31,7 +33,7 @@ Vor Veröffentlichung müssen die tatsächlich verwendeten Store- und RevenueCat
 ## 5. Serverdaten
 Der SolvePath-Server verarbeitet technische Verbindungsdaten, eine App-User-ID für Abo-Prüfungen sowie Informationen, die für Bereitstellung, Missbrauchsschutz, Free-Tier-Limits und Fehlerbehandlung erforderlich sind. Die Anwendung selbst protokolliert keine vollständigen Aufgabenbilder, API-Schlüssel oder vollständigen Antworten des KI-Dienstleisters.
 
-Vor Produktivbetrieb müssen Render als Hosting-Anbieter, Google als KI-Dienstleister, RevenueCat, Speicher- und Löschfristen sowie deren konkrete Datenschutzbedingungen und etwaige internationale Datenübermittlungen konkret ergänzt werden.
+Vor Produktivbetrieb müssen RevenueCat, gegebenenfalls verwendete Backend-/Hosting-Dienste, Speicher- und Löschfristen sowie deren konkrete Datenschutzbedingungen und etwaige internationale Datenübermittlungen konkret ergänzt werden.
 
 ## 6. Berechtigungen
 Die Kamera-Berechtigung wird nur angefragt, wenn eine Aufgabe fotografiert werden soll. Der Zugriff auf Bilder dient der Auswahl eines Aufgabenfotos oder Screenshots.
