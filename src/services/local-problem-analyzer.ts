@@ -389,8 +389,20 @@ function slopeAnalysis(text: string): ProblemAnalysis | null {
   const source = clean(text);
   const match = source.match(/(?:a|p1)?\s*\(?\s*([+\-]?\d+(?:\.\d+)?)\s*[|;,]\s*([+\-]?\d+(?:\.\d+)?)\s*\)?.*?(?:b|p2)?\s*\(?\s*([+\-]?\d+(?:\.\d+)?)\s*[|;,]\s*([+\-]?\d+(?:\.\d+)?)\s*\)?/);
   if (!match || !/(steigung|slope|gerade|linear)/.test(source)) return null;
-  const [x1, y1, x2, y2] = match.slice(1).map(Number);
-  if (![x1, y1, x2, y2].every(Number.isFinite) || x2 === x1) return null;
+  const values = match.slice(1, 5).map(Number);
+  const x1 = values[0];
+  const y1 = values[1];
+  const x2 = values[2];
+  const y2 = values[3];
+  if (
+    x1 === undefined ||
+    y1 === undefined ||
+    x2 === undefined ||
+    y2 === undefined ||
+    ![x1, y1, x2, y2].every(Number.isFinite) ||
+    x2 === x1
+  )
+    return null;
   const m = (y2 - y1) / (x2 - x1);
   const display = `m = ${fmt(m)}`;
   return {
