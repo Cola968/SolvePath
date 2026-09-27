@@ -50,4 +50,24 @@ describe('RemoteAnalysisProvider', () => {
     );
     expect(result.id).toMatch(/^remote-/);
   });
+
+  it('reports an unreadable task without inventing an analysis', async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(reply({ error: 'unreadable' }));
+    await expect(
+      new RemoteAnalysisProvider(config, fetcher).analyzeText('Ein unvollständiger Aufgabentext'),
+    ).rejects.toMatchObject({ code: 'unreadable_task', statusCode: 422 });
+  });
+
+  it('retries when an early hint reveals the full formula', async () => {
+    const invalid = structuredClone(demoProblems[0]!);
+    invalid.hints[0]!.text = invalid.formulas[0]!.expression;
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(reply(invalid))
+      .mockResolvedValueOnce(reply(demoProblems[0]));
+    await new RemoteAnalysisProvider(config, fetcher).analyzeText(
+      'Eine Aufgabe mit beliebigem Text',
+    );
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
 });

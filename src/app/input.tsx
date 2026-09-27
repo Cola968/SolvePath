@@ -62,8 +62,14 @@ export default function InputScreen() {
       if (result.canceled) return;
       const asset = result.assets[0];
       if (!asset) throw new Error('Das Bild konnte nicht ausgewählt werden.');
+      const extension = (asset.fileName ?? asset.uri).split('?')[0]?.toLowerCase();
       const mimeType =
-        asset.mimeType ?? (asset.uri.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg');
+        asset.mimeType ??
+        (extension?.endsWith('.png')
+          ? 'image/png'
+          : extension?.endsWith('.webp')
+            ? 'image/webp'
+            : 'image/jpeg');
       if (!['image/jpeg', 'image/png', 'image/webp'].includes(mimeType))
         throw new Error('Bitte wähle ein JPEG-, PNG- oder WebP-Bild.');
       if (asset.fileSize && asset.fileSize > 8 * 1024 * 1024)

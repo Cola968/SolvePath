@@ -89,6 +89,20 @@ export const problemAnalysisSchema = z
         message: 'Correct option missing',
       });
     }
+    const earlyHints = problem.hints.slice(0, 2).map((hint) => hint.text.toLowerCase());
+    const revealed = [
+      problem.correctResult.display,
+      ...problem.formulas.map((formula) => formula.expression),
+    ]
+      .filter((value) => value.length >= 8)
+      .some((value) => earlyHints.some((hint) => hint.includes(value.toLowerCase())));
+    if (revealed) {
+      context.addIssue({
+        code: 'custom',
+        path: ['hints'],
+        message: 'Early hints must not reveal the formula or result',
+      });
+    }
   });
 
 export type Subject = z.infer<typeof subjectSchema>;

@@ -90,6 +90,12 @@ export class RemoteAnalysisProvider implements AnalysisProvider {
       } catch {
         continue;
       }
+      if (value && typeof value === 'object' && 'error' in value && value.error === 'unreadable')
+        throw new ApiError(
+          422,
+          'unreadable_task',
+          'Die Aufgabe ist nicht gut lesbar oder enthält zu wenig Angaben.',
+        );
       const parsed = problemAnalysisSchema.safeParse(
         value && typeof value === 'object' && !Array.isArray(value)
           ? { ...value, id: `remote-${randomUUID()}` }
