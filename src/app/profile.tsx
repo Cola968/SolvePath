@@ -43,11 +43,7 @@ export default function ProfileScreen() {
       <Card>
         <View style={{ flexDirection: 'row', gap: spacing.lg }}>
           <StatTile value={profile.solvedProblemIds.length.toString()} label="Gelöst" />
-          <StatTile
-            value={topics.length ? `${mastery}%` : '–'}
-            label="Sicherheit"
-            tone="accent"
-          />
+          <StatTile value={topics.length ? `${mastery}%` : '–'} label="Sicherheit" tone="accent" />
           <StatTile value={totalHints.toString()} label="Hinweise" tone="warning" />
         </View>
         <AppText variant="caption" muted>
@@ -156,19 +152,22 @@ export default function ProfileScreen() {
         <View style={{ gap: spacing.md }}>
           <SectionTitle>Zuletzt abgeschlossen</SectionTitle>
           <Card>
-            {profile.solvedProblemIds.slice(-5).reverse().map((id, index, arr) => (
-              <View
-                key={id}
-                style={{
-                  paddingBottom: index === arr.length - 1 ? 0 : spacing.md,
-                  marginBottom: index === arr.length - 1 ? 0 : spacing.md,
-                  borderBottomWidth: index === arr.length - 1 ? 0 : 1,
-                  borderBottomColor: colors.border,
-                }}
-              >
-                <AppText style={{ fontWeight: '600' }}>{problemById(id)?.title ?? id}</AppText>
-              </View>
-            ))}
+            {profile.solvedProblemIds
+              .slice(-5)
+              .reverse()
+              .map((id, index, arr) => (
+                <View
+                  key={id}
+                  style={{
+                    paddingBottom: index === arr.length - 1 ? 0 : spacing.md,
+                    marginBottom: index === arr.length - 1 ? 0 : spacing.md,
+                    borderBottomWidth: index === arr.length - 1 ? 0 : 1,
+                    borderBottomColor: colors.border,
+                  }}
+                >
+                  <AppText style={{ fontWeight: '600' }}>{problemById(id)?.title ?? id}</AppText>
+                </View>
+              ))}
           </Card>
         </View>
       ) : null}

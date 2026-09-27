@@ -471,9 +471,7 @@ export function ActionTile({
           backgroundColor: accent ? colors.primary : colors.surfaceAlt,
         }}
       >
-        <AppText
-          style={{ color: accent ? colors.white : colors.ink, fontWeight: '700' }}
-        >
+        <AppText style={{ color: accent ? colors.white : colors.ink, fontWeight: '700' }}>
           {symbol}
         </AppText>
       </View>

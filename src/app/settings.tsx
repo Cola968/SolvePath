@@ -61,8 +61,8 @@ export default function SettingsScreen() {
         <Card>
           <AppText style={{ fontWeight: '700' }}>Local-first</AppText>
           <AppText muted>
-            Aufgabenbilder werden lokal verarbeitet. Lernprofil und Verlauf bleiben auf diesem
-            Gerät und werden nicht an einen KI-Anbieter geschickt.
+            Aufgabenbilder werden lokal verarbeitet. Lernprofil und Verlauf bleiben auf diesem Gerät
+            und werden nicht an einen KI-Anbieter geschickt.
           </AppText>
         </Card>
       </View>

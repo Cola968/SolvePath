@@ -56,9 +56,7 @@ export default function ResultScreen() {
         <AppText variant="caption" muted>
           GESUCHT
         </AppText>
-        <AppText variant="lead">
-          {problem.unknowns.map((item) => item.symbol).join(', ')}
-        </AppText>
+        <AppText variant="lead">{problem.unknowns.map((item) => item.symbol).join(', ')}</AppText>
 
         <AppInput
           accessibilityLabel="Eigenes Ergebnis"
@@ -79,11 +77,7 @@ export default function ResultScreen() {
 
       {result?.status === 'correct' ? (
         <View style={{ gap: spacing.md }}>
-          <Feedback
-            title="Richtig"
-            message={problem.correctResult.explanation}
-            kind="success"
-          />
+          <Feedback title="Richtig" message={problem.correctResult.explanation} kind="success" />
           <Card style={{ backgroundColor: colors.successSoft }}>
             <AppText variant="caption" style={{ color: colors.success, fontWeight: '700' }}>
               ERGEBNIS
@@ -136,7 +130,9 @@ export default function ResultScreen() {
             </AppText>
           )}
           <AppButton
-            label={getNextHint(problem, hintState) ? 'Einen Hinweis öffnen' : 'Alle Hinweise geöffnet'}
+            label={
+              getNextHint(problem, hintState) ? 'Einen Hinweis öffnen' : 'Alle Hinweise geöffnet'
+            }
             variant="secondary"
             disabled={!getNextHint(problem, hintState)}
             onPress={nextHint}

@@ -82,11 +82,7 @@ export default function HomeScreen() {
               label="Sicherheit"
               tone="accent"
             />
-            <StatTile
-              value={risks.length.toString()}
-              label="Fokuspunkte"
-              tone="warning"
-            />
+            <StatTile value={risks.length.toString()} label="Fokuspunkte" tone="warning" />
           </View>
         </Card>
       </View>

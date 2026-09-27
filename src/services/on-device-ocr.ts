@@ -17,14 +17,10 @@ function cleanRecognizedText(lines: string[]): string {
 }
 
 async function normalizeForOcr(uri: string): Promise<string> {
-  const result = await manipulateAsync(
-    uri,
-    [{ resize: { width: 1800 } }],
-    {
-      compress: 0.94,
-      format: SaveFormat.JPEG,
-    },
-  );
+  const result = await manipulateAsync(uri, [{ resize: { width: 1800 } }], {
+    compress: 0.94,
+    format: SaveFormat.JPEG,
+  });
   return result.uri;
 }
 

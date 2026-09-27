@@ -108,11 +108,7 @@ export default function ExamScreen() {
             label="Sicherheit"
             tone="accent"
           />
-          <StatTile
-            value={risks.length.toString()}
-            label="Fokuspunkte"
-            tone="warning"
-          />
+          <StatTile value={risks.length.toString()} label="Fokuspunkte" tone="warning" />
           <StatTile value={candidates.length.toString()} label="Aufgaben" />
         </View>
       </Card>
@@ -180,9 +176,7 @@ export default function ExamScreen() {
           {(risks.length ? risks.slice(0, 3) : demoRisks.map((label) => ({ label }))).map(
             (item, index, arr) => {
               const label =
-                'misconceptionId' in item
-                  ? misconceptionLabel(item.misconceptionId)
-                  : item.label;
+                'misconceptionId' in item ? misconceptionLabel(item.misconceptionId) : item.label;
               const detail =
                 'misconceptionId' in item
                   ? `${item.topic} · ${item.count}× erkannt`

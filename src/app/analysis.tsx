@@ -60,7 +60,9 @@ export default function AnalysisScreen() {
                 borderBottomColor: colors.border,
               }}
             >
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
+              <View
+                style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}
+              >
                 <AppText style={{ fontWeight: '700' }}>
                   {item.symbol} = {item.value}
                 </AppText>

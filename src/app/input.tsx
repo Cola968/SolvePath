@@ -114,7 +114,9 @@ export default function InputScreen() {
             ? 'image/webp'
             : 'image/jpeg');
 
-      if (!['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'].includes(mimeType)) {
+      if (
+        !['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'].includes(mimeType)
+      ) {
         throw new Error('Dieses Bildformat kann nicht verarbeitet werden.');
       }
 
@@ -336,11 +338,7 @@ export default function InputScreen() {
         <SectionTitle>Beispiele</SectionTitle>
         <View style={{ flexDirection: 'row', gap: spacing.sm }}>
           <View style={{ flex: 1 }}>
-            <Choice
-              label="Mathe"
-              selected={filter === 'math'}
-              onPress={() => setFilter('math')}
-            />
+            <Choice label="Mathe" selected={filter === 'math'} onPress={() => setFilter('math')} />
           </View>
           <View style={{ flex: 1 }}>
             <Choice
