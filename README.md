@@ -51,6 +51,8 @@ Für echte In-App-Käufe ist ein EAS Development Build oder Store-Testbuild erfo
 
 ## Remote Analysis
 
+Die Produktionskonfiguration verwendet derzeit die Gemini Developer API über Googles OpenAI-kompatiblen Chat-Completions-Endpunkt. Das aktuell vorgesehene Modell ist `gemini-3.8-flash`.
+
 Serverseitig erforderlich:
 
 ```text
@@ -70,7 +72,7 @@ EXPO_PUBLIC_REVENUECAT_IOS_KEY
 EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID=pro
 ```
 
-`EXPO_PUBLIC_*` darf ausschließlich öffentliche SDK-/Konfigurationswerte enthalten.
+`EXPO_PUBLIC_*` darf ausschließlich öffentliche SDK-/Konfigurationswerte enthalten. Der Gemini API-Key bleibt ausschließlich serverseitig in `LLM_API_KEY`.
 
 ## Eingaben
 
