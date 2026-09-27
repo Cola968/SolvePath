@@ -27,15 +27,23 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
-      - run: pnpm format
+      - name: Format changed source files
+        run: >
+          pnpm exec prettier --write
+          src/app/exam.tsx
+          src/app/index.tsx
+          src/app/input.tsx
+          src/app/profile.tsx
+          src/app/result.tsx
+          src/components/ui.tsx
 
       - name: Commit formatted files
         run: |
-          if git diff --quiet; then
+          if git diff --quiet -- src; then
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .
+          git add src
           git commit -m "style: format v0.2 files"
           git push
