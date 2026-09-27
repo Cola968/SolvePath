@@ -12,7 +12,7 @@ Verstehe Mathe- und Physikaufgaben Schritt für Schritt – statt nur die Lösun
 
 SolvePath hilft dir dabei, den richtigen Lösungsweg für Mathematik- und Physikaufgaben zu finden.
 
-Die 0.5.0-Beta konzentriert sich auf einen local-first Lernablauf: Aufgabe eingeben oder fotografieren, Engpass erkennen, Methode auswählen, gestufte Hinweise nutzen, selbst rechnen und Ergebnis prüfen.
+Die 0.5.1-Beta konzentriert sich auf einen local-first Lernablauf: Aufgabe eingeben oder fotografieren, Engpass erkennen, Methode auswählen, gestufte Hinweise nutzen, selbst rechnen und Ergebnis prüfen.
 
 ### Beta-Funktionen
 
