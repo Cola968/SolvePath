@@ -96,6 +96,40 @@ describe('POST /api/analyze', () => {
     await app.close();
   });
 
+  it('keeps health checks outside the analysis rate limit', async () => {
+    const previousMinute = process.env.RATE_LIMIT_PER_MINUTE;
+    const previousDay = process.env.RATE_LIMIT_PER_DAY;
+    process.env.RATE_LIMIT_PER_MINUTE = '1';
+    process.env.RATE_LIMIT_PER_DAY = '10';
+    const app = buildServer(mockProvider());
+    try {
+      expect((await app.inject({ method: 'GET', url: '/health' })).statusCode).toBe(200);
+      expect((await app.inject({ method: 'GET', url: '/health' })).statusCode).toBe(200);
+      expect(
+        (
+          await app.inject({
+            method: 'POST',
+            url: '/api/analyze',
+            payload: { text: 'Eine neue Aufgabe mit Zahlen und Frage' },
+          })
+        ).statusCode,
+      ).toBe(200);
+      const limited = await app.inject({
+        method: 'POST',
+        url: '/api/analyze',
+        payload: { text: 'Noch eine neue Aufgabe mit Zahlen und Frage' },
+      });
+      expect(limited.statusCode).toBe(429);
+      expect(limited.json().code).toBe('rate_limited');
+    } finally {
+      if (previousMinute === undefined) delete process.env.RATE_LIMIT_PER_MINUTE;
+      else process.env.RATE_LIMIT_PER_MINUTE = previousMinute;
+      if (previousDay === undefined) delete process.env.RATE_LIMIT_PER_DAY;
+      else process.env.RATE_LIMIT_PER_DAY = previousDay;
+      await app.close();
+    }
+  });
+
   it('serves the mobile text analyzer over HTTP', async () => {
     const app = buildServer(mockProvider());
     const address = await app.listen({ host: '127.0.0.1', port: 0 });
