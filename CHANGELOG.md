@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.5.0 Beta - 2026-09-27
+
+### Added
+
+- zero-cost local problem analysis for supported free-form math and physics tasks
+- on-device OCR for camera, gallery, and screenshots
+- beta release configuration with cloud analysis and purchases hard-disabled
+- Exam Mode unlocked for beta testers
+- in-app beta feedback link and GitHub feedback template
+- beta test matrix and data-safety worksheet
+- EAS beta APK / beta-store AAB profiles
+- GitHub Actions workflow for a directly installable Android beta APK
+
+### Changed
+
+- SolvePath now defaults to local-first analysis
+- beta UI no longer advertises or requires subscriptions
+- store copy and privacy documentation now match the actual beta behavior
+- release checks enforce local OCR, beta versioning, disabled cloud analysis, and disabled subscriptions
+
+### Beta status
+
+The closed beta can be tested without an AI provider or API billing. A Google Play closed/internal
+test still requires the user's Play/Expo accounts, store signing setup, and store contact metadata.
+
 ## 0.4.0 - 2026-09-27
 
 ### Added
