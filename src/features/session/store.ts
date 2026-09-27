@@ -69,7 +69,7 @@ export const useSession = create<SessionState>((set, get) => ({
     }
   },
 
-  analyze: async (text, image, mode = 'remote') => {
+  analyze: async (text, image, mode = 'local') => {
     if (mode === 'remote') {
       await useSubscription.getState().initialize();
       if (!useSubscription.getState().canAnalyzeRemote()) {
@@ -91,12 +91,12 @@ export const useSession = create<SessionState>((set, get) => ({
         problem.id,
         ...get().recentProblemIds.filter((id) => id !== problem.id),
       ].slice(0, 12);
-      const nextRemoteProblems =
-        mode === 'remote'
-          ? Object.fromEntries(
-              Object.entries({ ...get().remoteProblems, [problem.id]: problem }).slice(-24),
-            )
-          : get().remoteProblems;
+      const shouldPersistDynamic = !problemById(problem.id);
+      const nextRemoteProblems = shouldPersistDynamic
+        ? Object.fromEntries(
+            Object.entries({ ...get().remoteProblems, [problem.id]: problem }).slice(-24),
+          )
+        : get().remoteProblems;
 
       set({
         currentProblemId: problem.id,
