@@ -1,42 +1,65 @@
-# SolvePath v0.1
+# SolvePath v0.2
 
-SolvePath ist eine mobile Lern-App für Mathematik und Physik. Sie führt Lernende vom Aufgabentext zur eigenen Lösung: **Aufgabe → Diagnose → kleinster sinnvoller Hinweis → Lösungsweg → eigenes Ergebnis prüfen → Fehlerprofil**. Die App zeigt standardmäßig nur den nächsten Hinweis und fragt nach der passenden Methode, bevor sie Formeln offenlegt.
+SolvePath ist eine mobile Lern-App für Mathematik und Physik. Sie führt Lernende vom Aufgabentext zur eigenen Lösung: **Aufgabe → Diagnose → Methode → kleinster sinnvoller Hinweis → eigener Lösungsweg → Ergebnisdiagnose → Lernprofil**.
 
-## Funktionsumfang
+Der Produktgedanke ist bewusst enger als bei klassischen Homework-Solvern: SolvePath soll nicht möglichst schnell die komplette Lösung ausgeben, sondern erkennen, **an welcher Entscheidung der Lösungsweg des Nutzers scheitert**.
 
-- Acht vollständige lokale Demo-Aufgaben: Gravitationskraft, Satellitenbahn, Gravitationsfeldstärke, Keplers drittes Gesetz, lineare und quadratische Gleichung, Trigonometrie und momentane Änderungsrate.
-- Freitext-Eingabe für diese bekannten Aufgaben, mit klarer Fehlermeldung für noch nicht unterstützte Texte. Die Beispielliste übernimmt den vollständigen Text per Tipp.
-- Stuck Mode mit sechs Diagnoseoptionen. Bei der Satellitenaufgabe führen zwei Denkfragen zur Formelauswahl, bevor ein Lösungsweg erscheint.
-- Hint Ladder mit sechs Stufen, geführte Schritte mit eigener Antwort und Strategiefragen.
-- Ergebnisprüfung mit numerischer Toleranz oder akzeptierten Schreibweisen; typische Fehler werden mit einem konkreten Fehlercode gespeichert.
-- Lokaler Verlauf, verwendete Hinweise, gelöste Aufgaben, Themenfortschritt und Fehlerprofil.
-- Exam Mode als lokale Vorschau mit Fach, Themen, Termin, Risiken und passender Übungsaufgabe.
-- Systemgesteuerter Hell- und Dunkelmodus.
+## Was v0.2 kann
 
-Die Foto-Schaltfläche führt zur Texteingabe und kennzeichnet die Auswahl als Vorschau. Eine Kamera- oder Bildanalyse ist noch nicht eingebaut.
+- Acht vollständige lokale Demo-Aufgaben aus Physik und Mathematik.
+- Neu gestaltete Home-Seite mit Lernstatus, Risiken, Verlauf und Schnellzugriff.
+- Visueller SolvePath über sechs Stationen: Aufgabe, Diagnose, Methode, Lösen, Prüfen und Lernprofil.
+- Stuck Mode mit sechs Engpass-Kategorien und gezielten Diagnosefragen.
+- Strategieauswahl vor der Formelausgabe, um Methodenwahl statt bloßes Nachrechnen zu trainieren.
+- Hint Ladder mit sechs Hilfestufen. Standardmäßig wird immer nur der nächste Hinweis geöffnet.
+- Schrittweiser Lösungsweg mit eigener Antwort und kontrolliertem Fortschritt.
+- Formelanker werden erst eingeblendet, wenn bereits mehrere Hinweise benötigt wurden.
+- Ergebnisdiagnose mit typischen Fehlermustern und konkreten Korrekturen.
+- Lokales Denkprofil mit Themenfortschritt, Selbstständigkeitswert und priorisierten Fehlermustern.
+- Exam Mode mit Readiness, Prüfungstermin und risikobasiertem Fokus-Training.
+- Lokaler Verlauf, gespeicherte Hinweise und gelöste Aufgaben.
+- Automatischer Hell-/Dunkelmodus.
+- GitHub Actions CI für TypeScript, Lint, Tests, Formatierung und Android-Export.
+
+## Wichtige Grenze des MVP
+
+Die Texteingabe erkennt derzeit nur die acht vorbereiteten Demo-Aufgaben. Die Foto-Schaltfläche ist als Produktpfad sichtbar, aber eine echte Kamera-/OCR-/KI-Analyse ist **noch nicht implementiert**.
+
+Das ist Absicht: Ein produktiver Remote-Analyzer benötigt einen sicheren Backend-Service. API-Schlüssel dürfen nicht in der mobilen App ausgeliefert werden.
 
 ## Tech Stack
 
-React Native, Expo SDK 57, Expo Router, TypeScript im Strict Mode, Zustand, AsyncStorage, Zod, Vitest, ESLint und Prettier. Die App benötigt für den Kernflow keinen Server und keinen API-Schlüssel.
+- React Native
+- Expo SDK 57
+- Expo Router
+- TypeScript strict
+- Zustand
+- AsyncStorage
+- Zod
+- Vitest
+- ESLint
+- Prettier
 
-## Installation und Start
+Der aktuelle Kernflow benötigt keinen Server und keinen API-Schlüssel.
 
-Voraussetzungen: Node.js 22.13 oder neuer und pnpm 11.19.0 oder neuer. Für einen Android-Test: Expo Go auf einem Android-Gerät oder ein eingerichteter Android-Emulator.
+## Installation
+
+Voraussetzungen: Node.js 22.13+ und pnpm 11.19.0+.
 
 ```bash
 pnpm install
 pnpm start
 ```
 
-Danach den QR-Code mit Expo Go öffnen oder im Expo-Terminal `a` für den Android-Emulator drücken. Alternativ:
+Für Android:
 
 ```bash
 pnpm android
 ```
 
-Unter Windows kann OneDrive Files On-Demand Metros Dateiwächter bei Dateien in `node_modules` stören. Wenn ein Import trotz vorhandener Datei als fehlend gemeldet wird, das Repository in einen normalen lokalen Ordner außerhalb von OneDrive auschecken und dort `pnpm install` ausführen. Der Android-Export wurde in einer solchen lokalen Kopie erfolgreich geprüft.
+Danach kann die App mit Expo Go oder einem Android-Emulator geöffnet werden.
 
-## Prüfen
+## Qualitätsprüfung
 
 ```bash
 pnpm typecheck
@@ -46,24 +69,31 @@ pnpm format:check
 pnpm build:export
 ```
 
-`build:export` erstellt ein Android-JavaScript-Bundle in `dist/`. Es ersetzt keinen Test auf einem physischen Gerät oder Emulator.
+Diese Befehle laufen zusätzlich in GitHub Actions.
 
 ## Projektstruktur
 
 ```text
 src/
-  app/           Expo-Router-Screens und Navigation
-  components/    Wiederverwendbare UI-Bausteine
-  data/          Acht validierte Demo-Aufgaben
-  domain/        Aufgabenmodell, Hint Ladder, Diagnose, Fehler- und Profil-Logik
-  features/      Sitzung und aktuelles Aufgabenmodell
-  services/      Austauschbare ProblemAnalyzer-Schnittstelle und Mock-Implementierung
-  storage/       AsyncStorage-Repository mit Datenvalidierung
-  theme/         Farben, Abstände, Typografie und Radien
+  app/           Expo-Router-Screens
+  components/    Design-System und wiederverwendbare UI
+  data/          validierte Demo-Aufgaben
+  domain/        Hint-, Diagnose-, Fehler- und Profil-Logik
+  features/      Session und aktueller Aufgabenstatus
+  services/      austauschbare ProblemAnalyzer-Schnittstelle
+  storage/       lokale Persistenz
+  theme/         Design Tokens
 ```
 
-`ProblemAnalyzer.analyze(text)` trennt die Screens von der Analysequelle. `MockProblemAnalyzer` erkennt die vorbereiteten Aufgaben lokal; ein späterer `RemoteProblemAnalyzer` kann dieselbe Schnittstelle verwenden. Zod prüft die Demo-Daten und gespeicherte Zustände. Die Domain-Funktionen sind unabhängig von React Native testbar. Das Storage-Repository bündelt alle AsyncStorage-Zugriffe.
+`ProblemAnalyzer.analyze(text)` trennt die UI von der Analysequelle. Der lokale `MockProblemAnalyzer` kann später durch einen `RemoteProblemAnalyzer` ersetzt werden, ohne die Screens neu zu bauen.
 
-## Grenzen und nächste Schritte
+## Nächste produktive Ausbaustufe
 
-Die lokale Analyse erkennt nur die acht Demo-Aufgaben und löst keine freien neuen Aufgaben. Schrittantworten werden zunächst als Text verglichen. Für eine spätere Version sind OCR/Foto-Eingabe, eine sichere Remote-Analyse, flexiblere mathematische Äquivalenzprüfung und ein Gerätetest für Android und iOS sinnvoll. Es gibt bewusst keine Anmeldung, Payments, Werbung oder Chat-Funktion.
+Für einen echten öffentlichen Beta-Test fehlen vor allem vier Dinge:
+
+1. sicherer Remote-Analyzer für freie Aufgaben,
+2. Foto-/Screenshot-Upload mit OCR bzw. multimodaler Analyse,
+3. robustere mathematische Äquivalenzprüfung,
+4. Gerätetests auf mehreren Android- und iOS-Geräten.
+
+Payments, Accounts und Gamification sollten erst danach kommen.
