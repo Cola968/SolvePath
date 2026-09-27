@@ -16,7 +16,7 @@ Finde den richtigen Lösungsweg, bekomme nur den nächsten sinnvollen Hinweis un
 
 SolvePath unterstützt dich bei Mathematik- und Physikaufgaben, ohne dir sofort die komplette Lösung vorzugeben.
 
-Die 0.5.0-Beta arbeitet local-first. Aufgaben können als Text eingegeben, aus der Zwischenablage übernommen, fotografiert oder als Bild ausgewählt werden.
+Die 0.5.1-Beta arbeitet local-first. Aufgaben können als Text eingegeben, aus der Zwischenablage übernommen, fotografiert oder als Bild ausgewählt werden.
 
 ### Funktionen
 
