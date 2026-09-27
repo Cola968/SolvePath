@@ -93,12 +93,25 @@ export class RemoteAnalysisProvider implements AnalysisProvider {
       );
     }
 
-    if (!response.ok)
+    if (!response.ok) {
+      let providerError = '';
+      try {
+        providerError = (await response.text()).slice(0, 2_000);
+      } catch {
+        providerError = '';
+      }
+      const sanitized = providerError
+        .replace(/sk-[A-Za-z0-9_-]+/g, '[REDACTED_KEY]')
+        .replace(/Bearer\s+[^\s"]+/gi, 'Bearer [REDACTED]');
+      console.error(
+        `LLM provider error status=${response.status} model=${this.config.model}: ${sanitized}`,
+      );
       throw new ApiError(
         502,
         'provider_unavailable',
         'Der Analysedienst konnte die Aufgabe nicht verarbeiten.',
       );
+    }
 
     try {
       const payload: unknown = await response.json();
