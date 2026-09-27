@@ -19,6 +19,7 @@ import { demoProblems } from '../data/problems';
 import { useSession } from '../features/session/store';
 import { useSubscription } from '../features/subscription/store';
 import { remoteApiUrl, type AnalysisImage, type AnalysisMode } from '../services/problem-analyzer';
+import { extractTaskTextFromImage } from '../services/on-device-ocr';
 import { spacing } from '../theme/tokens';
 
 type Filter = 'all' | 'physics' | 'math';
@@ -28,10 +29,11 @@ export default function InputScreen() {
   const { photo } = useLocalSearchParams<{ photo?: string }>();
   const [text, setText] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
-  const [mode, setMode] = useState<AnalysisMode>(remoteApiUrl ? 'remote' : 'demo');
+  const [mode, setMode] = useState<AnalysisMode>('local');
   const [image, setImage] = useState<AnalysisImage | null>(null);
   const [inputError, setInputError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
+  const [ocrBusy, setOcrBusy] = useState(false);
   const analyze = useSession((state) => state.analyze);
   const busy = useSession((state) => state.busy);
   const error = useSession((state) => state.error);
@@ -77,12 +79,21 @@ export default function InputScreen() {
         throw new Error('Bitte wähle ein JPEG-, PNG- oder WebP-Bild.');
       if (asset.fileSize && asset.fileSize > 8 * 1024 * 1024)
         throw new Error('Das Bild ist größer als 8 MB. Bitte wähle ein kleineres Bild.');
-      setImage({
+      const selectedImage = {
         uri: asset.uri,
         name: asset.fileName ?? `aufgabe.${mimeType.split('/')[1]}`,
         mimeType,
         size: asset.fileSize,
-      });
+      };
+      setImage(selectedImage);
+      setOcrBusy(true);
+      try {
+        const recognized = await extractTaskTextFromImage(asset.uri);
+        setText(recognized);
+        setMode('local');
+      } finally {
+        setOcrBusy(false);
+      }
     } catch (cause) {
       setInputError(cause instanceof Error ? cause.message : 'Bildauswahl fehlgeschlagen.');
     }
@@ -103,7 +114,8 @@ export default function InputScreen() {
   async function submit() {
     setReady(false);
     setInputError(null);
-    if (await analyze(text, image ?? undefined, mode)) {
+    const analysisImage = mode === 'remote' ? (image ?? undefined) : undefined;
+    if (await analyze(text, analysisImage, mode)) {
       setImage(null);
       setReady(true);
     }
@@ -158,7 +170,7 @@ export default function InputScreen() {
         />
 
         <AppText variant="caption" muted>
-          {text.trim().length} Zeichen · Remote Analysis unterstützt freie Aufgaben
+          {text.trim().length} Zeichen · Lokale Analyse benötigt keinen Account und keine API-Kosten
         </AppText>
 
         <AppButton
@@ -210,38 +222,47 @@ export default function InputScreen() {
         <View style={{ gap: spacing.sm }}>
           <AppText variant="lead">Analysemodus</AppText>
           <Choice
-            label={
-              pro
-                ? 'Remote Analysis · Pro ohne Tageslimit'
-                : `Remote Analysis · ${remaining} Free-Analysen heute`
-            }
-            selected={mode === 'remote'}
+            label="Lokal · kostenlos, privat, ohne API-Key"
+            selected={mode === 'local'}
             onPress={() => {
-              setMode('remote');
+              setMode('local');
               setReady(false);
             }}
           />
           <Choice
-            label={`Lokale Demo · ${demoProblems.length} Beispielaufgaben`}
+            label={`Beispielbibliothek · ${demoProblems.length} vollständige SolvePaths`}
             selected={mode === 'demo'}
             onPress={() => {
               setMode('demo');
               setReady(false);
             }}
           />
+          {remoteApiUrl ? (
+            <Choice
+              label={
+                pro
+                  ? 'Cloud Analysis · Pro ohne Tageslimit'
+                  : `Cloud Analysis · ${remaining} Free-Analysen heute`
+              }
+              selected={mode === 'remote'}
+              onPress={() => {
+                setMode('remote');
+                setReady(false);
+              }}
+            />
+          ) : null}
         </View>
 
-        {!remoteApiUrl && mode === 'remote' ? (
+        {ocrBusy ? (
           <Feedback
-            title="Server-URL fehlt"
-            message="Setze EXPO_PUBLIC_SOLVEPATH_API_URL oder nutze die lokale Demo."
-            kind="error"
+            title="Text wird lokal erkannt"
+            message="Die Bilderkennung läuft direkt auf deinem Gerät – ohne Upload und ohne API-Key."
           />
         ) : null}
-        {image && mode === 'demo' ? (
+        {!remoteApiUrl && mode === 'remote' ? (
           <Feedback
-            title="Bildanalyse benötigt Remote Analysis"
-            message="Wähle Remote Analysis oder entferne das Bild für eine Demo-Aufgabe."
+            title="Cloud Analysis ist deaktiviert"
+            message="Die lokale Analyse funktioniert unabhängig davon vollständig kostenlos."
             kind="error"
           />
         ) : null}
@@ -288,11 +309,12 @@ export default function InputScreen() {
             void submit();
           }}
           disabled={
-            mode === 'remote'
+            ocrBusy ||
+            (mode === 'remote'
               ? !remoteApiUrl || (!image && text.trim().length < 10)
-              : !!image || text.trim().length < 10
+              : text.trim().length < 3)
           }
-          busy={busy}
+          busy={busy || ocrBusy}
         />
       </Card>
 
@@ -342,7 +364,7 @@ export default function InputScreen() {
               onPress={() => {
                 setText(problem.originalText);
                 setImage(null);
-                setMode('demo');
+                setMode('local');
                 setReady(false);
               }}
             />
