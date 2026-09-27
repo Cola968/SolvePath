@@ -20,7 +20,7 @@ import { spacing } from '../theme/tokens';
 
 const reasonSymbols: Record<StuckReason, string> = {
   start: '01',
-  understand: '02',
+  text: '02',
   formula: '03',
   rearrange: '04',
   calculate: '05',
