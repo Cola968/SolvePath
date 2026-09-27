@@ -86,6 +86,7 @@ const rawProblems: ProblemAnalysis[] = [
     },
     correctResult: {
       display: '8,34 · 10⁻¹⁰ N',
+      unit: 'N',
       numericValue: 8.3425e-10,
       tolerance: 2e-12,
       acceptedAnswers: ['8,34 · 10⁻¹⁰ N', '8.34e-10 N'],
@@ -179,6 +180,7 @@ const rawProblems: ProblemAnalysis[] = [
     commonMistakes: [
       {
         id: 'radius_vs_height',
+        code: 'radius_vs_height',
         label: 'Radius vs. Höhe',
         explanation: 'In der Gravitationsformel wird der Abstand vom Erdmittelpunkt benötigt.',
         correction: 'r = R_E + h = 6771 km.',
@@ -186,6 +188,7 @@ const rawProblems: ProblemAnalysis[] = [
       },
       {
         id: 'kilometres_not_metres',
+        code: 'wrong_unit_conversion',
         label: 'Kilometer nicht umgerechnet',
         explanation: 'GM_E steht in m³/s²; deshalb muss r in Metern eingesetzt werden.',
         correction: '6771 km = 6,771 · 10⁶ m.',
@@ -206,6 +209,7 @@ const rawProblems: ProblemAnalysis[] = [
     },
     correctResult: {
       display: '≈ 7673 m/s (7,67 km/s)',
+      unit: 'm/s',
       numericValue: 7673,
       tolerance: 15,
       acceptedAnswers: ['7,67 km/s', '7673 m/s'],
@@ -282,6 +286,7 @@ const rawProblems: ProblemAnalysis[] = [
     commonMistakes: [
       {
         id: 'radius_vs_height',
+        code: 'radius_vs_height',
         label: 'Radius vs. Höhe',
         explanation: '400 km sind nur die Höhe, nicht der Abstand vom Erdmittelpunkt.',
         correction: 'r = 6371 km + 400 km.',
@@ -297,6 +302,7 @@ const rawProblems: ProblemAnalysis[] = [
     },
     correctResult: {
       display: '≈ 8,69 m/s²',
+      unit: 'm/s²',
       numericValue: 8.69,
       tolerance: 0.08,
       acceptedAnswers: ['8,69 m/s²', '8.69 N/kg'],
@@ -388,6 +394,7 @@ const rawProblems: ProblemAnalysis[] = [
     },
     correctResult: {
       display: '8 Jahre',
+      unit: 'Jahre',
       numericValue: 8,
       tolerance: 0,
       acceptedAnswers: ['8 Jahre', '8'],
@@ -451,6 +458,7 @@ const rawProblems: ProblemAnalysis[] = [
     commonMistakes: [
       {
         id: 'sign_when_moving',
+        code: 'sign_error',
         label: 'Vorzeichenfehler',
         explanation: 'Beim Entfernen von +5 musst du 5 subtrahieren.',
         correction: '3x = 20 − 5 = 15.',
@@ -529,6 +537,7 @@ const rawProblems: ProblemAnalysis[] = [
     commonMistakes: [
       {
         id: 'single_root',
+        code: 'missing_second_solution',
         label: 'Zweite Lösung fehlt',
         explanation: 'Eine quadratische Gleichung kann zwei Nullstellen haben.',
         correction: 'Prüfe beide Faktoren x − 2 und x − 3.',
@@ -617,6 +626,7 @@ const rawProblems: ProblemAnalysis[] = [
     commonMistakes: [
       {
         id: 'degrees_radians',
+        code: 'degrees_vs_radians',
         label: 'Bogenmaß statt Grad',
         explanation: '0,64 ist der Winkel im Bogenmaß, gefragt ist Grad.',
         correction: 'Stelle den Rechner auf DEG: α ≈ 36,87°.',
@@ -632,6 +642,7 @@ const rawProblems: ProblemAnalysis[] = [
     },
     correctResult: {
       display: '≈ 36,87°',
+      unit: '°',
       numericValue: 36.87,
       tolerance: 0.2,
       acceptedAnswers: ['36,87°', '36.87°'],
@@ -699,6 +710,7 @@ const rawProblems: ProblemAnalysis[] = [
     commonMistakes: [
       {
         id: 'average_vs_instantaneous',
+        code: 'average_vs_instantaneous',
         label: 'Durchschnitt statt Momentanwert',
         explanation: 'Der Funktionswert s(3) ist ein Weg, keine Geschwindigkeit.',
         correction: 'Berechne zuerst s′(t), dann s′(3).',
@@ -714,6 +726,7 @@ const rawProblems: ProblemAnalysis[] = [
     },
     correctResult: {
       display: '8 m/s',
+      unit: 'm/s',
       numericValue: 8,
       tolerance: 0,
       acceptedAnswers: ['8 m/s', '8'],

@@ -21,6 +21,7 @@ export default function HomeScreen() {
   const recent = useSession((state) => state.recentProblemIds);
   const hydrated = useSession((state) => state.hydrated);
   const profile = useSession((state) => state.profile);
+  const remoteProblems = useSession((state) => state.remoteProblems);
   const selectProblem = useSession((state) => state.selectProblem);
 
   const topicProgress = Object.values(profile.topics);
@@ -32,7 +33,9 @@ export default function HomeScreen() {
             topicProgress.length,
         );
   const risks = topRisks(profile);
-  const continueProblem = recent.length ? problemById(recent[0]!) : undefined;
+  const continueProblem = recent.length
+    ? (remoteProblems[recent[0]!] ?? problemById(recent[0]!))
+    : undefined;
 
   return (
     <Page
@@ -148,7 +151,7 @@ export default function HomeScreen() {
           </Card>
         ) : (
           recent.slice(0, 4).map((id) => {
-            const problem = problemById(id);
+            const problem = remoteProblems[id] ?? problemById(id);
             if (!problem) return null;
             return (
               <Card key={id}>

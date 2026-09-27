@@ -1,2 +1,4 @@
 .github/workflows/*.yml
 dist/
+RELEASE_CHECKLIST.md
+store/*.md

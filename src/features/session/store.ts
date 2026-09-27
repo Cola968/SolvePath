@@ -4,7 +4,11 @@ import { revealNextHint } from '../../domain/hints/engine';
 import { checkResult, type AnswerCheck } from '../../domain/misconceptions/check';
 import type { StuckReason } from '../../domain/problem/diagnosis';
 import { updateProfile } from '../../domain/profile/progress';
-import { problemAnalyzer } from '../../services/problem-analyzer';
+import {
+  analyzerForMode,
+  type AnalysisImage,
+  type AnalysisMode,
+} from '../../services/problem-analyzer';
 import {
   emptyProgress,
   progressRepository,
@@ -14,6 +18,7 @@ import {
 type SessionState = StoredProgress & {
   hydrated: boolean;
   busy: boolean;
+  analysisStage: number;
   error: string | null;
   currentProblemId: string | null;
   stuckReason: StuckReason | null;
@@ -22,7 +27,7 @@ type SessionState = StoredProgress & {
   examTopics: string[];
   examDate: string;
   hydrate: () => Promise<void>;
-  analyze: (text: string) => Promise<boolean>;
+  analyze: (text: string, image?: AnalysisImage, mode?: AnalysisMode) => Promise<boolean>;
   selectProblem: (id: string) => void;
   setStuckReason: (reason: StuckReason) => void;
   nextHint: () => void;
@@ -35,6 +40,7 @@ type SessionState = StoredProgress & {
 function snapshot(state: SessionState): StoredProgress {
   return {
     recentProblemIds: state.recentProblemIds,
+    remoteProblems: state.remoteProblems,
     revealedByProblem: state.revealedByProblem,
     profile: state.profile,
   };
@@ -44,6 +50,7 @@ export const useSession = create<SessionState>((set, get) => ({
   ...emptyProgress,
   hydrated: false,
   busy: false,
+  analysisStage: 0,
   error: null,
   currentProblemId: null,
   stuckReason: null,
@@ -59,16 +66,25 @@ export const useSession = create<SessionState>((set, get) => ({
       set({ hydrated: true, error: 'Lokaler Fortschritt konnte nicht geladen werden.' });
     }
   },
-  analyze: async (text) => {
-    set({ busy: true, error: null });
+  analyze: async (text, image, mode = 'remote') => {
+    set({ busy: true, error: null, analysisStage: 0 });
     try {
-      const problem = await problemAnalyzer.analyze(text);
+      const problem = await analyzerForMode(mode).analyze(text, image, (analysisStage) =>
+        set({ analysisStage }),
+      );
       const recentProblemIds = [
         problem.id,
         ...get().recentProblemIds.filter((id) => id !== problem.id),
       ].slice(0, 12);
+      const nextRemoteProblems =
+        mode === 'remote'
+          ? Object.fromEntries(
+              Object.entries({ ...get().remoteProblems, [problem.id]: problem }).slice(-24),
+            )
+          : get().remoteProblems;
       set({
         currentProblemId: problem.id,
+        remoteProblems: nextRemoteProblems,
         recentProblemIds,
         busy: false,
         stuckReason: null,
@@ -85,13 +101,13 @@ export const useSession = create<SessionState>((set, get) => ({
     }
   },
   selectProblem: (id) => {
-    if (problemById(id))
+    if (problemById(id) || get().remoteProblems[id])
       set({ currentProblemId: id, stuckReason: null, stepIndex: 0, error: null });
   },
   setStuckReason: (reason) => set({ stuckReason: reason }),
   nextHint: () => {
     const id = get().currentProblemId;
-    const problem = id ? problemById(id) : undefined;
+    const problem = id ? (get().remoteProblems[id] ?? problemById(id)) : undefined;
     if (!id || !problem) return;
     const revealed = revealNextHint(problem, { revealedLevels: get().revealedByProblem[id] ?? [] });
     set({
@@ -105,7 +121,7 @@ export const useSession = create<SessionState>((set, get) => ({
   setStepIndex: (index) => set({ stepIndex: index }),
   checkAnswer: (answer) => {
     const id = get().currentProblemId;
-    const problem = id ? problemById(id) : undefined;
+    const problem = id ? (get().remoteProblems[id] ?? problemById(id)) : undefined;
     if (!problem) return null;
     const result = checkResult(problem, answer);
     if (answer.trim()) {

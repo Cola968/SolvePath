@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: solvepath-api
+    runtime: node
+    buildCommand: corepack enable && pnpm install --frozen-lockfile --prod=false
+    startCommand: pnpm server:start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: TRUST_PROXY
+        value: 'true'
+      - key: LLM_VERIFY_ANALYSIS
+        value: 'true'
+      - key: LLM_TIMEOUT_MS
+        value: '18000'
+      - key: RATE_LIMIT_PER_MINUTE
+        value: '12'
+      - key: RATE_LIMIT_PER_DAY
+        value: '120'
+      - key: LLM_API_KEY
+        sync: false
+      - key: LLM_MODEL
+        sync: false
+      - key: LLM_BASE_URL
+        sync: false

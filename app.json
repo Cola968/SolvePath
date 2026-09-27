@@ -3,12 +3,33 @@
     "name": "SolvePath",
     "slug": "solvepath",
     "scheme": "solvepath",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "ios": { "supportsTablet": true, "bundleIdentifier": "app.solvepath.mobile" },
-    "android": { "package": "app.solvepath.mobile", "edgeToEdgeEnabled": true },
-    "plugins": ["expo-router"]
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "app.solvepath.mobile",
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "app.solvepath.mobile",
+      "versionCode": 1,
+      "edgeToEdgeEnabled": true
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "SolvePath benötigt die Kamera, um deine Aufgabe aufzunehmen.",
+          "photosPermission": "SolvePath benötigt Zugriff auf ausgewählte Aufgabenbilder.",
+          "microphonePermission": false
+        }
+      ]
+    ]
   }
 }
