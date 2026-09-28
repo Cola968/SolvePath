@@ -1,6 +1,6 @@
 {
-  "name": "solvepath",
-  "version": "0.5.1",
+  "name": "snapstudy",
+  "version": "0.9.0",
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
@@ -42,7 +42,8 @@
     "react-native-screens": "~4.26.2",
     "zod": "^4.0.0",
     "zustand": "^5.0.0",
-    "expo-image-manipulator": "~57.0.20"
+    "expo-image-manipulator": "~57.0.20",
+    "react-native-webview": "13.16.1"
   },
   "devDependencies": {
     "@types/node": "^22.20.4",
