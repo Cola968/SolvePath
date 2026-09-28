@@ -126,3 +126,32 @@ body{font-family:"Avenir Next","Segoe UI",system-ui,-apple-system,sans-serif}
   .notes-page{min-width:78px;width:78px;margin:0}.notes-thumb{height:58px;aspect-ratio:auto}.notes-page small{display:none}
   .note-page-wrap{padding:10px}.note-page{max-width:100%}.notes-actions{position:sticky;bottom:80px;z-index:8}.notes-actions .v4-btn{font-size:11px;padding:0 11px}
 }
+
+
+/* SnapStudy Notes final polish */
+.notes-title-row{display:flex;align-items:center;gap:9px;margin-top:3px}
+.notes-title-input{min-width:0;width:min(44vw,320px);border:0;background:transparent;color:var(--v4-ink);font:inherit;font-size:27px;font-weight:850;letter-spacing:-.04em;outline:none;padding:0}
+.notes-saved{display:flex;align-items:center;gap:4px;font-size:9px;color:var(--v4-muted);white-space:nowrap}
+.notes-top-actions{display:flex;align-items:center;gap:7px}
+.notes-paper-select,.notes-focus-btn{height:38px;border:1px solid var(--v4-line);border-radius:10px;background:#fff;color:var(--v4-ink);font-size:11px;font-weight:800}
+.notes-paper-select{padding:0 9px}.notes-focus-btn{width:38px;display:grid;place-items:center}
+.notes-thumb.grid{background-image:linear-gradient(#e9e3d9 1px,transparent 1px),linear-gradient(90deg,#e9e3d9 1px,transparent 1px);background-size:9px 9px}
+.notes-thumb.ruled{background-image:linear-gradient(to bottom,transparent 8px,#ece6dc 9px);background-size:100% 9px}
+.note-page.grid{background-image:linear-gradient(#eee8de 1px,transparent 1px),linear-gradient(90deg,#eee8de 1px,transparent 1px);background-size:24px 24px}
+.note-page.plain{background-image:none}
+.note-text{pointer-events:none}
+.note-text.editing{pointer-events:auto;z-index:4}
+#noteCanvas.text-mode{pointer-events:none}
+.notes-exit-focus{position:fixed;right:12px;top:12px;z-index:50;width:42px;height:42px;border:1px solid var(--v4-line);border-radius:12px;background:rgba(255,255,255,.96);color:var(--v4-ink);display:grid;place-items:center;box-shadow:0 8px 24px rgba(28,36,51,.11)}
+.notes-shell.is-focus{position:fixed;inset:0;z-index:60;background:#ece8df}
+.notes-shell.is-focus .notes-workspace{height:100dvh;border:0;border-radius:0;grid-template-columns:1fr}
+.notes-shell.is-focus .notes-editor{height:100dvh}
+.notes-shell.is-focus .note-page-wrap{padding:8px}
+.notes-shell.is-focus .note-page{height:calc(100dvh - 16px);width:auto;max-width:min(100%,760px)}
+@media(max-width:620px){
+ .notes-title-input{font-size:22px;width:48vw}
+ .notes-paper-select{max-width:88px}
+ .notes-top-actions{gap:5px}
+ .notes-focus-btn{width:36px;height:36px}
+ .notes-shell.is-focus .note-page{height:auto;width:100%;max-width:100%}
+}
