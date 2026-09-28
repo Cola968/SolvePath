@@ -3,8 +3,8 @@ import { BackHandler, Linking, Pressable, StyleSheet, Text, View } from 'react-n
 import { StatusBar } from 'expo-status-bar';
 import { WebView, type WebViewNavigation } from 'react-native-webview';
 
-const APP_URL = 'https://snapstudy-beta-v2.onrender.com/';
-const APP_ORIGIN = 'https://snapstudy-beta-v2.onrender.com';
+const APP_URL = 'https://snapstudy-test.onrender.com/';
+const APP_ORIGIN = 'https://snapstudy-test.onrender.com';
 
 export default function SnapStudyScreen() {
   const webViewRef = useRef<WebView>(null);
