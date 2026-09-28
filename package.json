@@ -18,7 +18,8 @@
     "server:typecheck": "tsc --noEmit -p server/tsconfig.json",
     "server:lint": "eslint server --no-ignore",
     "server:test": "vitest run server",
-    "release:check": "node scripts/release-check.mjs"
+    "release:check": "node scripts/release-check.mjs",
+    "postinstall": "node --check web/app.js"
   },
   "dependencies": {
     "@fastify/multipart": "^9.4.0",
