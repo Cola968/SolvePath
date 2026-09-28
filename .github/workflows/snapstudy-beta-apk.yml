@@ -1,5 +1,9 @@
 name: SnapStudy Beta APK
 
+concurrency:
+  group: snapstudy-beta-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
@@ -8,7 +12,6 @@ on:
     branches: ["snapstudy-mvp"]
     paths:
       - "src/**"
-      - "web/**"
       - "app.json"
       - "package.json"
       - "pnpm-lock.yaml"
