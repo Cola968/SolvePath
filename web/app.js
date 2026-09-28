@@ -930,41 +930,57 @@ function gn3ToolOptions(){
   return ''
 }
 function renderNotes(){
+  if(!state.gnSidebarTab)state.gnSidebarTab='pages';
+  if(!state.gnTemplateOpen)state.gnTemplateOpen=false;
   const list=notesStore(),note=gnCurrentNote();if(!note){gnAddPage();return}
   const shapes=gn3ShapeList(note.id),images=gn3ImageList(note.id),sel=state.gnSelection,selectedImage=images.find(function(x){return x.id===state.gnSelectedImage});
-  const pages=list.map(function(n,i){return'<button class="gn3-page '+(n.id===note.id?'active':'')+'" data-action="gn-open-page" data-id="'+esc(n.id)+'">'+gn3PaperThumb(n.paper)+'<span><b>'+(n.favorite?'★ ':'')+esc(n.title)+'</b><small>Seite '+(i+1)+'</small></span></button>'}).join('');
+  const visible=state.gnSidebarTab==='favorites'?list.filter(function(n){return n.favorite}):list;
+  const pages=visible.map(function(n){
+    const realIndex=list.findIndex(function(x){return x.id===n.id});
+    return '<button class="gn4-page '+(n.id===note.id?'active':'')+'" data-action="gn-open-page" data-id="'+esc(n.id)+'">'+gn3PaperThumb(n.paper)+'<span><b>'+(n.favorite?'★ ':'')+esc(n.title)+'</b><small>Seite '+(realIndex+1)+'</small></span></button>'
+  }).join('');
+  const outline=String(note.text||'').split('\n').map(function(x){return x.trim()}).filter(Boolean).slice(0,8).map(function(x){return'<button class="gn4-outline-item">'+esc(x)+'</button>'}).join('');
   app.innerHTML=shell(
-    '<section class="gn3-shell '+(state.gnFocus?'focus':'')+'">'+
-      '<header class="gn3-head"><button data-action="today" class="gn3-square">'+v4Icon('back',19)+'</button><div class="gn3-title"><span>Physik / Notizen</span><input id="gnTitle" value="'+esc(note.title)+'"></div><button data-action="gn3-favorite" class="gn3-square '+(note.favorite?'fav':'')+'">'+v4Icon('star',18)+'</button><button data-action="gn-search" class="gn3-square">'+v4Icon('search',18)+'</button><button data-action="gn3-focus" class="gn3-square">'+v4Icon('fit',18)+'</button></header>'+
-      '<div class="gn3-main">'+
-        (!state.gnFocus?'<aside class="gn3-sidebar"><div class="gn3-sidehead"><strong>Seiten</strong><button data-action="gn-add-page">'+v4Icon('plus',16)+'</button></div><div class="gn3-pages">'+pages+'</div><div class="gn3-pageactions"><button data-action="gn3-duplicate">Duplizieren</button><button data-action="gn-delete-page">Löschen</button><button data-action="gn-move-up">↑</button><button data-action="gn-move-down">↓</button></div></aside>':'')+
-        '<main class="gn3-editor">'+
-          (!state.gnFocus?'<div class="gn3-toolbar">'+
-            [['pen','text','Stift'],['marker','spark','Marker'],['eraser','eraser','Radierer'],['select','stack','Lasso'],['text','text','Text'],['shape','shape','Formen']].map(function(x){return'<button data-action="gn-tool" data-tool="'+x[0]+'" class="'+(state.gnTool===x[0]?'active':'')+'">'+v4Icon(x[1],18)+'<span>'+x[2]+'</span></button>'}).join('')+
-            '<span class="gn3-divider"></span>'+
-            ['#20242B','#5C5FB8','#B75850','#26785B','#D39A23'].map(function(col){return'<button data-action="gn-color" data-color="'+col+'" class="gn3-color '+(state.gnColor===col?'active':'')+'" style="--c:'+col+'"></button>'}).join('')+
-            '<span class="gn3-flex"></span><button class="gn3-icon" data-action="gn-undo">'+v4Icon('undo',17)+'</button><button class="gn3-icon" data-action="gn-redo">'+v4Icon('redo',17)+'</button>'+
-            '<label class="gn3-icon gn3-image">'+v4Icon('image',17)+'<input id="gn3ImageInput" type="file" accept="image/*"></label>'+
+    '<section class="gn4-shell '+(state.gnFocus?'focus':'')+'">'+
+      (!state.gnFocus?'<header class="gn4-head">'+
+        '<button data-action="today" class="gn4-icon">'+v4Icon('back',18)+'</button>'+
+        '<div class="gn4-title"><span>Physik / Notizen <i></i> lokal gespeichert</span><input id="gnTitle" value="'+esc(note.title)+'"></div>'+
+        '<button data-action="gn3-favorite" class="gn4-icon '+(note.favorite?'fav':'')+'">'+v4Icon('star',17)+'</button>'+
+        '<button data-action="gn-search" class="gn4-icon">'+v4Icon('search',17)+'</button>'+
+        '<button data-action="gn3-focus" class="gn4-icon">'+v4Icon('fit',17)+'</button>'+
+      '</header>':'<button data-action="gn3-focus" class="gn4-focus-exit">'+v4Icon('close',17)+'</button>')+
+      '<div class="gn4-main">'+
+        (!state.gnFocus?'<aside class="gn4-sidebar">'+
+          '<div class="gn4-tabs"><button data-action="gn4-tab" data-tab="pages" class="'+(state.gnSidebarTab==='pages'?'active':'')+'">Seiten</button><button data-action="gn4-tab" data-tab="favorites" class="'+(state.gnSidebarTab==='favorites'?'active':'')+'">Favoriten</button><button data-action="gn4-tab" data-tab="outline" class="'+(state.gnSidebarTab==='outline'?'active':'')+'">Inhalt</button></div>'+
+          '<div class="gn4-sidehead"><strong>'+(state.gnSidebarTab==='outline'?'Gliederung':'Dokument')+'</strong><button data-action="gn-add-page">'+v4Icon('plus',15)+'</button></div>'+
+          (state.gnSidebarTab==='outline'?'<div class="gn4-outline">'+(outline||'<p>Keine Gliederung erkannt.</p>')+'</div>':'<div class="gn4-pages">'+(pages||'<p class="gn4-empty">Keine Favoriten.</p>')+'</div>')+
+          '<div class="gn4-side-actions"><button data-action="gn3-duplicate">Duplizieren</button><button data-action="gn-delete-page">Löschen</button><button data-action="gn4-template">Vorlage</button></div>'+
+        '</aside>':'')+
+        '<main class="gn4-editor">'+
+          (!state.gnFocus?'<div class="gn4-toolbar">'+
+            [['pen','text','Stift'],['marker','spark','Marker'],['eraser','eraser','Radierer'],['select','stack','Lasso'],['text','text','Text'],['shape','shape','Form']].map(function(x){return'<button data-action="gn-tool" title="'+x[2]+'" data-tool="'+x[0]+'" class="'+(state.gnTool===x[0]?'active':'')+'">'+v4Icon(x[1],17)+'<span>'+x[2]+'</span></button>'}).join('')+
+            '<span class="gn4-divider"></span>'+
+            ['#20242B','#3568D4','#B75850','#26785B','#D39A23'].map(function(col){return'<button data-action="gn-color" data-color="'+col+'" class="gn4-color '+(state.gnColor===col?'active':'')+'" style="--c:'+col+'"></button>'}).join('')+
+            '<span class="gn4-flex"></span><button class="gn4-mini" data-action="gn-undo">'+v4Icon('undo',16)+'</button><button class="gn4-mini" data-action="gn-redo">'+v4Icon('redo',16)+'</button>'+
+            '<label class="gn4-mini gn4-file">'+v4Icon('image',16)+'<input id="gn3ImageInput" type="file" accept="image/*"></label>'+
           '</div>'+gn3ToolOptions():'')+
-          '<div class="gn3-docbar">'+
-            '<select id="gn3Paper"><option value="plain" '+(note.paper==='plain'?'selected':'')+'>Blanko</option><option value="ruled" '+(note.paper==='ruled'?'selected':'')+'>Liniert</option><option value="grid" '+(note.paper==='grid'?'selected':'')+'>Kariert</option><option value="dotted" '+(note.paper==='dotted'?'selected':'')+'>Punktiert</option></select>'+
-            '<button data-action="gn3-pdf" title="PDF Import">'+v4Icon('pdf',16)+'<span>PDF</span></button><span class="gn3-flex"></span><button data-action="gn3-export">'+v4Icon('download',16)+'<span>PNG</span></button>'+
-          '</div>'+
-          '<div class="gn3-stage"><div class="gn3-scale" style="width:'+state.gnZoom+'%"><div class="gn3-paper '+esc(note.paper||'ruled')+'"><textarea id="gnText" class="'+(state.gnTool==='text'?'editing':'')+'" placeholder="Text eingeben...">'+esc(note.text||'')+'</textarea><canvas id="gnCanvas" width="1000" height="1400"></canvas></div></div></div>'+
-          (!state.gnFocus?'<footer class="gn3-bottom"><button data-action="gn3-fit">'+v4Icon('fit',16)+'</button><input id="gnZoom" type="range" min="70" max="180" value="'+state.gnZoom+'"><span>'+state.gnZoom+'%</span><button data-action="mark-note-review">'+v4Icon('repeat',15)+'Wiederholen</button><button class="primary" data-action="note-study">'+v4Icon('play',15)+(sel&&sel.ids&&sel.ids.length?'Aus Auswahl lernen':'Lernrunde')+'</button></footer>':'')+
+          (!state.gnFocus?'<div class="gn4-docbar"><select id="gn3Paper"><option value="plain" '+(note.paper==='plain'?'selected':'')+'>Blanko</option><option value="ruled" '+(note.paper==='ruled'?'selected':'')+'>Liniert</option><option value="grid" '+(note.paper==='grid'?'selected':'')+'>Kariert</option><option value="dotted" '+(note.paper==='dotted'?'selected':'')+'>Punktiert</option></select><button data-action="gn3-pdf">'+v4Icon('pdf',15)+'<span>PDF</span></button><span class="gn4-flex"></span><button data-action="gn3-export">'+v4Icon('download',15)+'<span>Export</span></button></div>':'')+
+          '<div class="gn4-stage"><div class="gn4-scale" style="width:'+state.gnZoom+'%"><div class="gn4-paper '+esc(note.paper||'ruled')+'"><textarea id="gnText" class="'+(state.gnTool==='text'?'editing':'')+'" placeholder="Text eingeben...">'+esc(note.text||'')+'</textarea><canvas id="gnCanvas" width="1000" height="1400"></canvas></div></div></div>'+
+          (!state.gnFocus?'<footer class="gn4-bottom"><span>Seite '+(list.findIndex(function(n){return n.id===note.id})+1)+' von '+list.length+'</span><i></i><button data-action="gn3-fit">'+v4Icon('fit',14)+'</button><input id="gnZoom" type="range" min="70" max="180" value="'+state.gnZoom+'"><span>'+state.gnZoom+'%</span><span class="gn4-flex"></span><button data-action="mark-note-review">'+v4Icon('repeat',14)+'Wiederholen</button><button class="primary" data-action="note-study">'+v4Icon('play',14)+(sel&&sel.ids&&sel.ids.length?'Aus Auswahl lernen':'Lernrunde')+'</button></footer>':'')+
         '</main>'+
       '</div>'+
-      (sel&&sel.ids&&sel.ids.length?'<div class="gn3-selection"><span>'+sel.ids.length+' ausgewählt</span><button data-action="gn-copy-selection">'+v4Icon('copy',16)+'</button><button data-action="gn-color-selection" data-color="'+state.gnColor+'"><i style="background:'+state.gnColor+'"></i></button><button data-action="gn-learn-selection">'+v4Icon('play',16)+'</button><button class="danger" data-action="gn-delete-selection">'+v4Icon('trash',16)+'</button></div>':'')+
-      (selectedImage?'<div class="gn3-imagebar"><span>Bild</span><button data-action="gn3-image-smaller">−</button><button data-action="gn3-image-larger">+</button><button class="danger" data-action="gn3-image-delete">'+v4Icon('trash',15)+'</button></div>':'')+
+      (sel&&sel.ids&&sel.ids.length?'<div class="gn4-selection"><span>'+sel.ids.length+' ausgewählt</span><button data-action="gn-copy-selection">'+v4Icon('copy',15)+'</button><button data-action="gn-color-selection" data-color="'+state.gnColor+'"><i style="background:'+state.gnColor+'"></i></button><button data-action="gn-learn-selection">'+v4Icon('play',15)+'</button><button class="danger" data-action="gn-delete-selection">'+v4Icon('trash',15)+'</button></div>':'')+
+      (selectedImage?'<div class="gn4-imagebar"><span>Bild</span><button data-action="gn3-image-smaller">−</button><button data-action="gn3-image-larger">+</button><button class="danger" data-action="gn3-image-delete">'+v4Icon('trash',14)+'</button></div>':'')+
+      (state.gnTemplateOpen?'<div class="gn4-modal"><div class="gn4-template-sheet"><header><strong>Seitenvorlage</strong><button data-action="gn4-template-close">'+v4Icon('close',16)+'</button></header><div class="gn4-template-grid">'+['plain','ruled','grid','dotted'].map(function(p){return'<button data-action="gn4-paper" data-paper="'+p+'" class="'+(note.paper===p?'active':'')+'">'+gn3PaperThumb(p)+'<span>'+(p==='plain'?'Blanko':p==='ruled'?'Liniert':p==='grid'?'Kariert':'Punktiert')+'</span></button>'}).join('')+'</div></div></div>':'')+
     '</section>',false,'notes',true
   );
   gnBindCanvas(note,shapes,images);
   const title=document.getElementById('gnTitle');if(title)title.oninput=function(){gnSaveNotePatch(note.id,{title:title.value||'Unbenannt'})};
   const text=document.getElementById('gnText');if(text)text.oninput=function(){gnSaveNotePatch(note.id,{text:text.value})};
   const paper=document.getElementById('gn3Paper');if(paper)paper.onchange=function(){gn3SetPaper(paper.value)};
-  const zoom=document.getElementById('gnZoom');if(zoom)zoom.oninput=function(){state.gnZoom=Number(zoom.value);document.querySelector('.gn3-scale').style.width=zoom.value+'%';document.querySelector('.gn3-bottom>span').textContent=zoom.value+'%'};
-  const pen=document.getElementById('gnPenSize');if(pen)pen.oninput=function(){state.gnPenSize=Number(pen.value);document.querySelector('.gn3-options b').textContent=pen.value};
-  const marker=document.getElementById('gnMarkerSize');if(marker)marker.oninput=function(){state.gnMarkerSize=Number(marker.value);document.querySelector('.gn3-options b').textContent=marker.value};
+  const zoom=document.getElementById('gnZoom');if(zoom)zoom.oninput=function(){state.gnZoom=Number(zoom.value);document.querySelector('.gn4-scale').style.width=zoom.value+'%';document.querySelector('.gn4-bottom>span:nth-of-type(2)').textContent=zoom.value+'%'};
+  const pen=document.getElementById('gnPenSize');if(pen)pen.oninput=function(){state.gnPenSize=Number(pen.value);const b=document.querySelector('.gn3-options b');if(b)b.textContent=pen.value};
+  const marker=document.getElementById('gnMarkerSize');if(marker)marker.oninput=function(){state.gnMarkerSize=Number(marker.value);const b=document.querySelector('.gn3-options b');if(b)b.textContent=marker.value};
   const imageInput=document.getElementById('gn3ImageInput');if(imageInput)imageInput.onchange=function(){const file=imageInput.files&&imageInput.files[0];if(file)gn3InsertImage(file);imageInput.value=''}
 }
 function gnBindCanvas(note,shapes,images){
@@ -1031,6 +1047,8 @@ function gnBindCanvas(note,shapes,images){
   canvas.addEventListener('pointerleave',function(){if(!drawing){pointer=null;drawAll()}});
   drawAll()
 }
+if(!state.gnSidebarTab)state.gnSidebarTab='pages';
+if(!state.gnTemplateOpen)state.gnTemplateOpen=false;
 const gn3PrevClick=app.onclick;
 app.onclick=function(e){
   const b=e.target.closest('[data-action]');if(!b){if(gn3PrevClick)gn3PrevClick(e);return}
@@ -1038,6 +1056,10 @@ app.onclick=function(e){
   if(a==='notes'){state.gnSelection=null;renderNotes();return}
   if(a==='gn-tool'){state.gnTool=b.dataset.tool;state.gnSelection=null;state.gnSelectedImage=null;renderNotes();return}
   if(a==='gn3-erase-mode'){state.gnEraserMode=b.dataset.mode;renderNotes();return}
+  if(a==='gn4-tab'){state.gnSidebarTab=b.dataset.tab;renderNotes();return}
+  if(a==='gn4-template'){state.gnTemplateOpen=true;renderNotes();return}
+  if(a==='gn4-template-close'){state.gnTemplateOpen=false;renderNotes();return}
+  if(a==='gn4-paper'){state.gnTemplateOpen=false;gn3SetPaper(b.dataset.paper);return}
   if(a==='gn3-shape-kind'){state.gnShapeKind=b.dataset.kind;renderNotes();return}
   if(a==='gn3-favorite'){gn3ToggleFavorite();return}
   if(a==='gn3-focus'){state.gnFocus=!state.gnFocus;renderNotes();return}
