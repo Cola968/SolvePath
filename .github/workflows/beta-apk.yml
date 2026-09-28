@@ -1,5 +1,9 @@
 name: Beta APK
 
+concurrency:
+  group: solvepath-beta-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: ["main", "feat/v0.5-beta-release"]
@@ -45,8 +49,10 @@ jobs:
       - name: Release checks
         run: |
           pnpm typecheck
+          pnpm server:typecheck
           pnpm lint
           pnpm test
+          pnpm server:test
           pnpm release:check
 
       - name: Generate Android project
