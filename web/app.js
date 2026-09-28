@@ -406,3 +406,116 @@ app.onclick=function(e){
   if(a==='mark-note-review'){markNoteReview();return}
   if(previousClickHandler)previousClickHandler(e);
 };
+
+
+/* SnapStudy Notes polish */
+V4_ICONS.focus='<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/>';
+V4_ICONS.save='<path d="m5 12 4 4L19 6"/>';
+V4_ICONS.paper='<path d="M6 4h12v16H6z"/><path d="M9 8h6M9 12h6M9 16h4"/>';
+
+if(!state.notesFocus) state.notesFocus=false;
+if(!state.noteSaved) state.noteSaved=true;
+
+function saveNotePatch(id, patch){
+  const list=notesStore();
+  const i=list.findIndex(function(n){return n.id===id});
+  if(i<0)return;
+  list[i]=Object.assign({},list[i],patch,{updatedAt:Date.now()});
+  saveNotesStore(list);
+  state.noteSaved=true;
+}
+function renderNotes(){
+  const list=notesStore();
+  let note=list.find(function(n){return n.id===state.noteId})||list[0];
+  if(!note){note={id:'n'+Date.now().toString(36),title:'Neue Seite',text:'',paper:'ruled',updatedAt:Date.now()};list.push(note);saveNotesStore(list);state.noteId=note.id}
+  const pages=list.map(function(n){
+    return '<button class="notes-page '+(n.id===note.id?'active':'')+'" data-action="open-note" data-id="'+esc(n.id)+'"><span class="notes-thumb '+esc(n.paper||'ruled')+'"></span><span><b>'+esc(n.title)+'</b><small>'+esc((n.text||'').slice(0,45)||'Leere Seite')+'</small></span></button>'
+  }).join('');
+  const focus=!!state.notesFocus;
+  app.innerHTML=shell(
+    '<section class="notes-shell '+(focus?'is-focus':'')+'">'+
+      (focus?'<button class="notes-exit-focus" data-action="notes-focus">'+v4Icon('focus',18)+'</button>':'')+
+      (!focus?'<div class="notes-top"><div><span class="v4-kicker">Notizen</span><div class="notes-title-row"><input id="noteTitle" class="notes-title-input" value="'+esc(note.title)+'" aria-label="Seitentitel"><span class="notes-saved">'+v4Icon('save',13)+(state.noteSaved?'Gespeichert':'Speichert…')+'</span></div></div><div class="notes-top-actions"><select id="paperSelect" class="notes-paper-select" aria-label="Papierart"><option value="ruled" '+((note.paper||'ruled')==='ruled'?'selected':'')+'>Liniert</option><option value="grid" '+(note.paper==='grid'?'selected':'')+'>Kariert</option><option value="plain" '+(note.paper==='plain'?'selected':'')+'>Blanko</option></select><button class="notes-focus-btn" data-action="notes-focus" aria-label="Fokusmodus">'+v4Icon('focus',18)+'</button><button class="v4-btn primary notes-study" data-action="note-study">'+v4Icon('play',17)+'Als Lernrunde nutzen</button></div></div>':'')+
+      '<div class="notes-workspace">'+
+        (!focus?'<aside class="notes-sidebar"><div class="notes-side-head"><strong>Seiten</strong><button data-action="add-note" aria-label="Neue Seite">'+v4Icon('plus',17)+'</button></div>'+pages+'</aside>':'')+
+        '<main class="notes-editor">'+
+          (!focus?'<div class="notes-toolbar">'+
+            '<button data-action="note-tool" data-tool="pen" class="'+(state.noteTool==='pen'?'active':'')+'">'+v4Icon('text',18)+'<span>Stift</span></button>'+
+            '<button data-action="note-tool" data-tool="marker" class="'+(state.noteTool==='marker'?'active':'')+'">'+v4Icon('spark',18)+'<span>Marker</span></button>'+
+            '<button data-action="note-tool" data-tool="eraser" class="'+(state.noteTool==='eraser'?'active':'')+'">'+v4Icon('alert',18)+'<span>Radierer</span></button>'+
+            '<button data-action="note-tool" data-tool="select" class="'+(state.noteTool==='select'?'active':'')+'">'+v4Icon('stack',18)+'<span>Auswahl</span></button>'+
+            '<button data-action="note-tool" data-tool="text" class="'+(state.noteTool==='text'?'active':'')+'">'+v4Icon('text',18)+'<span>Text</span></button>'+
+            '<span class="notes-sep"></span>'+
+            '<button class="color-dot dark" data-action="note-color" data-color="#1C2433" aria-label="Dunkel"></button>'+
+            '<button class="color-dot violet" data-action="note-color" data-color="#6558D8" aria-label="Violett"></button>'+
+            '<button class="color-dot red" data-action="note-color" data-color="#B8574E" aria-label="Rot"></button>'+
+            '<button class="notes-undo" data-action="note-undo" title="Rückgängig">'+v4Icon('back',18)+'</button>'+
+          '</div>':'')+
+          '<div class="note-page-wrap">'+
+            '<div class="note-page '+esc(note.paper||'ruled')+'">'+
+              '<textarea id="noteText" class="note-text '+(state.noteTool==='text'?'editing':'')+'" placeholder="Tippe hier oder schreibe mit dem Stift...">'+esc(note.text||'')+'</textarea>'+
+              '<canvas id="noteCanvas" class="'+(state.noteTool==='text'?'text-mode':'')+'" width="1000" height="1400"></canvas>'+
+              (state.noteTool==='select'?'<div class="note-select-hint">Bereich markieren → nur diesen Teil lernen</div>':'')+
+            '</div>'+
+          '</div>'+
+          (!focus?'<div class="notes-actions"><button class="v4-btn secondary" data-action="mark-note-review">'+v4Icon('repeat',17)+'Für später markieren</button><button class="v4-btn primary" data-action="note-study">'+v4Icon('play',17)+(state.noteSelection&&state.noteSelection.w>40?'Aus Auswahl lernen':'Als Lernrunde nutzen')+'</button></div>':'')+
+        '</main>'+
+      '</div>'+
+    '</section>',
+    false,'notes',focus
+  );
+  bindNotesCanvas(note);
+  const ta=document.getElementById('noteText');
+  if(ta)ta.addEventListener('input',function(){state.noteSaved=false;saveNotePatch(note.id,{text:ta.value})});
+  const title=document.getElementById('noteTitle');
+  if(title)title.addEventListener('input',function(){state.noteSaved=false;saveNotePatch(note.id,{title:title.value||'Unbenannte Seite'})});
+  const paper=document.getElementById('paperSelect');
+  if(paper)paper.addEventListener('change',function(){saveNotePatch(note.id,{paper:paper.value});renderNotes()});
+  if(!state.noteKeyBound){
+    state.noteKeyBound=true;
+    window.addEventListener('keydown',function(e){
+      if(!document.querySelector('.notes-shell'))return;
+      if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();const s=noteStrokes(state.noteId);s.pop();saveNoteStrokes(state.noteId,s);renderNotes();return}
+      if(e.target&&['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName))return;
+      if(e.key.toLowerCase()==='p'){state.noteTool='pen';renderNotes()}
+      if(e.key.toLowerCase()==='e'){state.noteTool='eraser';renderNotes()}
+      if(e.key.toLowerCase()==='f'){state.notesFocus=!state.notesFocus;renderNotes()}
+    });
+  }
+}
+function cropNoteCanvas(canvas, sel){
+  if(!sel||sel.w<20||sel.h<20)return canvas;
+  const out=document.createElement('canvas');
+  out.width=Math.max(1,Math.round(sel.w));out.height=Math.max(1,Math.round(sel.h));
+  const ctx=out.getContext('2d');if(ctx)ctx.drawImage(canvas,sel.x,sel.y,sel.w,sel.h,0,0,out.width,out.height);
+  return out;
+}
+function noteStudy(){
+  const note=notesStore().find(function(n){return n.id===state.noteId});if(!note)return;
+  const text=String(note.text||'').trim();
+  if(text.length>=20){
+    state.file=null;state.textDraft=text;analyze();return;
+  }
+  const canvas=document.getElementById('noteCanvas');
+  if(canvas&&noteStrokes(note.id).length){
+    const source=cropNoteCanvas(canvas,state.noteSelection);
+    source.toBlob(function(blob){
+      if(!blob){v4Toast('Notiz konnte nicht gelesen werden');return}
+      state.file=new File([blob],'notiz.png',{type:'image/png'});
+      state.textDraft='Notiz: '+note.title;
+      analyze();
+    },'image/png');
+    return;
+  }
+  v4Toast('Füge erst Text oder Handschrift hinzu');
+}
+const notesPolishPrevious=app.onclick;
+app.onclick=function(e){
+  const b=e.target.closest('[data-action]');
+  if(!b){if(notesPolishPrevious)notesPolishPrevious(e);return}
+  const a=b.dataset.action;
+  if(a==='notes'){renderNotes();return}
+  if(a==='notes-focus'){state.notesFocus=!state.notesFocus;renderNotes();return}
+  if(a==='note-study'){noteStudy();return}
+  if(notesPolishPrevious)notesPolishPrevious(e);
+};
