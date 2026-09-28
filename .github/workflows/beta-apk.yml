@@ -86,3 +86,9 @@ jobs:
             --title "SolvePath Android Beta" \
             --notes "Direkt installierbarer Android-Beta-Build für Tests. Nicht als finaler Play-Store-Upload-Key verwenden." \
             --prerelease
+
+      - name: Report beta build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue comment 11 --body "SolvePath Android-Beta erfolgreich gebaut. Run: https://github.com/Cola968/SolvePath/actions/runs/${GITHUB_RUN_ID} · Release: https://github.com/Cola968/SolvePath/releases/tag/solvepath-beta-latest"
