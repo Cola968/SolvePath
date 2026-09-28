@@ -5,8 +5,8 @@ Package: `app.snapstudy.mobile`
 Version: `0.9.0`  
 Android versionCode: `1`  
 Target/compile SDK: API 36 via Expo SDK 57  
-App service: https://snapstudy-beta-v2.onrender.com  
-Privacy policy: https://snapstudy-beta-v2.onrender.com/privacy/snapstudy
+App service: https://snapstudy-test.onrender.com  
+Privacy policy: https://snapstudy-test.onrender.com/privacy/snapstudy
 
 ## Store title
 SnapStudy
@@ -65,7 +65,7 @@ Before submission, verify the Play Console Data safety form against the exact pr
 
 ## Testing
 Web beta:
-https://snapstudy-beta-v2.onrender.com
+https://snapstudy-test.onrender.com
 
 Latest Android beta release:
 https://github.com/Cola968/SolvePath/releases/tag/snapstudy-beta-latest
