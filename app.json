@@ -1,36 +1,46 @@
 {
   "expo": {
-    "name": "SolvePath",
-    "slug": "solvepath",
-    "scheme": "solvepath",
-    "version": "0.5.1",
+    "name": "SnapStudy",
+    "slug": "snapstudy",
+    "scheme": "snapstudy",
+    "version": "0.9.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "app.solvepath.mobile",
-      "buildNumber": "4",
+      "bundleIdentifier": "app.snapstudy.mobile",
+      "buildNumber": "1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
-      "package": "app.solvepath.mobile",
-      "versionCode": 4,
-      "edgeToEdgeEnabled": true
-    },
-    "plugins": [
-      "expo-router",
-      "expo-dev-client",
-      [
-        "expo-image-picker",
+      "package": "app.snapstudy.mobile",
+      "versionCode": 1,
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "CAMERA"
+      ],
+      "intentFilters": [
         {
-          "cameraPermission": "SolvePath benötigt die Kamera, um deine Aufgabe aufzunehmen.",
-          "photosPermission": "SolvePath benötigt Zugriff auf ausgewählte Aufgabenbilder.",
-          "microphonePermission": false
+          "action": "VIEW",
+          "autoVerify": false,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "snapstudy-beta-v2.onrender.com"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
+    },
+    "plugins": [
+      "expo-router"
     ]
   }
 }
