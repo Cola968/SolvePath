@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { Alert, Linking, View } from 'react-native';
 import { AppButton, AppText, Card, Page, SectionTitle } from '../components/ui';
-import { BETA_FEEDBACK_URL, BETA_VERSION_LABEL } from '../config/release';
+import { BETA_FEEDBACK_URL, BETA_VERSION_LABEL, PRIVACY_POLICY_URL } from '../config/release';
 import { useSession } from '../features/session/store';
 import { spacing, useTheme } from '../theme/tokens';
 
@@ -64,6 +64,13 @@ export default function SettingsScreen() {
             Aufgabenbilder werden lokal verarbeitet. Lernprofil und Verlauf bleiben auf diesem Gerät
             und werden nicht an einen KI-Anbieter geschickt.
           </AppText>
+          <AppButton
+            label="Datenschutzerklärung öffnen"
+            variant="secondary"
+            onPress={() => {
+              void Linking.openURL(PRIVACY_POLICY_URL);
+            }}
+          />
         </Card>
       </View>
 
