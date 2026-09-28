@@ -35,7 +35,49 @@ async function main() {
 
   app.get('/health', async () => ({ status: 'ok', app: 'snapstudy-web' }));
 
+  function localTextAnalysis(text: string) {
+    const clean = text.replace(/\s+/g, ' ').trim();
+    const chunks = clean.split(/(?<=[.!?])\s+/).filter((x) => x.length > 12).slice(0, 5);
+    const source = chunks.length ? chunks : [clean];
+    const stop = new Set(['diese','dieser','dieses','einer','einem','einen','werden','wurde','wird','sind','oder','aber','auch','durch','dass','weil','wenn','dann','über','unter','zwischen','gegen','ohne','nach','vor','eine','eines','der','die','das','den','dem','des','und','mit','für','von','ist','im','in','am','an','zu','auf']);
+    const steps = source.slice(0, 3).map((sentence) => {
+      const words = sentence.match(/[A-Za-zÄÖÜäöüß0-9²³%-]{4,}/g) || [];
+      const answer = words.filter((w) => !stop.has(w.toLowerCase())).sort((a,b) => b.length-a.length)[0] || words[0] || 'Begriff';
+      return {
+        question: 'Ergänze den fehlenden Begriff: ' + sentence.replace(answer, '_____'),
+        answer,
+        explanation: sentence,
+      };
+    });
+    while (steps.length < 3) {
+      steps.push({
+        question: 'Nenne einen wichtigen Begriff aus deinem Lernstoff.',
+        answer: clean.split(' ')[0] || 'Lernstoff',
+        explanation: clean,
+      });
+    }
+    return {
+      title: 'Aus deinen Notizen',
+      topic: 'Eigener Lernstoff',
+      originalText: clean,
+      strategySelection: {
+        question: 'Welche Aussage passt am besten zu deinem Lernstoff?',
+        options: [source[0] || clean, 'Das Thema ist nicht im Text enthalten', 'Keine der Aussagen'],
+        correctOption: source[0] || clean,
+        explanation: 'Die Aussage stammt direkt aus deinen Notizen.',
+      },
+      reasoningSteps: steps,
+      correctResult: {
+        display: steps[0]?.answer || 'Lernstoff',
+        acceptedAnswers: [steps[0]?.answer || 'Lernstoff'],
+        explanation: steps[0]?.explanation || clean,
+      },
+      localFallback: true,
+    };
+  }
+
   app.post('/api/analyze', async (request, reply) => {
+    let fallbackText = '';
     try {
       let response: Response;
 
@@ -50,7 +92,9 @@ async function main() {
               part.filename || 'scan.jpg',
             );
           } else {
-            form.append(part.fieldname, String(part.value ?? ''));
+            const value = String(part.value ?? '');
+            form.append(part.fieldname, value);
+            if (part.fieldname === 'text') fallbackText = value;
           }
         }
         response = await fetch(upstream + '/api/analyze', {
@@ -59,12 +103,19 @@ async function main() {
           signal: AbortSignal.timeout(90_000),
         });
       } else {
+        const body = (request.body ?? {}) as { text?: unknown };
+        fallbackText = typeof body.text === 'string' ? body.text : '';
         response = await fetch(upstream + '/api/analyze', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify(request.body ?? {}),
           signal: AbortSignal.timeout(90_000),
         });
+      }
+
+      if (!response.ok && fallbackText.trim().length >= 20) {
+        request.log.warn({ status: response.status }, 'Upstream unavailable; using local text fallback');
+        return reply.code(200).send(localTextAnalysis(fallbackText));
       }
 
       const text = await response.text();
@@ -78,8 +129,11 @@ async function main() {
       return reply.code(response.status).send(payload);
     } catch (error) {
       request.log.error(error);
+      if (fallbackText.trim().length >= 20) {
+        return reply.code(200).send(localTextAnalysis(fallbackText));
+      }
       return reply.code(502).send({
-        error: 'Der Analyseserver ist gerade nicht erreichbar. Bitte nutze die Demo oder versuche es erneut.',
+        error: 'Die Bilderkennung ist gerade nicht erreichbar. Füge etwas Text zur Notiz hinzu oder versuche es erneut.',
         code: 'upstream_unavailable',
       });
     }
