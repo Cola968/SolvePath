@@ -72,3 +72,8 @@ https://github.com/Cola968/SolvePath/releases/tag/snapstudy-beta-latest
 
 Direct APK asset:
 https://github.com/Cola968/SolvePath/releases/download/snapstudy-beta-latest/SnapStudy-0.9.0-beta.apk
+
+
+## Naming risk
+
+There is already an education app named **SnapStudy.ai** on Google Play. Keep "SnapStudy" as the internal beta name only. Before the public Play listing, choose and verify a distinctive public product name to avoid brand confusion and potential trademark/store-listing problems. The Android package ID `app.snapstudy.mobile` can remain independent of the public display name if it has not already been registered in Play Console.
