@@ -285,3 +285,16 @@ body{font-family:"Avenir Next","Segoe UI",system-ui,-apple-system,sans-serif}
 @media(max-width:420px){
  .gn4-title>span{display:none}.gn4-head{padding:0 5px}.gn4-icon{width:31px;height:31px}.gn4-color:nth-of-type(n+4){display:none}.gn4-docbar button span{display:none}.gn4-template-grid{grid-template-columns:repeat(2,1fr)}
 }
+
+@media(max-width:700px){
+ .gn4-sidebar{position:static!important;inset:auto!important;z-index:auto!important;width:100%!important;box-shadow:none!important;border-right:0!important;border-bottom:1px solid #d7d9de!important;padding:5px!important}
+ .gn4-tabs{max-width:280px}
+ .gn4-sidehead{display:none}
+ .gn4-pages{display:flex!important;gap:5px;overflow-x:auto;padding-bottom:2px}
+ .gn4-page{min-width:78px;width:78px}
+ .gn4-page .gn3-thumb{height:46px}
+ .gn4-page small{display:none}
+ .gn4-outline{max-height:110px;overflow:auto}
+ .gn4-side-actions{display:flex!important;margin-top:5px;padding-top:5px}
+ .gn4-side-actions button{flex:1}
+}
