@@ -25,6 +25,8 @@ async function main() {
     'manifest.webmanifest': 'application/manifest+json; charset=utf-8',
     'sw.js': 'text/javascript; charset=utf-8',
     'icon.svg': 'image/svg+xml; charset=utf-8',
+    'privacy-snapstudy.html': 'text/html; charset=utf-8',
+    'privacy-solvepath.html': 'text/html; charset=utf-8',
   };
 
   async function sendFile(reply: any, name: string) {
@@ -144,6 +146,8 @@ async function main() {
   app.get('/manifest.webmanifest', async (_request, reply) => sendFile(reply, 'manifest.webmanifest'));
   app.get('/sw.js', async (_request, reply) => sendFile(reply, 'sw.js'));
   app.get('/icon.svg', async (_request, reply) => sendFile(reply, 'icon.svg'));
+  app.get('/privacy/snapstudy', async (_request, reply) => sendFile(reply, 'privacy-snapstudy.html'));
+  app.get('/privacy/solvepath', async (_request, reply) => sendFile(reply, 'privacy-solvepath.html'));
   app.get('/', async (_request, reply) => sendFile(reply, 'index.html'));
   app.get('/*', async (_request, reply) => sendFile(reply, 'index.html'));
 
