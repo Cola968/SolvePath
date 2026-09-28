@@ -267,3 +267,142 @@ app.onclick=function(e){
   if(a==='share-current')v4ShareChallenge(state.challenge&&state.challenge.questions?state.challenge:v4Library()[0]);
   if(a==='start-invite')startChallenge(state.invite,'invite');
 };
+
+
+/* SnapStudy Notes V1 */
+function nav(active){
+  const items=[['today','Heute','today'],['notes','Notizen','text'],['reviews','Fehler','repeat'],['library','Sammlung','stack']];
+  return '<nav class="v4-nav">'+items.map(function(x){return'<button data-action="'+x[0]+'" class="'+(active===x[0]?'active':'')+'">'+v4Icon(x[2],21)+'<span>'+x[1]+'</span></button>'}).join('')+'</nav>';
+}
+
+function notesStore(){
+  return v4Load('snapstudy-notes-v1',[
+    {id:'n1',title:'Gravitation',text:'Gravitationskraft: F = G · m₁m₂ / r². Wenn sich der Abstand verdoppelt, wird die Kraft viermal kleiner.',paper:'ruled',updatedAt:Date.now()},
+    {id:'n2',title:'Kepler III',text:'Drittes Keplersches Gesetz: T² / a³ ist für Bahnen um denselben Zentralkörper konstant.',paper:'ruled',updatedAt:Date.now()}
+  ]);
+}
+function saveNotesStore(list){v4Save('snapstudy-notes-v1',list)}
+function noteStrokes(id){return v4Load('snapstudy-note-strokes-'+id,[])}
+function saveNoteStrokes(id,s){v4Save('snapstudy-note-strokes-'+id,s)}
+if(!state.noteId) state.noteId='n1';
+if(!state.noteTool) state.noteTool='pen';
+if(!state.noteColor) state.noteColor='#1C2433';
+if(!state.noteWidth) state.noteWidth=3;
+if(!state.noteSelection) state.noteSelection=null;
+
+function renderNotes(){
+  const list=notesStore();
+  let note=list.find(function(n){return n.id===state.noteId})||list[0];
+  if(!note){note={id:'n'+Date.now().toString(36),title:'Neue Seite',text:'',paper:'ruled',updatedAt:Date.now()};list.push(note);saveNotesStore(list);state.noteId=note.id}
+  const pages=list.map(function(n){
+    return '<button class="notes-page '+(n.id===note.id?'active':'')+'" data-action="open-note" data-id="'+esc(n.id)+'"><span class="notes-thumb"></span><span><b>'+esc(n.title)+'</b><small>'+esc((n.text||'').slice(0,45)||'Leere Seite')+'</small></span></button>'
+  }).join('');
+  app.innerHTML=shell(
+    '<section class="notes-shell">'+
+      '<div class="notes-top"><div><span class="v4-kicker">Notizen</span><h1>'+esc(note.title)+'</h1></div><button class="v4-btn primary notes-study" data-action="note-study">'+v4Icon('play',17)+'Als Lernrunde nutzen</button></div>'+
+      '<div class="notes-workspace">'+
+        '<aside class="notes-sidebar"><div class="notes-side-head"><strong>Seiten</strong><button data-action="add-note">'+v4Icon('plus',17)+'</button></div>'+pages+'</aside>'+
+        '<main class="notes-editor">'+
+          '<div class="notes-toolbar">'+
+            '<button data-action="note-tool" data-tool="pen" class="'+(state.noteTool==='pen'?'active':'')+'">'+v4Icon('text',18)+'<span>Stift</span></button>'+
+            '<button data-action="note-tool" data-tool="marker" class="'+(state.noteTool==='marker'?'active':'')+'">'+v4Icon('spark',18)+'<span>Marker</span></button>'+
+            '<button data-action="note-tool" data-tool="eraser" class="'+(state.noteTool==='eraser'?'active':'')+'">'+v4Icon('alert',18)+'<span>Radierer</span></button>'+
+            '<button data-action="note-tool" data-tool="select" class="'+(state.noteTool==='select'?'active':'')+'">'+v4Icon('stack',18)+'<span>Auswahl</span></button>'+
+            '<span class="notes-sep"></span>'+
+            '<button class="color-dot dark" data-action="note-color" data-color="#1C2433" aria-label="Dunkel"></button>'+
+            '<button class="color-dot violet" data-action="note-color" data-color="#6558D8" aria-label="Violett"></button>'+
+            '<button class="color-dot red" data-action="note-color" data-color="#B8574E" aria-label="Rot"></button>'+
+            '<button class="notes-undo" data-action="note-undo" title="Rückgängig">'+v4Icon('back',18)+'</button>'+
+          '</div>'+
+          '<div class="note-page-wrap">'+
+            '<div class="note-page '+esc(note.paper||'ruled')+'">'+
+              '<textarea id="noteText" class="note-text" placeholder="Tippe hier oder schreibe mit dem Stift...">'+esc(note.text||'')+'</textarea>'+
+              '<canvas id="noteCanvas" width="1000" height="1400"></canvas>'+
+              (state.noteTool==='select'?'<div class="note-select-hint">Ziehe einen Bereich auf und nutze ihn direkt zum Lernen.</div>':'')+
+            '</div>'+
+          '</div>'+
+          '<div class="notes-actions"><button class="v4-btn secondary" data-action="mark-note-review">'+v4Icon('repeat',17)+'Für später markieren</button><button class="v4-btn primary" data-action="note-study">'+v4Icon('play',17)+'Als Lernrunde nutzen</button></div>'+
+        '</main>'+
+      '</div>'+
+    '</section>',
+    false,'notes',false
+  );
+  bindNotesCanvas(note);
+  const ta=document.getElementById('noteText');
+  if(ta)ta.addEventListener('input',function(){
+    const next=notesStore();const i=next.findIndex(function(n){return n.id===note.id});if(i>=0){next[i].text=ta.value;next[i].updatedAt=Date.now();saveNotesStore(next)}
+  });
+}
+
+function bindNotesCanvas(note){
+  const c=document.getElementById('noteCanvas');if(!c)return;
+  const ctx=c.getContext('2d');let strokes=noteStrokes(note.id);
+  function redraw(){
+    ctx.clearRect(0,0,c.width,c.height);
+    strokes.forEach(function(s){
+      if(!s.points||s.points.length<2)return;
+      ctx.beginPath();ctx.moveTo(s.points[0].x,s.points[0].y);
+      for(let i=1;i<s.points.length;i++)ctx.lineTo(s.points[i].x,s.points[i].y);
+      ctx.strokeStyle=s.color;ctx.lineWidth=s.width;ctx.globalAlpha=s.tool==='marker'?0.28:1;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();
+    });
+    ctx.globalAlpha=1;
+  }
+  redraw();
+  let drawing=false,current=null,start=null;
+  function pos(e){const r=c.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*c.width,y:(e.clientY-r.top)/r.height*c.height}}
+  c.onpointerdown=function(e){
+    c.setPointerCapture(e.pointerId);const p=pos(e);
+    if(state.noteTool==='eraser'){
+      strokes=strokes.filter(function(s){const q=s.points&&s.points[s.points.length-1];return !q||Math.hypot(q.x-p.x,q.y-p.y)>90});saveNoteStrokes(note.id,strokes);redraw();return;
+    }
+    if(state.noteTool==='select'){start=p;state.noteSelection={x:p.x,y:p.y,w:0,h:0};drawing=true;return}
+    drawing=true;current={tool:state.noteTool,color:state.noteTool==='marker'?'#F2C14E':state.noteColor,width:state.noteTool==='marker'?28:state.noteWidth,points:[p]};strokes.push(current);
+  };
+  c.onpointermove=function(e){
+    if(!drawing)return;const p=pos(e);
+    if(state.noteTool==='select'&&start){state.noteSelection={x:Math.min(start.x,p.x),y:Math.min(start.y,p.y),w:Math.abs(p.x-start.x),h:Math.abs(p.y-start.y)};redraw();const s=state.noteSelection;ctx.save();ctx.strokeStyle='#6558D8';ctx.setLineDash([14,10]);ctx.lineWidth=3;ctx.strokeRect(s.x,s.y,s.w,s.h);ctx.restore();return}
+    if(current){current.points.push(p);redraw()}
+  };
+  c.onpointerup=function(){if(drawing){drawing=false;current=null;start=null;saveNoteStrokes(note.id,strokes)}};
+  c.onpointercancel=c.onpointerup;
+}
+
+function addNote(){
+  const list=notesStore(),n={id:'n'+Date.now().toString(36),title:'Neue Seite '+(list.length+1),text:'',paper:'ruled',updatedAt:Date.now()};list.push(n);saveNotesStore(list);state.noteId=n.id;renderNotes();
+}
+function noteStudy(){
+  const note=notesStore().find(function(n){return n.id===state.noteId});if(!note)return;
+  const text=String(note.text||'').trim();
+  const canvas=document.getElementById('noteCanvas');
+  if(canvas&&noteStrokes(note.id).length){
+    canvas.toBlob(function(blob){
+      if(blob){state.file=new File([blob],'notiz.png',{type:'image/png'});state.textDraft=text;analyze()}
+      else if(text.length>=20){const ch=v4LocalTextChallenge(text);v4SaveRound(ch);startChallenge(ch,'normal')}
+    },'image/png');
+  }else if(text.length>=20){
+    state.textDraft=text;analyze();
+  }else{
+    v4Toast('Füge erst etwas Inhalt hinzu');
+  }
+}
+function markNoteReview(){
+  const note=notesStore().find(function(n){return n.id===state.noteId});if(!note)return;
+  const txt=String(note.text||'').trim();if(!txt){v4Toast('Noch kein Text zum Wiederholen');return}
+  const q={prompt:'Erkläre diesen Abschnitt aus '+note.title+': '+txt.slice(0,110),choices:[],accepted:[txt.slice(0,80)],explanation:txt};
+  v4PlanReview(q,{title:note.title,topic:'Notiz'},'uncertain');v4Toast('Für später eingeplant');
+}
+const previousClickHandler=app.onclick;
+app.onclick=function(e){
+  const b=e.target.closest('[data-action]');
+  if(!b){if(previousClickHandler)previousClickHandler(e);return}
+  const a=b.dataset.action;
+  if(a==='notes'){renderNotes();return}
+  if(a==='open-note'){state.noteId=b.dataset.id;renderNotes();return}
+  if(a==='add-note'){addNote();return}
+  if(a==='note-tool'){state.noteTool=b.dataset.tool||'pen';renderNotes();return}
+  if(a==='note-color'){state.noteColor=b.dataset.color||'#1C2433';return}
+  if(a==='note-undo'){const s=noteStrokes(state.noteId);s.pop();saveNoteStrokes(state.noteId,s);renderNotes();return}
+  if(a==='note-study'){noteStudy();return}
+  if(a==='mark-note-review'){markNoteReview();return}
+  if(previousClickHandler)previousClickHandler(e);
+};
