@@ -1,0 +1,12 @@
+{
+  "name": "SnapStudy",
+  "short_name": "SnapStudy",
+  "description": "Foto rein. 5-Fragen-Challenge raus.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6f7fb",
+  "theme_color": "#5b5bd6",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
