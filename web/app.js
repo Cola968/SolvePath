@@ -77,7 +77,7 @@ function v4PlanReview(q,c,reason){
   v4Save('snapstudy-reviews-v4',[item].concat(list.filter(function(x){return x.key!==key})).slice(0,50));
 }
 function v4ResolveReview(q,c,ok){
-  const list=v4Reviews(),key=v4ReviewKey(q,c),item=list.find(function(x){return x.key===key});
+  const list=v4Reviews(),key=v4ReviewKey(q,c),item=list.find(function(x){return x.key===key})||list.find(function(x){return x.prompt===q.prompt});
   if(!item)return;
   if(ok){const days=[1,3,7,14,30];item.stage=Math.min((item.stage||0)+1,days.length-1);item.dueAt=Date.now()+days[item.stage]*86400000;item.reason='reviewed'}
   else{item.stage=0;item.dueAt=Date.now()+1800000;item.reason='wrong'}
