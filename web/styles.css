@@ -155,3 +155,5 @@ body{font-family:"Avenir Next","Segoe UI",system-ui,-apple-system,sans-serif}
  .notes-focus-btn{width:36px;height:36px}
  .notes-shell.is-focus .note-page{height:auto;width:100%;max-width:100%}
 }
+
+.v4-meta a{color:var(--v4-muted);text-decoration:none;font-weight:750}.v4-meta a:focus-visible,.v4-meta a:hover{color:var(--v4-accent);text-decoration:underline}
