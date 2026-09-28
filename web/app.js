@@ -122,7 +122,7 @@ function renderHome(){
     '<div class="v4-quick"><button data-action="create">'+v4Icon('camera',21)+'<span><b>Foto</b><small>Blatt scannen</small></span></button><button data-action="create-text">'+v4Icon('text',21)+'<span><b>Text</b><small>Notizen einfügen</small></span></button></div>'+
     (recent?'<section class="v4-section"><div class="v4-section-head"><h2>Zuletzt</h2><button data-action="library">Alle</button></div><article class="v4-recent"><span class="v4-small-icon">'+v4Icon('stack',20)+'</span><div><strong>'+esc(recent.title)+'</strong><span>'+esc(recent.topic)+'</span></div><button data-action="play-library" data-id="'+esc(recent.id)+'">'+v4Icon('play',17)+'</button></article></section>':'')+
     '<section class="v4-difference">'+v4Mark()+'<p><strong>Der Unterschied:</strong> Falsche oder unsichere Antworten verschwinden nicht. Sie werden automatisch für später eingeplant.</p></section>'+
-    '<div class="v4-meta"><span>'+remaining()+' neue Erstellungen heute</span><span>'+((p.sessions||0))+' Runden gespielt</span></div>',
+    '<div class="v4-meta"><span>'+remaining()+' neue Erstellungen heute</span><span>'+((p.sessions||0))+' Runden gespielt</span><a href="/privacy/snapstudy" target="_blank" rel="noopener">Datenschutz</a></div>',
     false,'today',false
   );
 }
