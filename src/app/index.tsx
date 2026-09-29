@@ -28,8 +28,21 @@ export default function SnapStudyScreen() {
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (!canGoBack) return false;
-      webViewRef.current?.goBack();
+      if (canGoBack) {
+        webViewRef.current?.goBack();
+        return true;
+      }
+      webViewRef.current?.injectJavaScript(`
+        (function () {
+          try {
+            var handled = typeof window.__snapstudyBack === 'function' && window.__snapstudyBack();
+            if (!handled && window.ReactNativeWebView) window.ReactNativeWebView.postMessage('__SNAP_EXIT__');
+          } catch (_) {
+            if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage('__SNAP_EXIT__');
+          }
+        })();
+        true;
+      `);
       return true;
     });
     return () => subscription.remove();
@@ -116,6 +129,9 @@ export default function SnapStudyScreen() {
         injectedJavaScript={injectedSafeArea}
         originWhitelist={['https://*', 'blob:*', 'about:*']}
         onNavigationStateChange={onNavigation}
+        onMessage={(event) => {
+          if (event.nativeEvent.data === '__SNAP_EXIT__') BackHandler.exitApp();
+        }}
         onShouldStartLoadWithRequest={shouldLoad}
         onError={handleLoadFailure}
         onHttpError={(event) => {
