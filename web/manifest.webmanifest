@@ -1,7 +1,7 @@
 {
   "name": "SnapStudy",
   "short_name": "SnapStudy",
-  "description": "Notizen, Lernrunden, Wiederholungen und Lernfortschritt.",
+  "description": "Dokumente, Notizen, Lernrunden und Wiederholungen.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#F5F6F8",
