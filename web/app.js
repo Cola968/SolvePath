@@ -543,7 +543,8 @@ window.addEventListener('click',e=>{
   if(a==='home'){state.screen='home';history.replaceState(null,'','/');renderHome();}
   else if(a==='back'){if(state.screen==='trophies'){state.screen='home';history.replaceState(null,'','/');renderHome();}else{state.screen='home';renderHome();}}
   else if(a==='library'){state.screen='library';renderLibrary();}
-  else if(a==='notes'){state.screen='notes';state.noteMode='view';renderNotes();}
+  else if(a==='library-pinned'){state.screen='library';state.libraryTab='pinned';renderLibrary();}
+  else if(a==='notes'){state.screen='notes';state.noteMode='view';state.selectedImage=null;renderNotes();}
   else if(a==='reviews'){state.screen='reviews';renderReviews();}
   else if(a==='trophies'){state.screen='trophies';history.replaceState(null,'','/trophies');renderTrophies();}
   else if(a==='new-note')newNote();
@@ -553,9 +554,12 @@ window.addEventListener('click',e=>{
   else if(a==='backup')backup();
   else if(a==='restore-note')restoreNote(b.dataset.id);
   else if(a==='purge-note')purgeNote(b.dataset.id);
-  else if(a==='note-mode'){state.noteMode=b.dataset.mode;state.selection=null;renderNotes();}
-  else if(a==='note-tool'){state.noteTool=b.dataset.tool;renderNotes();}
-  else if(a==='note-color'){state.color=b.dataset.color;if(state.selection&&state.selection.noteId===state.noteId)recolorSelection();else renderNotes();}
+  else if(a==='note-mode'){state.noteMode=b.dataset.mode;state.selection=null;state.selectedImage=null;renderNotes();}
+  else if(a==='note-nav'){state.noteNav=b.dataset.nav||'pages';renderNotes();}
+  else if(a==='note-tool'){state.noteTool=b.dataset.tool;state.selectedImage=null;renderNotes();}
+  else if(a==='note-color'){state.color=b.dataset.color;updateRecentColor(state.color);if(state.selection&&state.selection.noteId===state.noteId)recolorSelection();else renderNotes();}
+  else if(a==='pen-size'){state.penSize=+b.dataset.size;renderNotes();}
+  else if(a==='marker-size'){state.markerSize=+b.dataset.size;renderNotes();}
   else if(a==='eraser-size'){state.eraserSize=+b.dataset.size;renderNotes();}
   else if(a==='copy-selection')copySelection();
   else if(a==='delete-selection')deleteSelection();
@@ -564,15 +568,27 @@ window.addEventListener('click',e=>{
   else if(a==='undo')undo();
   else if(a==='redo')redo();
   else if(a==='favorite-note'){const n=getNote();patchNote({favorite:!n.favorite});renderNotes();}
+  else if(a==='pin-note'){const n=getNote();patchNote({pinned:!n.pinned});renderNotes();}
+  else if(a==='note-info'){state.noteInfo=true;$('#noteMenu')?.classList.add('hidden');renderNotes();}
+  else if(a==='close-note-info'){state.noteInfo=false;renderNotes();}
   else if(a==='focus-note'){state.focus=!state.focus;renderNotes();}
   else if(a==='prev-note'||a==='next-note'){const notes=data.notes(),i=notes.findIndex(n=>n.id===state.noteId),j=i+(a==='next-note'?1:-1);if(notes[j]){state.noteId=notes[j].id;renderNotes();}}
   else if(a==='template-menu')$('#templateMenu')?.classList.remove('hidden');
   else if(a==='close-template')$('#templateMenu')?.classList.add('hidden');
   else if(a==='set-paper'){patchNote({paper:b.dataset.paper});renderNotes();}
   else if(a==='note-more')$('#noteMenu')?.classList.toggle('hidden');
+  else if(a==='mark-note-review'){markNoteForReview();$('#noteMenu')?.classList.add('hidden');}
+  else if(a==='toggle-split'){const ch=splitChallenge(getNote());if(!ch){toast('Die Notiz braucht etwas mehr Text');}else{state.splitStudy=!state.splitStudy;state.splitReveal=false;renderNotes();}}
+  else if(a==='split-reveal'){state.splitReveal=true;renderNotes();}
+  else if(a==='split-next'){const ch=splitChallenge(getNote());if(ch){state.splitIndex=(state.splitIndex+1)%ch.questions.length;state.splitReveal=false;renderNotes();}}
+  else if(a==='split-full'){const ch=splitChallenge(getNote());if(ch)startChallenge(ch,'normal');}
+  else if(a==='jump-outline'){state.jumpStart=Number(b.dataset.start||0);state.noteMode='edit';state.noteTool='text';renderNotes();}
   else if(a==='duplicate-note')duplicateNote();
   else if(a==='delete-note')softDelete(state.noteId);
   else if(a==='export-note')exportNote();
+  else if(a==='image-smaller')resizeSelectedImage(.9);
+  else if(a==='image-larger')resizeSelectedImage(1.1);
+  else if(a==='image-delete')deleteSelectedImage();
   else if(a==='note-study')startNoteStudy();
   else if(a==='create-photo'){state.screen='create';state.createMode='photo';renderCreate('photo');}
   else if(a==='create-text'){state.screen='create';state.createMode='text';renderCreate('text');}
