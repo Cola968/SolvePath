@@ -48,6 +48,7 @@ const ICONS = {
 };
 function icon(name,size=18){ return '<svg class="icon" width="'+size+'" height="'+size+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(ICONS[name]||'')+'</svg>'; }
 ICONS.pin='<path d="M9 4h6"/><path d="m10 4-1 6-3 3h12l-3-3-1-6"/><path d="M12 13v8"/>';
+ICONS.folder='<path d="M3 6h7l2 2h9v10H3z"/><path d="M3 6V4h6l2 2"/>';
 
 const KEYS = {
   notes:'ss10:notes', rounds:'ss10:rounds', reviews:'ss10:reviews', profile:'ss10:profile',
@@ -153,7 +154,7 @@ const state = {
   pageId:data.notes()[0]?.pages?.[0]?.id,
   noteMode:'view', noteTool:'pen', penSize:5, markerSize:24, eraserSize:55, color:'#20242B',
   selection:null, history:{}, redo:{}, focus:false, noteNav:'pages', splitStudy:false, splitReveal:false, splitIndex:0, noteInfo:false, selectedImage:null, jumpStart:null,
-  libraryTab:'notes', libraryView:'list', libraryQuery:'', librarySort:'recent', librarySubject:'all', libraryFolder:'all', newMenu:false,
+  libraryTab:'notes', libraryView:'list', libraryQuery:'', librarySort:'recent', librarySubject:'all', libraryFolder:'all', newMenu:false, folderModal:false,
   recentColors:load('ss11:recentColors',['#20242B','#3568D4','#B75850','#26785B','#D39A23']),
   createMode:'photo', createText:'', createFile:null, createPreview:'', challenge:null, q:0, answered:false, score:0, lastCorrect:false, lastExplanation:'', quizMode:'normal',
   toast:''
@@ -257,31 +258,49 @@ function renderHome(){
   );
 }
 function renderLibrary(){
-  let notes=data.notes(),rounds=data.rounds(),deleted=data.deleted(),q=state.libraryQuery.trim().toLowerCase();
+  let notes=data.notes(),rounds=data.rounds(),deleted=data.deleted(),folders=data.folders(),q=state.libraryQuery.trim().toLowerCase();
+  if(state.libraryFolder!=='all')notes=notes.filter(n=>n.folderId===state.libraryFolder);
   if(state.librarySubject!=='all')notes=notes.filter(n=>(n.subject||'Ohne Fach')===state.librarySubject);
-  if(q){notes=notes.filter(n=>(String(n.title||'')+' '+String(n.text||'')+' '+String(n.subject||'')).toLowerCase().includes(q));rounds=rounds.filter(r=>(String(r.title||'')+' '+String(r.topic||'')).toLowerCase().includes(q));}
+  if(q){
+    notes=notes.filter(n=>{
+      const text=(n.pages||[]).map(p=>p.text||'').join(' ');
+      return (String(n.title||'')+' '+text+' '+String(n.subject||'')+' '+(n.tags||[]).join(' ')+' '+folderName(n.folderId)).toLowerCase().includes(q);
+    });
+    rounds=rounds.filter(r=>(String(r.title||'')+' '+String(r.topic||'')).toLowerCase().includes(q));
+  }
   if(state.libraryTab==='favorites')notes=notes.filter(n=>n.favorite);
   if(state.libraryTab==='pinned')notes=notes.filter(n=>n.pinned);
   notes=notes.slice().sort((a,b)=>state.librarySort==='title'?String(a.title).localeCompare(String(b.title),'de'):(b.updatedAt||0)-(a.updatedAt||0));
+
   let body='';
   if(state.libraryTab==='rounds')body=rounds.length?'<div class="rows">'+rounds.map(roundRow).join('')+'</div>':'<div class="empty">Keine Lernrunden</div>';
   else if(state.libraryTab==='deleted')body=deleted.length?'<div class="rows">'+deleted.map(n=>'<article class="row deleted"><div><span class="fileicon">'+icon('trash',16)+'</span><span class="rowcopy"><strong>'+esc(n.title)+'</strong><small>Gelöscht '+fmtDate(n.deletedAt)+'</small></span></div><footer><button data-action="restore-note" data-id="'+n.id+'">Wiederherstellen</button><button data-action="purge-note" data-id="'+n.id+'">Löschen</button></footer></article>').join('')+'</div>':'<div class="empty">Papierkorb ist leer</div>';
-  else if(state.libraryView==='grid')body=notes.length?'<div class="docgrid">'+notes.map(n=>'<button data-action="open-note" data-id="'+n.id+'"><span class="sheet '+esc(n.paper||'ruled')+'"></span><strong>'+esc(n.title)+'</strong><small>'+esc(n.subject||'')+(n.pinned?' · angepinnt':'')+'</small></button>').join('')+'</div>':'<div class="empty">Keine Notizen</div>';
-  else body=notes.length?'<div class="rows">'+notes.map(noteRow).join('')+'</div>':'<div class="empty">Keine Notizen</div>';
+  else{
+    const folderRows=(state.libraryTab==='notes'&&state.libraryFolder==='all'&&!q&&folders.length)
+      ?'<section class="foldersection"><div class="sectionhead"><h2>Ordner</h2><span>'+folders.length+'</span></div><div class="foldergrid">'+folders.map(f=>'<button data-action="open-folder" data-id="'+f.id+'"><span>'+icon('folder',18)+'</span><strong>'+esc(f.name)+'</strong><small>'+data.notes().filter(n=>n.folderId===f.id).length+' Dokumente</small></button>').join('')+'</div></section>'
+      :'';
+    const docs=state.libraryView==='grid'
+      ?(notes.length?'<div class="docgrid">'+notes.map(n=>{const p=n.pages?.[0]||{};return'<button data-action="open-note" data-id="'+n.id+'"><span class="sheet '+esc(p.paper||'ruled')+'"></span><strong>'+esc(n.title)+'</strong><small>'+esc(n.subject||'')+(n.pinned?' · angepinnt':'')+'</small></button>'}).join('')+'</div>':'<div class="empty">Keine Dokumente</div>')
+      :(notes.length?'<div class="rows">'+notes.map(noteRow).join('')+'</div>':'<div class="empty">Keine Dokumente</div>');
+    body=folderRows+'<section class="documentssection"><div class="sectionhead"><h2>'+(state.libraryFolder==='all'?'Dokumente':esc(folderName(state.libraryFolder)))+'</h2><span>'+notes.length+'</span></div>'+docs+'</section>';
+  }
 
-  const subjects=subjectList();
+  const subjects=subjectList(),crumb=state.libraryFolder!=='all'?'<button class="foldercrumb" data-action="all-folders">'+icon('back',13)+esc(folderName(state.libraryFolder))+'</button>':'';
   root.innerHTML=shell(
-    '<section class="libraryhead"><h1>Sammlung</h1><button data-action="new-note">'+icon('plus',14)+' Neu</button></section>'+
+    '<section class="libraryhead"><div>'+crumb+'<h1>Sammlung</h1></div><button data-action="library-new">'+icon('plus',14)+' Neu</button></section>'+
     '<label class="searchbar">'+icon('search',15)+'<input id="librarySearch" placeholder="Suchen" value="'+esc(state.libraryQuery)+'"></label>'+
     '<div class="tabs">'+[['notes','Notizen'],['pinned','Angepinnt'],['favorites','Favoriten'],['rounds','Lernrunden'],['deleted','Gelöscht']].map(x=>'<button data-action="library-tab" data-tab="'+x[0]+'" class="'+(state.libraryTab===x[0]?'active':'')+'">'+x[1]+'</button>').join('')+'</div>'+
     ((['notes','pinned','favorites'].includes(state.libraryTab))?'<div class="toolbarline"><select id="subjectSelect"><option value="all">Alle Fächer</option>'+subjects.map(s=>'<option value="'+esc(s)+'">'+esc(s)+'</option>').join('')+'</select><select id="sortSelect"><option value="recent">Zuletzt geändert</option><option value="title">Titel</option></select><button data-action="toggle-library-view">'+icon(state.libraryView==='list'?'grid':'list',15)+'</button><span></span><button data-action="backup">'+icon('download',13)+' Sichern</button><label>'+icon('upload',13)+' Import<input id="backupInput" type="file" accept="application/json"></label></div>':'')+
-    body,
+    body+
+    (state.newMenu?'<div class="newmenu"><button data-action="new-note">'+icon('note',15)+' Dokument</button><button data-action="new-folder">'+icon('folder',15)+' Ordner</button></div>':'')+
+    (state.folderModal?'<div class="info-modal"><div><header><strong>Neuer Ordner</strong><button data-action="close-folder-modal">'+icon('close',15)+'</button></header><label>Name<input id="folderNameInput" autocomplete="off" placeholder="Ordnername"></label><button class="primary full foldercreate" data-action="create-folder">Erstellen</button></div></div>':''),
     'library'
   );
   const search=$('#librarySearch');if(search)search.oninput=e=>{state.libraryQuery=e.target.value;renderLibrary();};
   const subject=$('#subjectSelect');if(subject){subject.value=state.librarySubject;subject.onchange=e=>{state.librarySubject=e.target.value;renderLibrary();};}
   const sort=$('#sortSelect');if(sort){sort.value=state.librarySort;sort.onchange=e=>{state.librarySort=e.target.value;renderLibrary();};}
   const bi=$('#backupInput');if(bi)bi.onchange=e=>restoreBackup(e.target.files?.[0]);
+  if(state.folderModal)requestAnimationFrame(()=>$('#folderNameInput')?.focus());
 }
 function backup(){
   const payload={version:12,notes:data.notes(),folders:data.folders(),rounds:data.rounds(),reviews:data.reviews(),profile:data.profile(),deleted:data.deleted(),strokes:{}};
