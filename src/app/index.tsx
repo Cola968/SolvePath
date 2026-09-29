@@ -2,17 +2,25 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, BackHandler, Linking, Pressable, StyleSheet, Text, View, useColorScheme } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { WebView, type WebViewNavigation } from 'react-native-webview';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const APP_URL = 'https://snapstudy-live-v3.onrender.com/';
 const APP_ORIGIN = 'https://snapstudy-live-v3.onrender.com';
 
 export default function SnapStudyScreen() {
   const webViewRef = useRef<WebView>(null);
+  const insets = useSafeAreaInsets();
   const scheme = useColorScheme();
   const dark = scheme === 'dark';
   const palette = dark
     ? { background: '#000000', surface: '#1C1C1E', label: '#F2F2F7', secondary: '#AEAEB2', blue: '#0A84FF' }
     : { background: '#F2F2F7', surface: '#FFFFFF', label: '#1C1C1E', secondary: '#6C6C70', blue: '#007AFF' };
+  const injectedSafeArea = `
+    document.documentElement.style.setProperty('--native-safe-top', '${Math.round(insets.top)}px');
+    document.documentElement.style.setProperty('--native-safe-bottom', '${Math.round(insets.bottom)}px');
+    true;
+  `;
+
   const [canGoBack, setCanGoBack] = useState(false);
   const [failed, setFailed] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
@@ -104,6 +112,8 @@ export default function SnapStudyScreen() {
         ref={webViewRef}
         source={{ uri: APP_URL }}
         style={[styles.webview, { backgroundColor: palette.background }]}
+        injectedJavaScriptBeforeContentLoaded={injectedSafeArea}
+        injectedJavaScript={injectedSafeArea}
         originWhitelist={['https://*', 'blob:*', 'about:*']}
         onNavigationStateChange={onNavigation}
         onShouldStartLoadWithRequest={shouldLoad}
