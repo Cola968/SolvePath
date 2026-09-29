@@ -894,7 +894,7 @@ function challengeFromAnalysis(a){
 async function analyze(){
   const text=$('#createText')?.value.trim()||'';state.createText=text;state.createError='';
   if(state.createMode==='text'&&text.length<20){state.createError='Füge etwas mehr Text ein, damit sinnvolle Fragen entstehen können.';renderCreate(state.createMode);return;}
-  root.innerHTML='<main class="v14-processing"><span>'+icon(state.createMode==='photo'?'camera':'text',24)+'</span><h1>Fragen werden erstellt</h1><p>'+(state.createMode==='photo'?'Dokument wird gelesen und strukturiert.':'Text wird analysiert und in Lernfragen umgewandelt.')+'</p><div><i></i></div><small>Das dauert normalerweise nur einen Moment.</small></main>';
+  root.innerHTML='<main class="v14-processing" role="status" aria-live="polite"><span>'+icon(state.createMode==='photo'?'camera':'text',24)+'</span><h1>Fragen werden erstellt</h1><p>'+(state.createMode==='photo'?'Dokument wird gelesen und strukturiert.':'Text wird analysiert und in Lernfragen umgewandelt.')+'</p><div><i></i></div><small>Das dauert normalerweise nur einen Moment.</small></main>';
   try{
     let res;
     if(state.createFile){const fd=new FormData();fd.append('file',state.createFile);if(text)fd.append('text',text);res=await fetch('/api/analyze',{method:'POST',body:fd});}
@@ -1311,13 +1311,13 @@ function v14ContextSheet(){
   if(!n)return '';
   if(state.moveSheetOpen){
     const folders=data.folders();
-    return '<div class="v14-dim" data-action="close-doc-context"></div><section class="v14-actionsheet compact">'+
+    return '<div class="v14-dim" data-action="close-doc-context"></div><section class="v14-actionsheet compact" role="dialog" aria-modal="true">'+
       '<div class="v14-sheetgrabber"></div><header><h2>Verschieben</h2><button data-action="close-doc-context">'+icon('close',19)+'</button></header>'+
       '<button data-action="move-context-note" data-folder="none"><span>'+icon('stack',19)+'</span><div><strong>Kein Ordner</strong></div>'+(!n.folderId?icon('check',17):'')+'</button>'+
       folders.map(f=>'<button data-action="move-context-note" data-folder="'+esc(f.id)+'"><span>'+icon('folder',19)+'</span><div><strong>'+esc(f.name)+'</strong></div>'+(n.folderId===f.id?icon('check',17):'')+'</button>').join('')+
     '</section>';
   }
-  return '<div class="v14-dim" data-action="close-doc-context"></div><section class="v14-actionsheet compact">'+
+  return '<div class="v14-dim" data-action="close-doc-context"></div><section class="v14-actionsheet compact" role="dialog" aria-modal="true">'+
     '<div class="v14-sheetgrabber"></div><header><div><h2>'+esc(n.title||'Dokument')+'</h2><small>'+esc(v14DocumentMeta(n))+'</small></div><button data-action="close-doc-context">'+icon('close',19)+'</button></header>'+
     '<button data-action="context-open"><span>'+icon('note',19)+'</span><div><strong>Öffnen</strong></div>'+icon('arrow',14)+'</button>'+
     '<button data-action="context-pin"><span>'+icon('pin',19)+'</span><div><strong>'+(n.pinned?'Loslösen':'Anpinnen')+'</strong></div></button>'+
@@ -1364,7 +1364,7 @@ function v14Empty(title,copy,action='',label=''){
 }
 function v14CreateSheet(includeFolder=false){
   if(!state.quickCreateOpen)return '';
-  return '<div class="v14-dim" data-action="close-create-sheet"></div><section class="v14-actionsheet">'+
+  return '<div class="v14-dim" data-action="close-create-sheet"></div><section class="v14-actionsheet" role="dialog" aria-modal="true">'+
     '<div class="v14-sheetgrabber"></div><header><h2>Neu</h2><button data-action="close-create-sheet">'+icon('close',19)+'</button></header>'+
     '<button data-action="new-note"><span>'+icon('note',21)+'</span><div><strong>Neue Notiz</strong><small>Leeres Dokument</small></div>'+icon('arrow',14)+'</button>'+
     '<button data-action="create-photo"><span>'+icon('camera',21)+'</span><div><strong>Dokument scannen</strong><small>Kamera oder Foto</small></div>'+icon('arrow',14)+'</button>'+
@@ -1374,7 +1374,7 @@ function v14CreateSheet(includeFolder=false){
 }
 function nav(active){
   const items=[['home','Heute','home','homeFill'],['notes','Notizen','note','noteFill'],['reviews','Wiederholen','repeat','repeatFill'],['library','Sammlung','stack','stackFill']];
-  return '<nav class="v14-tabbar"><div>'+items.map(x=>'<button data-action="'+x[0]+'" class="'+(active===x[0]?'active':'')+'"><span>'+icon(active===x[0]?x[3]:x[2],22)+'</span><small>'+x[1]+'</small></button>').join('')+'</div></nav>';
+  return '<nav class="v14-tabbar" aria-label="Hauptnavigation"><div>'+items.map(x=>'<button data-action="'+x[0]+'" class="'+(active===x[0]?'active':'')+'" '+(active===x[0]?'aria-current="page"':'')+'><span>'+icon(active===x[0]?x[3]:x[2],22)+'</span><small>'+x[1]+'</small></button>').join('')+'</div></nav>';
 }
 function shell(content,active='home',opts={}){
   return '<main class="v14-app '+(opts.wide?'wide':'')+'"><div class="v14-scroll">'+content+'</div>'+(opts.noNav?'':nav(active))+'</main>';
@@ -1461,7 +1461,7 @@ function renderLibrary(){
   html+='</section>';
 
   if(state.sortSheetOpen){
-    html+='<div class="v14-dim" data-action="close-sort-sheet"></div><section class="v14-actionsheet compact"><div class="v14-sheetgrabber"></div><header><h2>Sortieren</h2><button data-action="close-sort-sheet">'+icon('close',19)+'</button></header><button data-action="set-sort" data-sort="recent"><span>'+icon('repeat',19)+'</span><div><strong>Zuletzt geändert</strong></div>'+(state.librarySort==='recent'?icon('check',17):'')+'</button><button data-action="set-sort" data-sort="title"><span>'+icon('text',19)+'</span><div><strong>Titel</strong></div>'+(state.librarySort==='title'?icon('check',17):'')+'</button></section>';
+    html+='<div class="v14-dim" data-action="close-sort-sheet"></div><section class="v14-actionsheet compact" role="dialog" aria-modal="true"><div class="v14-sheetgrabber"></div><header><h2>Sortieren</h2><button data-action="close-sort-sheet">'+icon('close',19)+'</button></header><button data-action="set-sort" data-sort="recent"><span>'+icon('repeat',19)+'</span><div><strong>Zuletzt geändert</strong></div>'+(state.librarySort==='recent'?icon('check',17):'')+'</button><button data-action="set-sort" data-sort="title"><span>'+icon('text',19)+'</span><div><strong>Titel</strong></div>'+(state.librarySort==='title'?icon('check',17):'')+'</button></section>';
   }
   if(state.folderMenu){
     html+='<div class="v14-contextmenu folder"><button data-action="rename-folder">'+icon('text',17)+' Umbenennen</button><button class="danger" data-action="delete-folder">'+icon('trash',17)+' Ordner löschen</button></div>';
@@ -1571,7 +1571,7 @@ function renderNotes(){
     '<header class="v14-editornav"><button data-action="editor-back">'+icon('back',22)+'</button><div><input id="noteTitle" value="'+esc(n.title)+'"><small id="saveStatus">Gespeichert</small></div><button data-action="note-more">'+icon('more',22)+'</button></header>';
 
   if(state.noteMode==='edit'&&!state.focus){
-    html+='<nav class="v14-toolglass">'+[['pen','pen'],['marker','marker'],['eraser','eraser'],['select','select'],['text','text']].map(x=>'<button data-action="note-tool" data-tool="'+x[0]+'" class="'+(state.noteTool===x[0]?'active':'')+'">'+icon(x[1],21)+'</button>').join('')+'<button data-action="toggle-tool-menu" class="'+(state.toolMenu?'active':'')+'">'+icon('plus',21)+'</button></nav>'+v14ToolOptions();
+    html+='<nav class="v14-toolglass" aria-label="Werkzeuge">'+[['pen','pen','Stift'],['marker','marker','Marker'],['eraser','eraser','Radierer'],['select','select','Lasso'],['text','text','Text']].map(x=>'<button aria-label="'+x[2]+'" data-action="note-tool" data-tool="'+x[0]+'" class="'+(state.noteTool===x[0]?'active':'')+'">'+icon(x[1],21)+'</button>').join('')+'<button aria-label="Weitere Werkzeuge" data-action="toggle-tool-menu" class="'+(state.toolMenu?'active':'')+'">'+icon('plus',21)+'</button></nav>'+v14ToolOptions();
   }
   if(state.toolMenu){
     html+='<div class="v14-contextmenu insert"><button data-action="note-tool" data-tool="shape">'+icon('shape',18)+' Form</button><label>'+icon('image',18)+' Bild<input id="imageInput" type="file" accept="image/*"></label></div>';
@@ -1590,12 +1590,12 @@ function renderNotes(){
   html+='<footer class="v14-editorbar"><button data-action="toggle-pages">'+icon('note',19)+'<span>Seiten</span></button><button data-action="template-menu">'+icon('grid',19)+'<span>Vorlage</span></button><span></span><button class="learn" data-action="note-study">'+icon('play',17)+'<span>Lernen</span></button></footer>';
 
   if(state.pagesSheetOpen){
-    html+='<div class="v14-dim" data-action="toggle-pages"></div><section class="v14-pagesheet"><div class="v14-sheetgrabber"></div><header><h2>Seiten</h2><button data-action="add-page">'+icon('plus',20)+'</button></header><div class="v14-pagescroller">'+pages.map((pg,i)=>'<button data-action="open-page" data-id="'+esc(pg.id)+'" class="'+(pg.id===p.id?'active':'')+'">'+v14Preview(pg,true)+'<small>Seite '+(i+1)+'</small></button>').join('')+'</div></section>';
+    html+='<div class="v14-dim" data-action="toggle-pages"></div><section class="v14-pagesheet" role="dialog" aria-modal="true"><div class="v14-sheetgrabber"></div><header><h2>Seiten</h2><button data-action="add-page">'+icon('plus',20)+'</button></header><div class="v14-pagescroller">'+pages.map((pg,i)=>'<button data-action="open-page" data-id="'+esc(pg.id)+'" class="'+(pg.id===p.id?'active':'')+'">'+v14Preview(pg,true)+'<small>Seite '+(i+1)+'</small></button>').join('')+'</div></section>';
   }
 
   html+='<div id="noteMenu" class="v14-contextmenu note hidden"><button data-action="toggle-doc-search">'+icon('search',17)+' Im Dokument suchen</button><button data-action="note-mode" data-mode="'+(state.noteMode==='edit'?'view':'edit')+'">'+icon('note',17)+' '+(state.noteMode==='edit'?'Ansicht':'Bearbeiten')+'</button><button data-action="note-info">'+icon('text',17)+' Details</button><button data-action="mark-note-review">'+icon('repeat',17)+' Wiederholen</button><button data-action="export-note">'+icon('download',17)+' Exportieren</button><button data-action="duplicate-note">'+icon('copy',17)+' Duplizieren</button><button class="danger" data-action="delete-note">'+icon('trash',17)+' Löschen</button></div>';
 
-  html+='<section id="templateMenu" class="v14-actionsheet hidden"><div class="v14-sheetgrabber"></div><header><h2>Seitenvorlage</h2><button data-action="close-template">'+icon('close',19)+'</button></header><div class="v14-templategrid">'+['plain','ruled','grid','dotted','cornell'].map(kind=>'<button data-action="set-paper" data-paper="'+kind+'"><span class="template '+kind+'"></span><small>'+paperName(kind)+'</small></button>').join('')+'</div></section>';
+  html+='<section id="templateMenu" class="v14-actionsheet hidden" role="dialog" aria-modal="true"><div class="v14-sheetgrabber"></div><header><h2>Seitenvorlage</h2><button data-action="close-template">'+icon('close',19)+'</button></header><div class="v14-templategrid">'+['plain','ruled','grid','dotted','cornell'].map(kind=>'<button data-action="set-paper" data-paper="'+kind+'"><span class="template '+kind+'"></span><small>'+paperName(kind)+'</small></button>').join('')+'</div></section>';
 
   if(state.noteInfo){
     html+='<div class="v14-dim"></div><section class="v14-alert"><h2>Dokument</h2><label>Titel<input id="infoTitle" value="'+esc(n.title)+'"></label><label>Fach<input id="infoSubject" value="'+esc(n.subject||'')+'"></label><div><button data-action="close-note-info">Fertig</button><button data-action="pin-note">'+(n.pinned?'Loslösen':'Anpinnen')+'</button></div></section>';
