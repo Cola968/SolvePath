@@ -1208,6 +1208,12 @@ function renderNotes(){
 function v14Haptic(ms=8){
   try{if(navigator.vibrate)navigator.vibrate(ms);}catch{}
 }
+function v14Transition(fn){
+  try{
+    if(document.startViewTransition&&!matchMedia('(prefers-reduced-motion: reduce)').matches)return document.startViewTransition(fn);
+  }catch{}
+  return fn();
+}
 function v14RenderCurrent(){
   if(state.screen==='library')renderLibrary();
   else if(state.screen==='reviews')renderReviews();
@@ -1226,7 +1232,7 @@ function v14Preview(page,large=false){
   const image=(page.images||[])[0];
   const text=String(page.text||'').trim();
   const cls='v14-paperthumb '+(large?'large ':'')+esc(page.paper||'ruled');
-  if(image?.src)return '<span class="'+cls+' image" style="background-image:url('+JSON.stringify(image.src)+')"></span>';
+  if(image?.src)return '<span class="'+cls+' image"><img src="'+esc(image.src)+'" alt=""></span>';
   const excerpt=esc(text.slice(0,110)||' ');
   return '<span class="'+cls+'"><i></i><i></i><i></i><em>'+excerpt+'</em></span>';
 }
@@ -1340,7 +1346,7 @@ function renderLibrary(){
     '</div></section>';
   }
 
-  html+='<section class="v14-section">'+v14Section(state.libraryTab==='rounds'?'Lernrunden':'Dokumente','Sortieren','open-sort-sheet');
+  html+='<section class="v14-section">'+v14Section(state.libraryTab==='rounds'?'Lernrunden':'Dokumente',state.libraryTab==='rounds'?'':'Sortieren',state.libraryTab==='rounds'?'':'open-sort-sheet');
 
   if(state.libraryTab==='rounds'){
     html+=rounds.length?'<div class="v14-list">'+rounds.map(r=>'<article class="v14-docrow"><button data-action="play-round" data-id="'+esc(r.id)+'"><span class="v14-roundthumb">'+icon('stack',20)+'</span><span class="v14-doccopy"><strong>'+esc(r.title||'Lernrunde')+'</strong><small>'+esc(r.topic||'Lernen')+' · '+((r.questions||[]).length)+' Fragen</small></span><span class="v14-rowarrow">'+icon('arrow',14)+'</span></button></article>').join('')+'</div>':v14Empty('Noch keine Lernrunden','Erstelle Lernfragen aus einem Dokument oder Text.');
@@ -1454,7 +1460,7 @@ function renderNotes(){
   const pages=n.pages||[],searchTerm=state.docSearchQuery.trim().toLowerCase();
   const results=searchTerm?pages.flatMap((pg,i)=>{const hay=String(pg.text||'').toLowerCase(),out=[];let at=hay.indexOf(searchTerm),guard=0;while(at>=0&&guard<10){out.push({pageId:pg.id,page:i+1,start:at,snippet:String(pg.text||'').slice(Math.max(0,at-28),at+searchTerm.length+55).replace(/\n+/g,' ')});at=hay.indexOf(searchTerm,at+Math.max(1,searchTerm.length));guard++;}return out;}):[];
 
-  let html='<section class="v14-editor">'+
+  let html='<section class="v14-editor '+(state.noteMode==='view'?'view':'edit')+'">'+
     '<header class="v14-editornav"><button data-action="library">'+icon('back',22)+'</button><div><input id="noteTitle" value="'+esc(n.title)+'"><small id="saveStatus">Gespeichert</small></div><button data-action="note-more">'+icon('more',22)+'</button></header>';
 
   if(state.noteMode==='edit'&&!state.focus){
@@ -1529,7 +1535,7 @@ window.addEventListener('click',e=>{
   else if(a==='library'){state.screen='library';state.quickCreateOpen=false;state.newMenu=false;v14Haptic();renderLibrary();}
   else if(a==='library-pinned'){state.screen='library';state.libraryTab='pinned';state.libraryFolder='all';renderLibrary();}
   else if(a==='library-new'){state.quickCreateOpen=true;v14Haptic();renderLibrary();}
-  else if(a==='new-folder'){state.newMenu=false;state.folderModal=true;state.folderModalMode='create';state.folderEditId=null;renderLibrary();}
+  else if(a==='new-folder'){state.quickCreateOpen=false;state.newMenu=false;state.folderModal=true;state.folderModalMode='create';state.folderEditId=null;renderLibrary();}
   else if(a==='close-folder-modal'){state.folderModal=false;state.folderEditId=null;renderLibrary();}
   else if(a==='create-folder')createFolder($('#folderNameInput')?.value||'');
   else if(a==='folder-more'){state.folderMenu=!state.folderMenu;renderLibrary();}
@@ -1541,8 +1547,8 @@ window.addEventListener('click',e=>{
   else if(a==='notes'){state.screen='notes';state.noteMode='view';state.selectedImage=null;v14Haptic();renderNotes();}
   else if(a==='reviews'){state.screen='reviews';v14Haptic();renderReviews();}
   else if(a==='trophies'){state.screen='trophies';history.replaceState(null,'','/trophies');renderTrophies();}
-  else if(a==='new-note'){state.newMenu=false;newNote();}
-  else if(a==='open-note'){state.noteId=b.dataset.id;state.pageId=data.notes().find(n=>n.id===state.noteId)?.pages?.[0]?.id;state.noteMode='view';state.noteNav='pages';state.screen='notes';renderNotes();}
+  else if(a==='new-note'){state.quickCreateOpen=false;state.newMenu=false;newNote();}
+  else if(a==='open-note'){v14Transition(()=>{state.noteId=b.dataset.id;state.pageId=data.notes().find(n=>n.id===state.noteId)?.pages?.[0]?.id;state.noteMode='view';state.noteNav='pages';state.screen='notes';renderNotes();});}
   else if(a==='open-page'){state.pageId=b.dataset.id;state.pagesSheetOpen=false;state.selection=null;state.selectedImage=null;renderNotes();}
   else if(a==='add-page')addPage();
   else if(a==='library-tab'){state.libraryTab=b.dataset.tab;v14Haptic();renderLibrary();}
@@ -1596,8 +1602,8 @@ window.addEventListener('click',e=>{
   else if(a==='image-larger')resizeSelectedImage(1.1);
   else if(a==='image-delete')deleteSelectedImage();
   else if(a==='note-study')startNoteStudy();
-  else if(a==='create-photo'){state.screen='create';state.createMode='photo';renderCreate('photo');}
-  else if(a==='create-text'){state.screen='create';state.createMode='text';renderCreate('text');}
+  else if(a==='create-photo'){state.quickCreateOpen=false;state.screen='create';state.createMode='photo';v14Transition(()=>renderCreate('photo'));}
+  else if(a==='create-text'){state.quickCreateOpen=false;state.screen='create';state.createMode='text';v14Transition(()=>renderCreate('text'));}
   else if(a==='analyze')analyze();
   else if(a==='answer'){v14Haptic(10);checkAnswer(b.dataset.value);}
   else if(a==='submit-answer')checkAnswer($('#answerInput')?.value||'');
