@@ -1630,7 +1630,7 @@ function render(){
 
 window.addEventListener('click',e=>{
   const b=e.target.closest('[data-action]');if(!b)return;const a=b.dataset.action;
-  if(a==='home'){state.screen='home';state.quickCreateOpen=false;history.replaceState(null,'','/');renderHome();}
+  if(a==='home'){state.screen='home';state.quickCreateOpen=false;history.replaceState(null,'','/');v14Haptic();v14Transition(()=>renderHome());}
   else if(a==='open-create-sheet'){state.quickCreateOpen=true;v14Haptic();v14RenderCurrent();}
   else if(a==='close-create-sheet'){state.quickCreateOpen=false;v14RenderCurrent();}
   else if(a==='open-sort-sheet'){state.sortSheetOpen=true;renderLibrary();}
