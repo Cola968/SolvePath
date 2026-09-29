@@ -1622,12 +1622,14 @@ function renderNotes(){
   html+='<footer class="v14-editorbar"><button data-action="toggle-pages">'+icon('note',19)+'<span>Seiten</span></button><button data-action="template-menu">'+icon('grid',19)+'<span>Vorlage</span></button><span></span><button class="learn" data-action="note-study">'+icon('play',17)+'<span>Lernen</span></button></footer>';
 
   if(state.pagesSheetOpen){
-    html+='<div class="v14-dim" data-action="toggle-pages"></div><section class="v14-pagesheet" role="dialog" aria-modal="true"><div class="v14-sheetgrabber"></div><header><h2>Seiten</h2><button data-action="add-page">'+icon('plus',20)+'</button></header><div class="v14-pagescroller">'+pages.map((pg,i)=>'<button data-action="open-page" data-id="'+esc(pg.id)+'" class="'+(pg.id===p.id?'active':'')+'">'+v14Preview(pg,true)+'<small>Seite '+(i+1)+'</small></button>').join('')+'</div></section>';
+    html+='<div class="v14-dim" data-action="toggle-pages"></div><section class="v14-pagesheet" role="dialog" aria-modal="true"><div class="v14-sheetgrabber"></div><header><h2>Seiten</h2><div class="v14-pagehead-actions"><button data-action="page-actions" aria-label="Seitenaktionen">'+icon('more',20)+'</button><button data-action="add-page" aria-label="Seite hinzufügen">'+icon('plus',20)+'</button></div></header><div class="v14-pagescroller">'+pages.map((pg,i)=>'<button data-action="open-page" data-id="'+esc(pg.id)+'" class="'+(pg.id===p.id?'active':'')+'">'+v14Preview(pg,true)+'<small>'+(pg.bookmark?'★ ':'')+'Seite '+(i+1)+'</small></button>').join('')+'</div>'+
+      (state.pageActionsOpen?'<div class="v14-pageactions"><button data-action="bookmark-page">'+icon('star',18)+(p.bookmark?' Lesezeichen entfernen':' Lesezeichen')+'</button><button data-action="duplicate-page">'+icon('copy',18)+' Duplizieren</button><button data-action="page-left">'+icon('back',18)+' Nach links</button><button data-action="page-right">'+icon('arrow',18)+' Nach rechts</button><button class="danger" data-action="delete-page">'+icon('trash',18)+' Löschen</button></div>':'')+
+    '</section>';
   }
 
-  html+='<div id="noteMenu" class="v14-contextmenu note hidden"><button data-action="toggle-doc-search">'+icon('search',17)+' Im Dokument suchen</button><button data-action="note-mode" data-mode="'+(state.noteMode==='edit'?'view':'edit')+'">'+icon('note',17)+' '+(state.noteMode==='edit'?'Ansicht':'Bearbeiten')+'</button><button data-action="note-info">'+icon('text',17)+' Details</button><button data-action="mark-note-review">'+icon('repeat',17)+' Wiederholen</button><button data-action="export-note">'+icon('download',17)+' Exportieren</button><button data-action="duplicate-note">'+icon('copy',17)+' Duplizieren</button><button class="danger" data-action="delete-note">'+icon('trash',17)+' Löschen</button></div>';
+  html+='<div id="noteMenu" class="v14-contextmenu note hidden"><button data-action="toggle-doc-search">'+icon('search',17)+' Im Dokument suchen</button><button data-action="note-mode" data-mode="'+(state.noteMode==='edit'?'view':'edit')+'">'+icon('note',17)+' '+(state.noteMode==='edit'?'Ansicht':'Bearbeiten')+'</button><button data-action="note-info">'+icon('text',17)+' Details</button><button data-action="favorite-note">'+icon('star',17)+' '+(n.favorite?'Favorit entfernen':'Als Favorit')+'</button><button data-action="mark-note-review">'+icon('repeat',17)+' Wiederholen</button><button data-action="export-note">'+icon('download',17)+' Exportieren</button><button data-action="duplicate-note">'+icon('copy',17)+' Duplizieren</button><button class="danger" data-action="delete-note">'+icon('trash',17)+' Löschen</button></div>';
 
-  html+='<section id="templateMenu" class="v14-actionsheet hidden" role="dialog" aria-modal="true"><div class="v14-sheetgrabber"></div><header><h2>Seitenvorlage</h2><button data-action="close-template">'+icon('close',19)+'</button></header><div class="v14-templategrid">'+['plain','ruled','grid','dotted','cornell'].map(kind=>'<button data-action="set-paper" data-paper="'+kind+'"><span class="template '+kind+'"></span><small>'+paperName(kind)+'</small></button>').join('')+'</div></section>';
+  html+='<div id="templateDim" class="v14-dim hidden" data-action="close-template"></div><section id="templateMenu" class="v14-actionsheet hidden" role="dialog" aria-modal="true"><div class="v14-sheetgrabber"></div><header><h2>Seitenvorlage</h2><button data-action="close-template">'+icon('close',19)+'</button></header><div class="v14-templategrid">'+['plain','ruled','grid','dotted','cornell'].map(kind=>'<button data-action="set-paper" data-paper="'+kind+'"><span class="template '+kind+'"></span><small>'+paperName(kind)+'</small></button>').join('')+'</div></section>';
 
   if(state.noteInfo){
     html+='<div class="v14-dim"></div><section class="v14-alert"><h2>Dokument</h2><label>Titel<input id="infoTitle" value="'+esc(n.title)+'"></label><label>Fach<input id="infoSubject" value="'+esc(n.subject||'')+'"></label><div><button data-action="close-note-info">Fertig</button><button data-action="pin-note">'+(n.pinned?'Loslösen':'Anpinnen')+'</button></div></section>';
@@ -1688,7 +1690,8 @@ window.addEventListener('click',e=>{
   else if(a==='context-duplicate'){const id=state.docContextId;if(id){state.noteId=id;duplicateNote();state.docContextId=null;state.screen='notes';}}
   else if(a==='context-export'){const id=state.docContextId;if(id){state.noteId=id;state.pageId=data.notes().find(n=>n.id===id)?.pages?.[0]?.id;exportNote();state.docContextId=null;v14RenderCurrent();}}
   else if(a==='context-delete'){const id=state.docContextId;if(id&&v14DeleteDocument(id)){toast('Dokument gelöscht');}state.docContextId=null;state.moveSheetOpen=false;v14Haptic(16);v14RenderCurrent();}
-  else if(a==='toggle-pages'){state.pagesSheetOpen=!state.pagesSheetOpen;renderNotes();}
+  else if(a==='toggle-pages'){state.pagesSheetOpen=!state.pagesSheetOpen;state.pageActionsOpen=false;renderNotes();}
+  else if(a==='page-actions'){state.pageActionsOpen=!state.pageActionsOpen;renderNotes();}
   else if(a==='review-rate'){
     const q=state.challenge.questions[state.q],list=data.reviews(),r=list.find(x=>x.prompt===q.prompt);
     if(r){
@@ -1726,8 +1729,8 @@ window.addEventListener('click',e=>{
   else if(a==='new-note'){state.quickCreateOpen=false;state.newMenu=false;state.editorReturn=state.screen==='noteslist'?'noteslist':(state.screen==='home'?'home':'library');newNote();}
   else if(a==='new-note-from-list'){state.editorReturn='noteslist';newNote();}
   else if(a==='open-note'){v14Transition(()=>{state.editorReturn=state.screen;state.noteId=b.dataset.id;state.pageId=data.notes().find(n=>n.id===state.noteId)?.pages?.[0]?.id;state.noteMode='view';state.noteNav='pages';state.screen='notes';renderNotes();});}
-  else if(a==='open-page'){state.pageId=b.dataset.id;state.pagesSheetOpen=false;state.selection=null;state.selectedImage=null;renderNotes();}
-  else if(a==='add-page')addPage();
+  else if(a==='open-page'){state.pageId=b.dataset.id;state.pagesSheetOpen=false;state.pageActionsOpen=false;state.selection=null;state.selectedImage=null;renderNotes();}
+  else if(a==='add-page'){state.pageActionsOpen=false;addPage();}
   else if(a==='library-tab'){state.libraryTab=b.dataset.tab;state.libraryOptionsOpen=false;if(state.libraryTab==='notes')state.libraryFolder='all';v14Haptic();renderLibrary();}
   else if(a==='toggle-library-view'){state.libraryView=state.libraryView==='list'?'grid':'list';renderLibrary();}
   else if(a==='backup')backup();
@@ -1756,16 +1759,16 @@ window.addEventListener('click',e=>{
   else if(a==='close-note-info'){state.noteInfo=false;renderNotes();}
   else if(a==='focus-note'){state.focus=!state.focus;renderNotes();}
   else if(a==='prev-page'||a==='next-page'){const n=getNote(),pages=n?.pages||[],i=pages.findIndex(p=>p.id===state.pageId),j=i+(a==='next-page'?1:-1);if(pages[j]){state.pageId=pages[j].id;state.selection=null;state.selectedImage=null;renderNotes();}}
-  else if(a==='template-menu')$('#templateMenu')?.classList.remove('hidden');
-  else if(a==='close-template')$('#templateMenu')?.classList.add('hidden');
+  else if(a==='template-menu'){$('#templateMenu')?.classList.remove('hidden');$('#templateDim')?.classList.remove('hidden');}
+  else if(a==='close-template'){$('#templateMenu')?.classList.add('hidden');$('#templateDim')?.classList.add('hidden');}
   else if(a==='set-paper'){patchPage({paper:b.dataset.paper});renderNotes();}
   else if(a==='note-more')$('#noteMenu')?.classList.toggle('hidden');
   else if(a==='page-more')$('#pageMenu')?.classList.toggle('hidden');
-  else if(a==='bookmark-page'){const p=getPage();patchPage({bookmark:!p.bookmark});renderNotes();}
-  else if(a==='page-left')movePage(-1);
-  else if(a==='page-right')movePage(1);
-  else if(a==='duplicate-page')duplicatePage();
-  else if(a==='delete-page')deletePage();
+  else if(a==='bookmark-page'){const p=getPage();state.pageActionsOpen=false;patchPage({bookmark:!p.bookmark});renderNotes();}
+  else if(a==='page-left'){state.pageActionsOpen=false;movePage(-1);}
+  else if(a==='page-right'){state.pageActionsOpen=false;movePage(1);}
+  else if(a==='duplicate-page'){state.pageActionsOpen=false;duplicatePage();}
+  else if(a==='delete-page'){state.pageActionsOpen=false;deletePage();}
   else if(a==='mark-note-review'){markNoteForReview();$('#noteMenu')?.classList.add('hidden');}
   else if(a==='toggle-split'){const ch=splitChallenge(getNote());if(!ch){toast('Die Notiz braucht etwas mehr Text');}else{state.splitStudy=!state.splitStudy;state.splitReveal=false;renderNotes();}}
   else if(a==='split-reveal'){state.splitReveal=true;renderNotes();}
