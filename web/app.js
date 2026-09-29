@@ -284,35 +284,51 @@ function renderLibrary(){
   const bi=$('#backupInput');if(bi)bi.onchange=e=>restoreBackup(e.target.files?.[0]);
 }
 function backup(){
-  const payload={version:10,notes:data.notes(),rounds:data.rounds(),reviews:data.reviews(),profile:data.profile(),deleted:data.deleted(),strokes:{}};
-  data.notes().forEach(n=>payload.strokes[n.id]=data.strokes(n.id));
-  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}), a=document.createElement('a');
+  const payload={version:12,notes:data.notes(),folders:data.folders(),rounds:data.rounds(),reviews:data.reviews(),profile:data.profile(),deleted:data.deleted(),strokes:{}};
+  data.notes().forEach(n=>(n.pages||[]).forEach(p=>payload.strokes[n.id+':'+p.id]=data.strokes(n.id,p.id)));
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),a=document.createElement('a');
   a.href=URL.createObjectURL(blob);a.download='snapstudy-backup-'+dayKey()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),800);
 }
 function restoreBackup(file){
-  if(!file)return; const r=new FileReader();
-  r.onload=()=>{try{const x=JSON.parse(r.result);if(!Array.isArray(x.notes))throw 0;data.setNotes(x.notes);data.setRounds(x.rounds||[]);data.setReviews(x.reviews||[]);data.setProfile(x.profile||{});data.setDeleted(x.deleted||[]);Object.entries(x.strokes||{}).forEach(([id,v])=>data.setStrokes(id,v));state.noteId=x.notes[0]?.id;toast('Backup importiert');renderLibrary();}catch{toast('Backup ungültig');}};
+  if(!file)return;const r=new FileReader();
+  r.onload=()=>{try{
+    const x=JSON.parse(r.result);if(!Array.isArray(x.notes))throw 0;
+    data.setNotes(x.notes);data.setFolders(x.folders||[]);data.setRounds(x.rounds||[]);data.setReviews(x.reviews||[]);data.setProfile(x.profile||{});data.setDeleted(x.deleted||[]);
+    Object.entries(x.strokes||{}).forEach(([key,v])=>{const [nid,pid]=key.split(':');if(nid&&pid)data.setStrokes(nid,pid,v);});
+    state.noteId=x.notes[0]?.id;state.pageId=x.notes[0]?.pages?.[0]?.id;toast('Backup importiert');renderLibrary();
+  }catch{toast('Backup ungültig');}};
   r.readAsText(file);
 }
-
 function newNote(){
-  const n={id:uid('note'),title:'Unbenannte Notiz',subject:'Physik',paper:'ruled',favorite:false,pinned:false,createdAt:Date.now(),updatedAt:Date.now(),text:'',images:[],shapes:[]};
-  data.setNotes([n,...data.notes()]); state.noteId=n.id;state.noteMode='edit';state.screen='notes';renderNotes();
+  const page={id:uid('page'),title:'Seite 1',text:'',paper:'ruled',images:[],shapes:[],bookmark:false};
+  const n={id:uid('note'),title:'Unbenannt',subject:'Physik',folderId:state.libraryFolder!=='all'?state.libraryFolder:null,tags:[],favorite:false,pinned:false,createdAt:Date.now(),updatedAt:Date.now(),pages:[page]};
+  data.setNotes([n,...data.notes()]);state.noteId=n.id;state.pageId=page.id;state.noteMode='edit';state.screen='notes';renderNotes();
 }
-function getNote(){ return data.notes().find(n=>n.id===state.noteId)||data.notes()[0]; }
 function patchNote(patch){
   const notes=data.notes().map(n=>n.id===state.noteId?Object.assign({},n,patch,{updatedAt:Date.now()}):n);data.setNotes(notes);
-  const s=$('#saveStatus'); if(s){s.textContent='Gespeichert';}
+  const s=$('#saveStatus');if(s)s.textContent='Gespeichert';
 }
 function softDelete(id){
-  const notes=data.notes(), i=notes.findIndex(n=>n.id===id); if(i<0||notes.length<=1){toast('Mindestens eine Notiz muss bleiben');return;}
-  const [n]=notes.splice(i,1); n.deletedAt=Date.now();data.setNotes(notes);data.setDeleted([n,...data.deleted()].slice(0,50));state.noteId=notes[Math.max(0,i-1)].id;renderNotes();
+  const notes=data.notes(),i=notes.findIndex(n=>n.id===id);if(i<0){return;}
+  const [n]=notes.splice(i,1);n.deletedAt=Date.now();data.setNotes(notes);data.setDeleted([n,...data.deleted()].slice(0,50));
+  const next=notes[Math.max(0,i-1)]||null;state.noteId=next?.id;state.pageId=next?.pages?.[0]?.id;
+  if(next)renderNotes();else{state.screen='library';renderLibrary();}
 }
-function restoreNote(id){const del=data.deleted(),i=del.findIndex(n=>n.id===id);if(i<0)return;const [n]=del.splice(i,1);delete n.deletedAt;n.updatedAt=Date.now();data.setDeleted(del);data.setNotes([n,...data.notes()]);renderLibrary();}
-function purgeNote(id){data.setDeleted(data.deleted().filter(n=>n.id!==id));localStorage.removeItem('ss10:strokes:'+id);renderLibrary();}
+function restoreNote(id){
+  const del=data.deleted(),i=del.findIndex(n=>n.id===id);if(i<0)return;
+  const [n]=del.splice(i,1);delete n.deletedAt;n.updatedAt=Date.now();data.setDeleted(del);data.setNotes([n,...data.notes()]);renderLibrary();
+}
+function purgeNote(id){
+  const n=data.deleted().find(x=>x.id===id);if(n)(n.pages||[]).forEach(p=>localStorage.removeItem('ss12:strokes:'+id+':'+p.id));
+  data.setDeleted(data.deleted().filter(n=>n.id!==id));renderLibrary();
+}
 function duplicateNote(){
-  const n=getNote(); if(!n)return; const copy=JSON.parse(JSON.stringify(n));copy.id=uid('note');copy.title=n.title+' Kopie';copy.favorite=false;copy.createdAt=copy.updatedAt=Date.now();
-  data.setNotes([copy,...data.notes()]);data.setStrokes(copy.id,JSON.parse(JSON.stringify(data.strokes(n.id))));state.noteId=copy.id;renderNotes();
+  const n=getNote();if(!n)return;
+  const copy=JSON.parse(JSON.stringify(n)),map={};copy.id=uid('note');copy.title=(n.title||'Dokument')+' Kopie';copy.favorite=false;copy.pinned=false;copy.createdAt=copy.updatedAt=Date.now();
+  copy.pages=(copy.pages||[]).map(p=>{const old=p.id,np=Object.assign({},p,{id:uid('page')});map[old]=np.id;return np;});
+  data.setNotes([copy,...data.notes()]);
+  (n.pages||[]).forEach(p=>data.setStrokes(copy.id,map[p.id],JSON.parse(JSON.stringify(data.strokes(n.id,p.id)))));
+  state.noteId=copy.id;state.pageId=copy.pages[0]?.id;renderNotes();
 }
 
 function renderNotes(){
