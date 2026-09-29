@@ -518,7 +518,7 @@ function exportNote(){
   const a=document.createElement('a');a.download=(n.title||'Dokument')+'-'+(p.title||'Seite')+'.png';a.href=canvas.toDataURL('image/png');a.click();
 }
 
-function renderReviews(){function renderReviews(){
+function renderReviews(){
   const all=data.reviews().slice().sort((a,b)=>(a.dueAt||0)-(b.dueAt||0)),due=all.filter(r=>(r.dueAt||0)<=Date.now()),later=all.filter(r=>(r.dueAt||0)>Date.now());
   root.innerHTML=shell('<section class="pagehead"><h1>Wiederholen</h1></section>'+
     (due.length?'<section class="section"><div class="sectionhead"><h2>Heute</h2><span>'+due.length+'</span></div><div class="reviewrows">'+due.map(reviewRow).join('')+'</div><button class="primary full" data-action="start-due">Starten</button></section>':'<div class="empty compact">Nichts fällig</div>')+
