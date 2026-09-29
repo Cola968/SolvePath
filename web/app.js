@@ -1283,7 +1283,7 @@ function renderHome(){
   const due=data.reviews().filter(r=>(r.dueAt||0)<=Date.now());
   const rounds=data.rounds().slice().sort((a,b)=>(b.lastPlayedAt||0)-(a.lastPlayedAt||0));
   const continueRound=rounds[0];
-  const add='<button class="v14-circle" data-action="open-create-sheet" aria-label="Neu">'+icon('plus',21)+'</button>';
+  const add='<button class="v14-circle secondary" data-action="trophies" aria-label="Pokale">'+icon('trophy',19)+'</button><button class="v14-circle" data-action="open-create-sheet" aria-label="Neu">'+icon('plus',21)+'</button>';
   let html=v14LargeNav('Heute',v13Date(),add);
 
   if(due.length){
@@ -1501,6 +1501,24 @@ function renderNotes(){
   const ds=$('#docSearchInput');if(ds){ds.oninput=e=>{state.docSearchQuery=e.target.value;renderNotes();};requestAnimationFrame(()=>{const x=$('#docSearchInput');if(x){x.focus();x.setSelectionRange(x.value.length,x.value.length);}});}
   bindNote(n,p);
 }
+
+
+function renderTrophies(){
+  state.screen='trophies';evalTrophies();
+  const s=stats(),t=load(KEYS.trophies,{unlocked:{}}),score=trophyScore(),ws=weekStats();
+  const locked=TROPHIES.filter(x=>!t.unlocked[x.id]).sort((a,b)=>(s[b.metric]/b.target)-(s[a.metric]/a.target));
+  const next=locked[0],unlocked=Object.keys(t.unlocked).length;
+  let html='<header class="v14-compactnav"><button data-action="back">'+icon('back',21)+'</button><strong>Pokale</strong><span></span></header>'+
+    '<main class="v14-trophies"><section class="v14-achievement-summary"><div><span>Stufe</span><strong>'+esc(league(score))+'</strong><small>'+score+' Punkte</small></div><div><span>Freigeschaltet</span><strong>'+unlocked+' / '+TROPHIES.length+'</strong><small>Sammlung</small></div></section>';
+  if(next){
+    const cur=Math.min(next.target,s[next.metric]||0),pct=Math.min(100,Math.round(cur/next.target*100));
+    html+='<section class="v14-section">'+v14Section('Als Nächstes')+'<article class="v14-achievement next"><span>'+icon('trophy',20)+'</span><div><strong>'+esc(next.name)+'</strong><small>'+esc(next.desc)+'</small><div class="v14-achievement-progress"><i style="width:'+pct+'%"></i></div><em>'+cur+' / '+next.target+'</em></div></article></section>';
+  }
+  html+='<section class="v14-section">'+v14Section('Diese Woche')+'<div class="v14-weekrows"><div><span>Lernrunden</span><strong>'+ws.sessions+' / 5</strong><i><b style="width:'+Math.min(100,ws.sessions/5*100)+'%"></b></i></div><div><span>Wiederholungen</span><strong>'+ws.reviews+' / 2</strong><i><b style="width:'+Math.min(100,ws.reviews/2*100)+'%"></b></i></div></div></section>'+
+    '<section class="v14-section">'+v14Section('Sammlung')+'<div class="v14-achievement-list">'+TROPHIES.map(x=>{const on=!!t.unlocked[x.id],cur=Math.min(x.target,s[x.metric]||0);return '<article class="v14-achievement '+(on?'unlocked':'')+'"><span>'+icon('trophy',19)+'</span><div><strong>'+esc(x.name)+'</strong><small>'+esc(x.desc)+'</small>'+(on?'<em>+'+x.points+' Punkte</em>':'<em>'+cur+' / '+x.target+'</em>')+'</div></article>';}).join('')+'</div></section></main>';
+  root.innerHTML='<main class="v14-app">'+html+'</main>';
+}
+
 function render(){
   if(state.screen==='home')renderHome();
   else if(state.screen==='library')renderLibrary();
