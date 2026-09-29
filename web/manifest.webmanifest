@@ -4,9 +4,14 @@
   "description": "Foto rein. 5-Fragen-Challenge raus.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#F7F5EF",
-  "theme_color": "#F7F5EF",
+  "background_color": "#F5F6F8",
+  "theme_color": "#F5F6F8",
   "icons": [
-    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
   ]
 }
