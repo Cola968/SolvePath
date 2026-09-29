@@ -161,7 +161,7 @@ const state = {
   libraryTab:'notes', libraryView:'list', libraryQuery:'', librarySort:'recent', librarySubject:'all', libraryFolder:'all', newMenu:false, folderModal:false, folderModalMode:'create', folderEditId:null, folderMenu:false,
   recentColors:load('ss11:recentColors',['#20242B','#3568D4','#B75850','#26785B','#D39A23']),
   createMode:'photo', createText:'', createFile:null, createPreview:'', createError:'', challenge:null, q:0, answered:false, score:0, lastCorrect:false, lastExplanation:'', quizMode:'normal',
-  toast:'', quickCreateOpen:false, pagesSheetOpen:false, sortSheetOpen:false, docContextId:null, moveSheetOpen:false, noteListQuery:'', editorReturn:'library'
+  toast:'', quickCreateOpen:false, pagesSheetOpen:false, sortSheetOpen:false, docContextId:null, moveSheetOpen:false, libraryOptionsOpen:false, pageActionsOpen:false, noteListQuery:'', editorReturn:'library'
 };
 
 function toast(msg){
@@ -1430,10 +1430,14 @@ function renderHome(){
 function renderLibrary(){
   state.screen='library';
   const folders=data.folders();
+  const deleted=data.deleted().slice().sort((a,b)=>(b.deletedAt||0)-(a.deletedAt||0));
   let notes=data.notes().slice(),rounds=data.rounds().slice();
   const q=state.libraryQuery.trim().toLowerCase();
+
   if(state.libraryFolder!=='all')notes=notes.filter(n=>n.folderId===state.libraryFolder);
   if(state.libraryTab==='pinned')notes=notes.filter(n=>n.pinned);
+  if(state.libraryTab==='favorites')notes=notes.filter(n=>n.favorite);
+
   if(q){
     notes=notes.filter(n=>{
       const text=(n.pages||[]).map(p=>p.text||'').join(' ');
@@ -1443,14 +1447,20 @@ function renderLibrary(){
   }
   notes.sort((a,b)=>state.librarySort==='title'?String(a.title).localeCompare(String(b.title),'de'):(b.updatedAt||0)-(a.updatedAt||0));
 
-  const add='<button class="v14-circle" data-action="library-new" aria-label="Neu">'+icon('plus',21)+'</button>';
-  const title=state.libraryFolder==='all'?'Sammlung':folderName(state.libraryFolder);
-  let html=v14LargeNav(title,'',add)+
-    '<label class="v14-search">'+icon('search',18)+'<input id="librarySearch" placeholder="Suchen" value="'+esc(state.libraryQuery)+'"></label>'+
-    '<div class="v14-segment"><button data-action="library-tab" data-tab="notes" class="'+(state.libraryTab==='notes'?'active':'')+'">Alle</button><button data-action="library-tab" data-tab="pinned" class="'+(state.libraryTab==='pinned'?'active':'')+'">Angepinnt</button><button data-action="library-tab" data-tab="rounds" class="'+(state.libraryTab==='rounds'?'active':'')+'">Lernrunden</button></div>';
+  const secondary=state.libraryTab==='favorites'||state.libraryTab==='deleted';
+  const title=state.libraryTab==='favorites'?'Favoriten':state.libraryTab==='deleted'?'Gelöscht':(state.libraryFolder==='all'?'Sammlung':folderName(state.libraryFolder));
+  const actions='<button class="v14-circle secondary" data-action="library-options" aria-label="Weitere Optionen">'+icon('more',20)+'</button><button class="v14-circle" data-action="library-new" aria-label="Neu">'+icon('plus',21)+'</button>';
+  let html=v14LargeNav(title,'',actions);
 
-  if(state.libraryFolder!=='all'){
-    html+='<div class="v14-foldercrumb"><button data-action="all-folders">'+icon('back',16)+' Alle Ordner</button><button data-action="folder-more">'+icon('more',20)+'</button></div>';
+  if(secondary){
+    html+='<div class="v14-foldercrumb"><button data-action="library-tab" data-tab="notes">'+icon('back',16)+' Sammlung</button></div>';
+  }else{
+    html+='<label class="v14-search">'+icon('search',18)+'<input id="librarySearch" placeholder="Suchen" value="'+esc(state.libraryQuery)+'"></label>'+
+      '<div class="v14-segment"><button data-action="library-tab" data-tab="notes" class="'+(state.libraryTab==='notes'?'active':'')+'">Alle</button><button data-action="library-tab" data-tab="pinned" class="'+(state.libraryTab==='pinned'?'active':'')+'">Angepinnt</button><button data-action="library-tab" data-tab="rounds" class="'+(state.libraryTab==='rounds'?'active':'')+'">Lernrunden</button></div>';
+  }
+
+  if(state.libraryFolder!=='all'&&!secondary){
+    html+='<div class="v14-foldercrumb"><button data-action="all-folders">'+icon('back',16)+' Alle Ordner</button><button data-action="folder-more" aria-label="Ordneroptionen">'+icon('more',20)+'</button></div>';
   }
 
   if(state.libraryTab==='notes'&&state.libraryFolder==='all'&&!q&&folders.length){
@@ -1459,17 +1469,28 @@ function renderLibrary(){
     '</div></section>';
   }
 
-  html+='<section class="v14-section">'+v14Section(state.libraryTab==='rounds'?'Lernrunden':'Dokumente',state.libraryTab==='rounds'?'':'Sortieren',state.libraryTab==='rounds'?'':'open-sort-sheet');
+  const sectionTitle=state.libraryTab==='rounds'?'Lernrunden':state.libraryTab==='favorites'?'Favoriten':state.libraryTab==='deleted'?'Zuletzt gelöscht':'Dokumente';
+  html+='<section class="v14-section">'+v14Section(sectionTitle,(state.libraryTab==='notes'||state.libraryTab==='pinned'||state.libraryTab==='favorites')?'Sortieren':'',(state.libraryTab==='notes'||state.libraryTab==='pinned'||state.libraryTab==='favorites')?'open-sort-sheet':'');
 
   if(state.libraryTab==='rounds'){
     html+=rounds.length?'<div class="v14-list">'+rounds.map(r=>'<article class="v14-docrow"><button data-action="play-round" data-id="'+esc(r.id)+'"><span class="v14-roundthumb">'+icon('stack',20)+'</span><span class="v14-doccopy"><strong>'+esc(r.title||'Lernrunde')+'</strong><small>'+esc(r.topic||'Lernen')+' · '+((r.questions||[]).length)+' Fragen</small></span><span class="v14-rowarrow">'+icon('arrow',14)+'</span></button></article>').join('')+'</div>':v14Empty('Noch keine Lernrunden','Erstelle Lernfragen aus einem Dokument oder Text.');
+  }else if(state.libraryTab==='deleted'){
+    html+=deleted.length?'<div class="v14-deletedlist">'+deleted.map(n=>'<article><span class="v14-docthumb deleted">'+icon('trash',19)+'</span><div><strong>'+esc(n.title||'Unbenannt')+'</strong><small>Gelöscht '+fmtDate(n.deletedAt||Date.now())+'</small></div><button data-action="restore-note" data-id="'+esc(n.id)+'">Wiederherstellen</button><button class="icon" data-action="purge-note" data-id="'+esc(n.id)+'" aria-label="Endgültig löschen">'+icon('trash',17)+'</button></article>').join('')+'</div>':v14Empty('Papierkorb ist leer','Gelöschte Dokumente erscheinen hier.');
   }else{
-    html+=notes.length?'<div class="v14-list">'+notes.map(v14DocRow).join('')+'</div>':v14Empty('Keine Dokumente','Hier ist noch nichts gespeichert.','library-new','Dokument erstellen');
+    html+=notes.length?'<div class="v14-list">'+notes.map(v14DocRow).join('')+'</div>':v14Empty(state.libraryTab==='favorites'?'Keine Favoriten':'Keine Dokumente',state.libraryTab==='favorites'?'Markiere wichtige Dokumente als Favorit.':'Hier ist noch nichts gespeichert.',state.libraryTab==='favorites'?'':'library-new',state.libraryTab==='favorites'?'':'Dokument erstellen');
   }
   html+='</section>';
 
   if(state.sortSheetOpen){
     html+='<div class="v14-dim" data-action="close-sort-sheet"></div><section class="v14-actionsheet compact" role="dialog" aria-modal="true"><div class="v14-sheetgrabber"></div><header><h2>Sortieren</h2><button data-action="close-sort-sheet">'+icon('close',19)+'</button></header><button data-action="set-sort" data-sort="recent"><span>'+icon('repeat',19)+'</span><div><strong>Zuletzt geändert</strong></div>'+(state.librarySort==='recent'?icon('check',17):'')+'</button><button data-action="set-sort" data-sort="title"><span>'+icon('text',19)+'</span><div><strong>Titel</strong></div>'+(state.librarySort==='title'?icon('check',17):'')+'</button></section>';
+  }
+  if(state.libraryOptionsOpen){
+    html+='<div class="v14-dim" data-action="close-library-options"></div><section class="v14-actionsheet compact" role="dialog" aria-modal="true"><div class="v14-sheetgrabber"></div><header><h2>Sammlung</h2><button data-action="close-library-options">'+icon('close',19)+'</button></header>'+
+      '<button data-action="library-tab" data-tab="favorites"><span>'+icon('star',19)+'</span><div><strong>Favoriten</strong></div>'+icon('arrow',14)+'</button>'+
+      '<button data-action="library-tab" data-tab="deleted"><span>'+icon('trash',19)+'</span><div><strong>Gelöscht</strong></div>'+icon('arrow',14)+'</button>'+
+      '<button data-action="backup"><span>'+icon('download',19)+'</span><div><strong>Backup sichern</strong><small>Lokale Daten exportieren</small></div></button>'+
+      '<label class="v14-sheetfile"><span>'+icon('upload',19)+'</span><div><strong>Backup importieren</strong><small>JSON-Datei auswählen</small></div><input id="v14BackupInput" type="file" accept="application/json"></label>'+
+    '</section>';
   }
   if(state.folderMenu){
     html+='<div class="v14-contextmenu folder"><button data-action="rename-folder">'+icon('text',17)+' Umbenennen</button><button class="danger" data-action="delete-folder">'+icon('trash',17)+' Ordner löschen</button></div>';
@@ -1477,10 +1498,13 @@ function renderLibrary(){
   if(state.folderModal){
     html+='<div class="v14-dim"></div><section class="v14-alert"><h2>'+(state.folderModalMode==='rename'?'Ordner umbenennen':'Neuer Ordner')+'</h2><input id="folderNameInput" value="'+esc(state.folderModalMode==='rename'?folderName(state.folderEditId):'')+'" placeholder="Name"><div><button data-action="close-folder-modal">Abbrechen</button><button data-action="'+(state.folderModalMode==='rename'?'save-folder-name':'create-folder')+'">'+(state.folderModalMode==='rename'?'Sichern':'Erstellen')+'</button></div></section>';
   }
-  html+=v14CreateSheet(true)+v14ContextSheet();
 
+  html+=v14CreateSheet(true)+v14ContextSheet();
   root.innerHTML=shell(html,'library');
-  const search=$('#librarySearch');if(search)search.oninput=e=>{state.libraryQuery=e.target.value;renderLibrary();};
+
+  const search=$('#librarySearch');
+  if(search)search.oninput=e=>{const pos=e.target.selectionStart??e.target.value.length;state.libraryQuery=e.target.value;renderLibrary();v14RestoreInput('librarySearch',pos);};
+  const backupInput=$('#v14BackupInput');if(backupInput)backupInput.onchange=e=>restoreBackup(e.target.files?.[0]);
   if(state.folderModal)requestAnimationFrame(()=>$('#folderNameInput')?.focus());
   requestAnimationFrame(()=>{v14BindLargeTitle();v14BindDocumentGestures();});
 }
@@ -1649,6 +1673,8 @@ window.addEventListener('click',e=>{
   if(a==='home'){state.screen='home';state.quickCreateOpen=false;history.replaceState(null,'','/');v14Haptic();v14Transition(()=>renderHome());}
   else if(a==='open-create-sheet'){state.quickCreateOpen=true;v14Haptic();v14RenderCurrent();}
   else if(a==='close-create-sheet'){state.quickCreateOpen=false;v14RenderCurrent();}
+  else if(a==='library-options'){state.libraryOptionsOpen=true;renderLibrary();}
+  else if(a==='close-library-options'){state.libraryOptionsOpen=false;renderLibrary();}
   else if(a==='open-sort-sheet'){state.sortSheetOpen=true;renderLibrary();}
   else if(a==='close-sort-sheet'){state.sortSheetOpen=false;renderLibrary();}
   else if(a==='set-sort'){state.librarySort=b.dataset.sort||'recent';state.sortSheetOpen=false;renderLibrary();}
@@ -1702,7 +1728,7 @@ window.addEventListener('click',e=>{
   else if(a==='open-note'){v14Transition(()=>{state.editorReturn=state.screen;state.noteId=b.dataset.id;state.pageId=data.notes().find(n=>n.id===state.noteId)?.pages?.[0]?.id;state.noteMode='view';state.noteNav='pages';state.screen='notes';renderNotes();});}
   else if(a==='open-page'){state.pageId=b.dataset.id;state.pagesSheetOpen=false;state.selection=null;state.selectedImage=null;renderNotes();}
   else if(a==='add-page')addPage();
-  else if(a==='library-tab'){state.libraryTab=b.dataset.tab;v14Haptic();renderLibrary();}
+  else if(a==='library-tab'){state.libraryTab=b.dataset.tab;state.libraryOptionsOpen=false;if(state.libraryTab==='notes')state.libraryFolder='all';v14Haptic();renderLibrary();}
   else if(a==='toggle-library-view'){state.libraryView=state.libraryView==='list'?'grid':'list';renderLibrary();}
   else if(a==='backup')backup();
   else if(a==='restore-note')restoreNote(b.dataset.id);
