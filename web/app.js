@@ -161,7 +161,7 @@ const state = {
   libraryTab:'notes', libraryView:'list', libraryQuery:'', librarySort:'recent', librarySubject:'all', libraryFolder:'all', newMenu:false, folderModal:false, folderModalMode:'create', folderEditId:null, folderMenu:false,
   recentColors:load('ss11:recentColors',['#20242B','#3568D4','#B75850','#26785B','#D39A23']),
   createMode:'photo', createText:'', createFile:null, createPreview:'', challenge:null, q:0, answered:false, score:0, lastCorrect:false, lastExplanation:'', quizMode:'normal',
-  toast:'', quickCreateOpen:false, pagesSheetOpen:false, sortSheetOpen:false
+  toast:'', quickCreateOpen:false, pagesSheetOpen:false, sortSheetOpen:false, docContextId:null, moveSheetOpen:false
 };
 
 function toast(msg){
@@ -1227,6 +1227,62 @@ function v14BindLargeTitle(){
   scroller.addEventListener('scroll',sync,{passive:true});sync();
 }
 function v14TimeEstimate(count){return Math.max(2,Math.round(count*1.1));}
+function v14BindDocumentGestures(){
+  document.querySelectorAll('.v14-docrow[data-doc-id]').forEach(row=>{
+    const main=row.querySelector(':scope > button[data-action="open-note"]');
+    if(!main)return;
+    let startX=0,startY=0,moved=false,longPress=false,timer=null;
+    const reset=()=>{clearTimeout(timer);timer=null;};
+    main.addEventListener('pointerdown',e=>{
+      startX=e.clientX;startY=e.clientY;moved=false;longPress=false;
+      timer=setTimeout(()=>{
+        if(moved)return;
+        longPress=true;main.dataset.blockClick='1';state.docContextId=row.dataset.docId;v14Haptic(16);v14RenderCurrent();
+      },520);
+    });
+    main.addEventListener('pointermove',e=>{
+      const dx=e.clientX-startX,dy=e.clientY-startY;
+      if(Math.abs(dx)>10||Math.abs(dy)>10){moved=true;reset();}
+    });
+    main.addEventListener('pointerup',e=>{
+      reset();if(longPress)return;
+      const dx=e.clientX-startX,dy=e.clientY-startY;
+      if(Math.abs(dx)>58&&Math.abs(dx)>Math.abs(dy)*1.4){
+        main.dataset.blockClick='1';
+        document.querySelectorAll('.v14-docrow.swipe-left,.v14-docrow.swipe-right').forEach(x=>{if(x!==row)x.classList.remove('swipe-left','swipe-right');});
+        row.classList.remove('swipe-left','swipe-right');
+        row.classList.add(dx<0?'swipe-left':'swipe-right');
+        v14Haptic();
+      }
+    });
+    main.addEventListener('pointercancel',reset);
+    main.addEventListener('click',e=>{
+      if(main.dataset.blockClick==='1'){e.preventDefault();e.stopImmediatePropagation();main.dataset.blockClick='0';}
+    },true);
+  });
+}
+function v14ContextSheet(){
+  const n=data.notes().find(x=>x.id===state.docContextId);
+  if(!n)return '';
+  if(state.moveSheetOpen){
+    const folders=data.folders();
+    return '<div class="v14-dim" data-action="close-doc-context"></div><section class="v14-actionsheet compact">'+
+      '<div class="v14-sheetgrabber"></div><header><h2>Verschieben</h2><button data-action="close-doc-context">'+icon('close',19)+'</button></header>'+
+      '<button data-action="move-context-note" data-folder="none"><span>'+icon('stack',19)+'</span><div><strong>Kein Ordner</strong></div>'+(!n.folderId?icon('check',17):'')+'</button>'+
+      folders.map(f=>'<button data-action="move-context-note" data-folder="'+esc(f.id)+'"><span>'+icon('folder',19)+'</span><div><strong>'+esc(f.name)+'</strong></div>'+(n.folderId===f.id?icon('check',17):'')+'</button>').join('')+
+    '</section>';
+  }
+  return '<div class="v14-dim" data-action="close-doc-context"></div><section class="v14-actionsheet compact">'+
+    '<div class="v14-sheetgrabber"></div><header><div><h2>'+esc(n.title||'Dokument')+'</h2><small>'+esc(v14DocumentMeta(n))+'</small></div><button data-action="close-doc-context">'+icon('close',19)+'</button></header>'+
+    '<button data-action="context-open"><span>'+icon('note',19)+'</span><div><strong>Öffnen</strong></div>'+icon('arrow',14)+'</button>'+
+    '<button data-action="context-pin"><span>'+icon('pin',19)+'</span><div><strong>'+(n.pinned?'Loslösen':'Anpinnen')+'</strong></div></button>'+
+    '<button data-action="context-move"><span>'+icon('folder',19)+'</span><div><strong>Verschieben</strong></div>'+icon('arrow',14)+'</button>'+
+    '<button data-action="context-duplicate"><span>'+icon('copy',19)+'</span><div><strong>Duplizieren</strong></div></button>'+
+    '<button data-action="context-export"><span>'+icon('download',19)+'</span><div><strong>Exportieren</strong></div></button>'+
+    '<button class="danger" data-action="context-delete"><span>'+icon('trash',19)+'</span><div><strong>Löschen</strong></div></button>'+
+  '</section>';
+}
+
 function v14Preview(page,large=false){
   page=page||{};
   const image=(page.images||[])[0];
@@ -1240,12 +1296,16 @@ function v14DocRow(n){
   const page=(n.pages||[])[0]||{};
   const pages=(n.pages||[]).length;
   const subject=n.subject&&n.subject!=='Ohne Fach'?n.subject:'Dokument';
-  return '<article class="v14-docrow"><button data-action="open-note" data-id="'+esc(n.id)+'">'+
-    v14Preview(page,false)+
-    '<span class="v14-doccopy"><strong>'+esc(n.title||'Unbenannt')+'</strong><small>'+esc(subject)+' · '+pages+' '+(pages===1?'Seite':'Seiten')+' · '+fmtDate(n.updatedAt||Date.now())+'</small></span>'+
-    (n.pinned?'<span class="v14-pin">'+icon('pin',15)+'</span>':'')+
-    '<span class="v14-rowarrow">'+icon('arrow',14)+'</span>'+
-  '</button></article>';
+  return '<article class="v14-docrow" data-doc-id="'+esc(n.id)+'">'+
+    '<button class="v14-swipeaction pin" data-action="quick-pin" data-id="'+esc(n.id)+'">'+icon('pin',19)+'<small>'+(n.pinned?'Los':'Pin')+'</small></button>'+
+    '<button class="v14-swipeaction delete" data-action="quick-delete" data-id="'+esc(n.id)+'">'+icon('trash',19)+'<small>Löschen</small></button>'+
+    '<button class="v14-rowmain" data-action="open-note" data-id="'+esc(n.id)+'">'+
+      v14Preview(page,false)+
+      '<span class="v14-doccopy"><strong>'+esc(n.title||'Unbenannt')+'</strong><small>'+esc(subject)+' · '+pages+' '+(pages===1?'Seite':'Seiten')+' · '+fmtDate(n.updatedAt||Date.now())+'</small></span>'+
+      (n.pinned?'<span class="v14-pin">'+icon('pin',15)+'</span>':'')+
+      '<span class="v14-rowarrow">'+icon('arrow',14)+'</span>'+
+    '</button>'+
+  '</article>';
 }
 function v14Section(title,action='',act=''){
   return '<div class="v14-sectionhead"><h2>'+esc(title)+'</h2>'+(action?'<button data-action="'+act+'">'+esc(action)+'</button>':'')+'</div>';
@@ -1308,10 +1368,10 @@ function renderHome(){
 
   html+='<section class="v14-section">'+v14Section('Zuletzt','Alle','library')+
     (recent.length?'<div class="v14-list">'+recent.map(v14DocRow).join('')+'</div>':v14Empty('Noch keine Dokumente','Erstelle eine Notiz oder importiere Lernmaterial.','open-create-sheet','Neu erstellen'))+
-  '</section>'+v14CreateSheet(false);
+  '</section>'+v14CreateSheet(false)+v14ContextSheet();
 
   root.innerHTML=shell(html,'home');
-  requestAnimationFrame(v14BindLargeTitle);
+  requestAnimationFrame(()=>{v14BindLargeTitle();v14BindDocumentGestures();});
 }
 
 function renderLibrary(){
@@ -1364,12 +1424,12 @@ function renderLibrary(){
   if(state.folderModal){
     html+='<div class="v14-dim"></div><section class="v14-alert"><h2>'+(state.folderModalMode==='rename'?'Ordner umbenennen':'Neuer Ordner')+'</h2><input id="folderNameInput" value="'+esc(state.folderModalMode==='rename'?folderName(state.folderEditId):'')+'" placeholder="Name"><div><button data-action="close-folder-modal">Abbrechen</button><button data-action="'+(state.folderModalMode==='rename'?'save-folder-name':'create-folder')+'">'+(state.folderModalMode==='rename'?'Sichern':'Erstellen')+'</button></div></section>';
   }
-  html+=v14CreateSheet(true);
+  html+=v14CreateSheet(true)+v14ContextSheet();
 
   root.innerHTML=shell(html,'library');
   const search=$('#librarySearch');if(search)search.oninput=e=>{state.libraryQuery=e.target.value;renderLibrary();};
   if(state.folderModal)requestAnimationFrame(()=>$('#folderNameInput')?.focus());
-  requestAnimationFrame(v14BindLargeTitle);
+  requestAnimationFrame(()=>{v14BindLargeTitle();v14BindDocumentGestures();});
 }
 
 function renderReviews(){
@@ -1536,6 +1596,16 @@ window.addEventListener('click',e=>{
   else if(a==='open-sort-sheet'){state.sortSheetOpen=true;renderLibrary();}
   else if(a==='close-sort-sheet'){state.sortSheetOpen=false;renderLibrary();}
   else if(a==='set-sort'){state.librarySort=b.dataset.sort||'recent';state.sortSheetOpen=false;renderLibrary();}
+  else if(a==='quick-pin'){const id=b.dataset.id;data.setNotes(data.notes().map(n=>n.id===id?Object.assign({},n,{pinned:!n.pinned,updatedAt:Date.now()}):n));v14Haptic();v14RenderCurrent();}
+  else if(a==='quick-delete'){state.docContextId=b.dataset.id;const id=state.docContextId;const prev=state.noteId;state.noteId=id;softDelete(id);state.noteId=prev;state.docContextId=null;v14Haptic(16);v14RenderCurrent();}
+  else if(a==='close-doc-context'){state.docContextId=null;state.moveSheetOpen=false;v14RenderCurrent();}
+  else if(a==='context-open'){const id=state.docContextId;state.docContextId=null;state.moveSheetOpen=false;if(id){state.noteId=id;state.pageId=data.notes().find(n=>n.id===id)?.pages?.[0]?.id;state.noteMode='view';state.screen='notes';renderNotes();}}
+  else if(a==='context-pin'){const id=state.docContextId;data.setNotes(data.notes().map(n=>n.id===id?Object.assign({},n,{pinned:!n.pinned,updatedAt:Date.now()}):n));state.docContextId=null;v14Haptic();v14RenderCurrent();}
+  else if(a==='context-move'){state.moveSheetOpen=true;v14RenderCurrent();}
+  else if(a==='move-context-note'){const id=state.docContextId,folder=b.dataset.folder;data.setNotes(data.notes().map(n=>n.id===id?Object.assign({},n,{folderId:folder==='none'?null:folder,updatedAt:Date.now()}):n));state.docContextId=null;state.moveSheetOpen=false;v14Haptic();v14RenderCurrent();}
+  else if(a==='context-duplicate'){const id=state.docContextId;if(id){state.noteId=id;duplicateNote();state.docContextId=null;state.screen='notes';}}
+  else if(a==='context-export'){const id=state.docContextId;if(id){state.noteId=id;state.pageId=data.notes().find(n=>n.id===id)?.pages?.[0]?.id;exportNote();state.docContextId=null;v14RenderCurrent();}}
+  else if(a==='context-delete'){const id=state.docContextId;if(id){state.noteId=id;softDelete(id);}state.docContextId=null;v14Haptic(16);v14RenderCurrent();}
   else if(a==='toggle-pages'){state.pagesSheetOpen=!state.pagesSheetOpen;renderNotes();}
   else if(a==='review-rate'){
     const q=state.challenge.questions[state.q],list=data.reviews(),r=list.find(x=>x.prompt===q.prompt);
