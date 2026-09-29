@@ -973,15 +973,15 @@ function renderNotes(){
             '<span class="gn4-flex"></span><button class="gn4-mini" data-action="gn-undo">'+v4Icon('undo',16)+'</button><button class="gn4-mini" data-action="gn-redo">'+v4Icon('redo',16)+'</button>'+
             '<label class="gn4-mini gn4-file">'+v4Icon('image',16)+'<input id="gn3ImageInput" type="file" accept="image/*"></label>'+
           '</div>'+gn3ToolOptions():'')+
-          (!state.gnFocus&&!view?'<div class="gn4-docbar"><select id="gn3Paper"><option value="plain" '+(note.paper==='plain'?'selected':'')+'>Blanko</option><option value="ruled" '+(note.paper==='ruled'?'selected':'')+'>Liniert</option><option value="grid" '+(note.paper==='grid'?'selected':'')+'>Kariert</option><option value="dotted" '+(note.paper==='dotted'?'selected':'')+'>Punktiert</option></select><button data-action="gn3-pdf">'+v4Icon('pdf',15)+'<span>PDF</span></button><span class="gn4-flex"></span><button data-action="gn3-export">'+v4Icon('download',15)+'<span>Export</span></button></div>':'')+
+          (!state.gnFocus&&!view?'<div class="gn4-docbar"><select id="gn3Paper"><option value="plain" '+(note.paper==='plain'?'selected':'')+'>Blanko</option><option value="ruled" '+(note.paper==='ruled'?'selected':'')+'>Liniert</option><option value="grid" '+(note.paper==='grid'?'selected':'')+'>Kariert</option><option value="dotted" '+(note.paper==='dotted'?'selected':'')+'>Punktiert</option><option value="cornell" '+(note.paper==='cornell'?'selected':'')+'>Cornell</option></select><button data-action="gn3-pdf">'+v4Icon('pdf',15)+'<span>PDF</span></button><span class="gn4-flex"></span><button data-action="gn3-export">'+v4Icon('download',15)+'<span>Export</span></button></div>':'')+
           (view?'<div class="gn4-viewbar"><button data-action="gn4-prev-page" '+(list.findIndex(function(n){return n.id===note.id})===0?'disabled':'')+'>'+v4Icon('back',15)+' Vorherige</button><span>Seite '+(list.findIndex(function(n){return n.id===note.id})+1)+' / '+list.length+'</span><button data-action="gn4-next-page" '+(list.findIndex(function(n){return n.id===note.id})===list.length-1?'disabled':'')+'>Nächste '+v4Icon('arrow',15)+'</button></div>':'')+
-          '<div class="gn4-stage"><div class="gn4-scale" style="width:'+state.gnZoom+'%"><div class="gn4-paper '+esc(note.paper||'ruled')+'"><textarea id="gnText" '+(view?'readonly':'')+' class="'+(!view&&state.gnTool==='text'?'editing':'')+'" placeholder="Text eingeben...">'+esc(note.text||'')+'</textarea><canvas id="gnCanvas" class="'+(view?'read-only':'')+'" width="1000" height="1400"></canvas></div></div></div>'+
+          (state.noteSplitV8?'<aside class="gn8-study"><header><strong>Lernen</strong><button data-action="gn8-split">'+v4Icon('close',14)+'</button></header><p>Was passiert mit der Gravitationskraft, wenn sich der Abstand verdoppelt?</p><button data-action="note-study">Lernrunde öffnen</button></aside>':'')+'<div class="gn4-stage"><div class="gn4-scale" style="width:'+state.gnZoom+'%"><div class="gn4-paper '+esc(note.paper||'ruled')+'"><textarea id="gnText" '+(view?'readonly':'')+' class="'+(!view&&state.gnTool==='text'?'editing':'')+'" placeholder="Text eingeben...">'+esc(note.text||'')+'</textarea><canvas id="gnCanvas" class="'+(view?'read-only':'')+'" width="1000" height="1400"></canvas></div></div></div>'+
           (!state.gnFocus?'<footer class="gn4-bottom"><span>Seite '+(list.findIndex(function(n){return n.id===note.id})+1)+' von '+list.length+'</span><i></i><button data-action="gn3-fit">'+v4Icon('fit',14)+'</button><input id="gnZoom" type="range" min="70" max="180" value="'+state.gnZoom+'"><span>'+state.gnZoom+'%</span><span class="gn4-flex"></span><button data-action="gn3-export">'+v4Icon('download',14)+'Export</button><button data-action="mark-note-review">'+v4Icon('repeat',14)+'Wiederholen</button><button class="primary" data-action="note-study">'+v4Icon('play',14)+(sel&&sel.ids&&sel.ids.length?'Aus Auswahl lernen':'Lernrunde')+'</button></footer>':'')+
         '</main>'+
       '</div>'+
       (!view&&sel&&sel.ids&&sel.ids.length?'<div class="gn4-selection"><span>'+sel.ids.length+' ausgewählt</span><button data-action="gn-copy-selection">'+v4Icon('copy',15)+'</button><button data-action="gn-color-selection" data-color="'+state.gnColor+'"><i style="background:'+state.gnColor+'"></i></button><button data-action="gn-learn-selection">'+v4Icon('play',15)+'</button><button class="danger" data-action="gn-delete-selection">'+v4Icon('trash',15)+'</button></div>':'')+
       (!view&&selectedImage?'<div class="gn4-imagebar"><span>Bild</span><button data-action="gn3-image-smaller">−</button><button data-action="gn3-image-larger">+</button><button class="danger" data-action="gn3-image-delete">'+v4Icon('trash',14)+'</button></div>':'')+
-      (state.gnTemplateOpen?'<div class="gn4-modal"><div class="gn4-template-sheet"><header><strong>Seitenvorlage</strong><button data-action="gn4-template-close">'+v4Icon('close',16)+'</button></header><div class="gn4-template-grid">'+['plain','ruled','grid','dotted'].map(function(p){return'<button data-action="gn4-paper" data-paper="'+p+'" class="'+(note.paper===p?'active':'')+'">'+gn3PaperThumb(p)+'<span>'+(p==='plain'?'Blanko':p==='ruled'?'Liniert':p==='grid'?'Kariert':'Punktiert')+'</span></button>'}).join('')+'</div></div></div>':'')+
+      (state.gnTemplateOpen?'<div class="gn4-modal"><div class="gn4-template-sheet"><header><strong>Seitenvorlage</strong><button data-action="gn4-template-close">'+v4Icon('close',16)+'</button></header><div class="gn4-template-grid">'+['plain','ruled','grid','dotted','cornell'].map(function(p){return'<button data-action="gn4-paper" data-paper="'+p+'" class="'+(note.paper===p?'active':'')+'">'+gn3PaperThumb(p)+'<span>'+(p==='plain'?'Blanko':p==='ruled'?'Liniert':p==='grid'?'Kariert':p==='dotted'?'Punktiert':'Cornell')+'</span></button>'}).join('')+'</div></div></div>':'')+
     '</section>',false,'notes',false
   );
   gnBindCanvas(note,shapes,images);
@@ -1314,3 +1314,72 @@ function gn3ToolOptions(){
   if(state.gnTool==='text')return '<div class="gn3-options"><span>Text</span></div>';
   return ''
 }
+
+
+/* V8 — practical workspace features */
+if(!state.librarySectionV8)state.librarySectionV8='notes';
+if(!state.libraryViewV8)state.libraryViewV8='list';
+if(!state.librarySortV8)state.librarySortV8='recent';
+if(!state.libraryFolderV8)state.libraryFolderV8='all';
+if(!state.noteSplitV8)state.noteSplitV8=false;
+
+function v8Deleted(){return v4Load('snapstudy-deleted-notes-v8',[])}
+function v8SaveDeleted(v){v4Save('snapstudy-deleted-notes-v8',v)}
+function v8SoftDeleteNote(id){
+  const list=notesStore(),i=list.findIndex(function(n){return n.id===id});if(i<0)return;
+  const removed=Object.assign({},list[i],{deletedAt:Date.now()});
+  list.splice(i,1);saveNotesStore(list);const del=v8Deleted();del.unshift(removed);v8SaveDeleted(del.slice(0,50));
+  if(list.length)state.noteId=list[Math.max(0,i-1)].id;else{const n={id:'n'+Date.now().toString(36),title:'Unbenannte Notiz',text:'',paper:'ruled',subject:'Physik',favorite:false,updatedAt:Date.now()};list.push(n);saveNotesStore(list);state.noteId=n.id}
+}
+function v8RestoreNote(id){
+  const del=v8Deleted(),i=del.findIndex(function(n){return n.id===id});if(i<0)return;
+  const n=Object.assign({},del[i],{deletedAt:undefined,updatedAt:Date.now()});del.splice(i,1);v8SaveDeleted(del);const list=notesStore();list.unshift(n);saveNotesStore(list);state.noteId=n.id;state.librarySectionV8='notes';renderLibraryV4()
+}
+function v8PurgeNote(id){v8SaveDeleted(v8Deleted().filter(function(n){return n.id!==id}));localStorage.removeItem('snapstudy-note-strokes-'+id);localStorage.removeItem('snapstudy-note-shapes-'+id);localStorage.removeItem('snapstudy-note-images-'+id);renderLibraryV4()}
+function gnDeletePage(){
+  const list=notesStore();if(list.length<=1){v4Toast('Mindestens eine Notiz muss bleiben');return}
+  v8SoftDeleteNote(state.noteId);state.gnPageMenu=false;state.gnSelection=null;renderNotes()
+}
+function v8Folder(n){return n.subject||'Physik'}
+function v8LibraryNoteRow(n){
+  return '<article class="v8-row"><button data-action="v6-open-note" data-id="'+esc(n.id)+'"><span class="v8-doc">'+v4Icon('note',17)+'</span><span><strong>'+esc(n.title||'Unbenannt')+'</strong><small>'+esc(v8Folder(n))+' · '+esc(v6Time(n.updatedAt))+'</small></span></button>'+(n.favorite?'<i>★</i>':'')+'</article>'
+}
+function v8DeletedRow(n){
+  return '<article class="v8-row deleted"><div><span class="v8-doc">'+v4Icon('trash',17)+'</span><span><strong>'+esc(n.title||'Unbenannt')+'</strong><small>Gelöscht '+esc(v6Time(n.deletedAt))+'</small></span></div><footer><button data-action="v8-restore" data-id="'+esc(n.id)+'">Wiederherstellen</button><button data-action="v8-purge" data-id="'+esc(n.id)+'">Löschen</button></footer></article>'
+}
+function renderLibraryV4(){
+  const notes=v6RecentNotes(),rounds=v4Library(),deleted=v8Deleted(),q=String(state.libraryQueryV6||'').trim().toLowerCase(),section=state.librarySectionV8||'notes';
+  let items=notes.filter(function(n){return state.libraryFolderV8==='all'||v8Folder(n)===state.libraryFolderV8});
+  if(section==='favorites')items=items.filter(function(n){return n.favorite});
+  if(q)items=items.filter(function(n){return (String(n.title||'')+' '+String(n.text||'')+' '+v8Folder(n)).toLowerCase().includes(q)});
+  items=items.slice().sort(function(a,b){return state.librarySortV8==='title'?String(a.title).localeCompare(String(b.title)):(b.updatedAt||0)-(a.updatedAt||0)});
+  const rFiltered=q?rounds.filter(function(r){return (String(r.title||'')+' '+String(r.topic||'')).toLowerCase().includes(q)}):rounds;
+  let body='';
+  if(section==='deleted')body=deleted.length?'<div class="v8-list">'+deleted.map(v8DeletedRow).join('')+'</div>':'<div class="v8-empty">Papierkorb ist leer</div>';
+  else if(section==='rounds')body=rFiltered.length?'<div class="v8-list">'+rFiltered.map(v6RoundRow).join('')+'</div>':'<div class="v8-empty">Keine Lernrunden</div>';
+  else if(state.libraryViewV8==='grid')body=items.length?'<div class="v8-grid">'+items.map(function(n){return'<button data-action="v6-open-note" data-id="'+esc(n.id)+'"><span class="v8-sheet '+esc(n.paper||'ruled')+'"></span><strong>'+esc(n.title||'Unbenannt')+'</strong><small>'+esc(v8Folder(n))+'</small></button>'}).join('')+'</div>':'<div class="v8-empty">Keine Notizen</div>';
+  else body=items.length?'<div class="v8-list">'+items.map(v8LibraryNoteRow).join('')+'</div>':'<div class="v8-empty">Keine Notizen</div>';
+  app.innerHTML=shell(
+    '<section class="v8-head"><h1>Sammlung</h1><button data-action="v6-new-note">'+v4Icon('plus',15)+'Neu</button></section>'+
+    '<label class="v8-search">'+v4Icon('search',15)+'<input id="v8Search" placeholder="Suchen" value="'+esc(state.libraryQueryV6||'')+'"></label>'+
+    '<div class="v8-tabs"><button data-action="v8-section" data-section="notes" class="'+(section==='notes'?'active':'')+'">Notizen</button><button data-action="v8-section" data-section="favorites" class="'+(section==='favorites'?'active':'')+'">Favoriten</button><button data-action="v8-section" data-section="rounds" class="'+(section==='rounds'?'active':'')+'">Lernrunden</button><button data-action="v8-section" data-section="deleted" class="'+(section==='deleted'?'active':'')+'">Gelöscht</button></div>'+
+    (section==='notes'||section==='favorites'?'<div class="v8-tools"><select id="v8Folder"><option value="all">Alle Fächer</option><option value="Physik">Physik</option><option value="Mathe">Mathe</option><option value="Sonstige">Sonstige</option></select><select id="v8Sort"><option value="recent">Zuletzt geändert</option><option value="title">Titel</option></select><button data-action="v8-view">'+v4Icon(state.libraryViewV8==='list'?'grid':'stack',15)+'</button><span></span><button data-action="v6-backup">Sichern</button><label>Import<input id="v6RestoreInput" type="file" accept="application/json"></label></div>':'')+
+    body,false,'library',false
+  );
+  const search=document.getElementById('v8Search');if(search)search.oninput=function(){state.libraryQueryV6=search.value;renderLibraryV4()};
+  const folder=document.getElementById('v8Folder');if(folder){folder.value=state.libraryFolderV8;folder.onchange=function(){state.libraryFolderV8=folder.value;renderLibraryV4()}};
+  const sort=document.getElementById('v8Sort');if(sort){sort.value=state.librarySortV8;sort.onchange=function(){state.librarySortV8=sort.value;renderLibraryV4()}};
+  const restore=document.getElementById('v6RestoreInput');if(restore)restore.onchange=function(){const file=restore.files&&restore.files[0];if(file)v6Restore(file);restore.value=''}
+}
+
+const v8PrevClick=app.onclick;
+app.onclick=function(e){
+  const b=e.target.closest('[data-action]');if(!b){if(v8PrevClick)v8PrevClick(e);return}
+  const a=b.dataset.action;
+  if(a==='v8-section'){state.librarySectionV8=b.dataset.section||'notes';state.libraryQueryV6='';renderLibraryV4();return}
+  if(a==='v8-view'){state.libraryViewV8=state.libraryViewV8==='list'?'grid':'list';renderLibraryV4();return}
+  if(a==='v8-restore'){v8RestoreNote(b.dataset.id);return}
+  if(a==='v8-purge'){v8PurgeNote(b.dataset.id);return}
+  if(a==='gn8-split'){state.noteSplitV8=!state.noteSplitV8;renderNotes();return}
+  if(v8PrevClick)v8PrevClick(e)
+};
