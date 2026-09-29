@@ -154,7 +154,7 @@ const state = {
   pageId:data.notes()[0]?.pages?.[0]?.id,
   noteMode:'view', noteTool:'pen', penSize:5, markerSize:24, eraserSize:55, eraserMode:'precision', color:'#20242B',
   selection:null, history:{}, redo:{}, focus:false, noteNav:'pages', splitStudy:false, splitReveal:false, splitIndex:0, noteInfo:false, selectedImage:null, jumpStart:null, docSearchOpen:false, docSearchQuery:'',
-  libraryTab:'notes', libraryView:'list', libraryQuery:'', librarySort:'recent', librarySubject:'all', libraryFolder:'all', newMenu:false, folderModal:false,
+  libraryTab:'notes', libraryView:'list', libraryQuery:'', librarySort:'recent', librarySubject:'all', libraryFolder:'all', newMenu:false, folderModal:false, folderModalMode:'create', folderEditId:null, folderMenu:false,
   recentColors:load('ss11:recentColors',['#20242B','#3568D4','#B75850','#26785B','#D39A23']),
   createMode:'photo', createText:'', createFile:null, createPreview:'', challenge:null, q:0, answered:false, score:0, lastCorrect:false, lastExplanation:'', quizMode:'normal',
   toast:''
@@ -211,6 +211,14 @@ function deletePage(){
   data.setNotes(data.notes().map(x=>x.id===n.id?Object.assign({},x,{pages,updatedAt:Date.now()}):x));
   localStorage.removeItem('ss12:strokes:'+n.id+':'+p.id);state.pageId=pages[Math.max(0,idx-1)].id;renderNotes();
 }
+function movePage(direction){
+  const n=getNote(),p=getPage(n);if(!n||!p)return;
+  const pages=(n.pages||[]).slice(),i=pages.findIndex(x=>x.id===p.id),j=i+direction;
+  if(i<0||j<0||j>=pages.length)return;
+  const tmp=pages[i];pages[i]=pages[j];pages[j]=tmp;
+  data.setNotes(data.notes().map(x=>x.id===n.id?Object.assign({},x,{pages,updatedAt:Date.now()}):x));
+  renderNotes();
+}
 function noteOutline(page){
   const text=String(page?.text||''),lines=text.split('\n'),out=[];let pos=0;
   lines.forEach((raw,i)=>{const line=raw.trim(),start=pos;pos+=raw.length+1;if(!line)return;const heading=i===0||line.endsWith(':')||(/^[A-ZÄÖÜ0-9][^.!?]{2,55}$/u.test(line)&&!/[=+*/]/.test(line));if(heading&&out.length<12)out.push({label:line.replace(/:$/,''),start});});
@@ -220,7 +228,18 @@ function subjectList(){return [...new Set(data.notes().map(n=>n.subject||'Ohne F
 function folderName(id){return data.folders().find(f=>f.id===id)?.name||'';}
 function createFolder(name){
   name=String(name||'').trim();if(!name)return;
-  const folder={id:uid('folder'),name,createdAt:Date.now()};data.setFolders([...data.folders(),folder]);state.libraryFolder=folder.id;renderLibrary();
+  const folder={id:uid('folder'),name,createdAt:Date.now()};data.setFolders([...data.folders(),folder]);state.libraryFolder=folder.id;state.folderModal=false;state.folderModalMode='create';renderLibrary();
+}
+function renameFolder(id,name){
+  name=String(name||'').trim();if(!id||!name)return;
+  data.setFolders(data.folders().map(f=>f.id===id?Object.assign({},f,{name}):f));
+  state.folderModal=false;state.folderEditId=null;state.folderMenu=false;renderLibrary();
+}
+function deleteFolder(id){
+  if(!id)return;
+  data.setNotes(data.notes().map(n=>n.folderId===id?Object.assign({},n,{folderId:null,updatedAt:Date.now()}):n));
+  data.setFolders(data.folders().filter(f=>f.id!==id));
+  state.libraryFolder='all';state.folderMenu=false;renderLibrary();
 }
 function moveNoteToFolder(folderId){patchNote({folderId:folderId==='none'?null:folderId});}
 function splitChallenge(n){
@@ -302,13 +321,14 @@ function renderLibrary(){
 
   const subjects=subjectList(),crumb=state.libraryFolder!=='all'?'<button class="foldercrumb" data-action="all-folders">'+icon('back',13)+esc(folderName(state.libraryFolder))+'</button>':'';
   root.innerHTML=shell(
-    '<section class="libraryhead"><div>'+crumb+'<h1>Sammlung</h1></div><button data-action="library-new">'+icon('plus',14)+' Neu</button></section>'+
+    '<section class="libraryhead"><div>'+crumb+'<h1>Sammlung</h1></div><div class="library-actions">'+(state.libraryFolder!=='all'?'<button data-action="folder-more" aria-label="Ordneroptionen">'+icon('more',15)+'</button>':'')+'<button data-action="library-new">'+icon('plus',14)+' Neu</button></div></section>'+
     '<label class="searchbar">'+icon('search',15)+'<input id="librarySearch" placeholder="Suchen" value="'+esc(state.libraryQuery)+'"></label>'+
     '<div class="tabs">'+[['notes','Notizen'],['pinned','Angepinnt'],['favorites','Favoriten'],['rounds','Lernrunden'],['deleted','Gelöscht']].map(x=>'<button data-action="library-tab" data-tab="'+x[0]+'" class="'+(state.libraryTab===x[0]?'active':'')+'">'+x[1]+'</button>').join('')+'</div>'+
     ((['notes','pinned','favorites'].includes(state.libraryTab))?'<div class="toolbarline"><select id="subjectSelect"><option value="all">Alle Fächer</option>'+subjects.map(s=>'<option value="'+esc(s)+'">'+esc(s)+'</option>').join('')+'</select><select id="sortSelect"><option value="recent">Zuletzt geändert</option><option value="title">Titel</option></select><button data-action="toggle-library-view">'+icon(state.libraryView==='list'?'grid':'list',15)+'</button><span></span><button data-action="backup">'+icon('download',13)+' Sichern</button><label>'+icon('upload',13)+' Import<input id="backupInput" type="file" accept="application/json"></label></div>':'')+
     body+
     (state.newMenu?'<div class="newmenu"><button data-action="new-note">'+icon('note',15)+' Dokument</button><button data-action="new-folder">'+icon('folder',15)+' Ordner</button></div>':'')+
-    (state.folderModal?'<div class="info-modal"><div><header><strong>Neuer Ordner</strong><button data-action="close-folder-modal">'+icon('close',15)+'</button></header><label>Name<input id="folderNameInput" autocomplete="off" placeholder="Ordnername"></label><button class="primary full foldercreate" data-action="create-folder">Erstellen</button></div></div>':''),
+    (state.folderMenu?'<div class="foldermenu"><button data-action="rename-folder">'+icon('text',14)+' Umbenennen</button><button data-action="delete-folder" class="danger">'+icon('trash',14)+' Ordner löschen</button></div>':'')+
+    (state.folderModal?'<div class="info-modal"><div><header><strong>'+(state.folderModalMode==='rename'?'Ordner umbenennen':'Neuer Ordner')+'</strong><button data-action="close-folder-modal">'+icon('close',15)+'</button></header><label>Name<input id="folderNameInput" autocomplete="off" value="'+esc(state.folderModalMode==='rename'?folderName(state.folderEditId):'')+'" placeholder="Ordnername"></label><button class="primary full foldercreate" data-action="'+(state.folderModalMode==='rename'?'save-folder-name':'create-folder')+'">'+(state.folderModalMode==='rename'?'Speichern':'Erstellen')+'</button></div></div>':''),
     'library'
   );
   const search=$('#librarySearch');if(search)search.oninput=e=>{state.libraryQuery=e.target.value;renderLibrary();};
@@ -479,6 +499,8 @@ function renderNotes(){
   const pageMenu=
     '<div id="pageMenu" class="popover page-menu hidden">'+
       '<button data-action="bookmark-page">'+icon('star',14)+(p.bookmark?' Lesezeichen entfernen':' Lesezeichen')+'</button>'+
+      '<button data-action="page-left">'+icon('back',14)+' Nach links</button>'+
+      '<button data-action="page-right">'+icon('arrow',14)+' Nach rechts</button>'+
       '<button data-action="duplicate-page">'+icon('copy',14)+' Seite duplizieren</button>'+
       '<button data-action="delete-page" class="danger">'+icon('trash',14)+' Seite löschen</button>'+
     '</div>';
@@ -862,11 +884,15 @@ window.addEventListener('click',e=>{
   else if(a==='library'){state.screen='library';state.newMenu=false;renderLibrary();}
   else if(a==='library-pinned'){state.screen='library';state.libraryTab='pinned';state.libraryFolder='all';renderLibrary();}
   else if(a==='library-new'){state.newMenu=!state.newMenu;renderLibrary();}
-  else if(a==='new-folder'){state.newMenu=false;state.folderModal=true;renderLibrary();}
-  else if(a==='close-folder-modal'){state.folderModal=false;renderLibrary();}
-  else if(a==='create-folder'){createFolder($('#folderNameInput')?.value||'');state.folderModal=false;}
-  else if(a==='open-folder'){state.libraryFolder=b.dataset.id||'all';state.libraryTab='notes';renderLibrary();}
-  else if(a==='all-folders'){state.libraryFolder='all';renderLibrary();}
+  else if(a==='new-folder'){state.newMenu=false;state.folderModal=true;state.folderModalMode='create';state.folderEditId=null;renderLibrary();}
+  else if(a==='close-folder-modal'){state.folderModal=false;state.folderEditId=null;renderLibrary();}
+  else if(a==='create-folder')createFolder($('#folderNameInput')?.value||'');
+  else if(a==='folder-more'){state.folderMenu=!state.folderMenu;renderLibrary();}
+  else if(a==='rename-folder'){state.folderEditId=state.libraryFolder;state.folderModalMode='rename';state.folderModal=true;state.folderMenu=false;renderLibrary();}
+  else if(a==='save-folder-name')renameFolder(state.folderEditId,$('#folderNameInput')?.value||'');
+  else if(a==='delete-folder')deleteFolder(state.libraryFolder);
+  else if(a==='open-folder'){state.libraryFolder=b.dataset.id||'all';state.libraryTab='notes';state.folderMenu=false;renderLibrary();}
+  else if(a==='all-folders'){state.libraryFolder='all';state.folderMenu=false;renderLibrary();}
   else if(a==='notes'){state.screen='notes';state.noteMode='view';state.selectedImage=null;renderNotes();}
   else if(a==='reviews'){state.screen='reviews';renderReviews();}
   else if(a==='trophies'){state.screen='trophies';history.replaceState(null,'','/trophies');renderTrophies();}
@@ -907,6 +933,8 @@ window.addEventListener('click',e=>{
   else if(a==='note-more')$('#noteMenu')?.classList.toggle('hidden');
   else if(a==='page-more')$('#pageMenu')?.classList.toggle('hidden');
   else if(a==='bookmark-page'){const p=getPage();patchPage({bookmark:!p.bookmark});renderNotes();}
+  else if(a==='page-left')movePage(-1);
+  else if(a==='page-right')movePage(1);
   else if(a==='duplicate-page')duplicatePage();
   else if(a==='delete-page')deletePage();
   else if(a==='mark-note-review'){markNoteForReview();$('#noteMenu')?.classList.add('hidden');}
