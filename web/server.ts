@@ -31,7 +31,7 @@ async function main() {
 
   async function sendFile(reply: any, name: string) {
     const body = await readFile(join(root, name));
-    const dynamicAsset = name === 'index.html' || name === 'app.js' || name === 'styles.css';
+    const dynamicAsset = name === 'index.html' || name === 'app.js' || name === 'styles.css' || name === 'sw.js' || name === 'manifest.webmanifest';
     reply.header('cache-control', dynamicAsset ? 'no-store, max-age=0, must-revalidate' : 'public, max-age=3600');
     if (dynamicAsset) {
       reply.header('pragma', 'no-cache');
