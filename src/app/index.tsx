@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { BackHandler, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, BackHandler, Linking, Pressable, StyleSheet, Text, View, useColorScheme } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { WebView, type WebViewNavigation } from 'react-native-webview';
 
@@ -8,6 +8,11 @@ const APP_ORIGIN = 'https://snapstudy-live-v3.onrender.com';
 
 export default function SnapStudyScreen() {
   const webViewRef = useRef<WebView>(null);
+  const scheme = useColorScheme();
+  const dark = scheme === 'dark';
+  const palette = dark
+    ? { background: '#000000', surface: '#1C1C1E', label: '#F2F2F7', secondary: '#AEAEB2', blue: '#0A84FF' }
+    : { background: '#F2F2F7', surface: '#FFFFFF', label: '#1C1C1E', secondary: '#6C6C70', blue: '#007AFF' };
   const [canGoBack, setCanGoBack] = useState(false);
   const [failed, setFailed] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
@@ -54,21 +59,21 @@ export default function SnapStudyScreen() {
 
   if (failed) {
     return (
-      <View style={styles.errorScreen}>
-        <StatusBar style="dark" />
-        <View style={styles.mark}>
-          <View style={styles.markFold} />
-          <View style={styles.markLineLong} />
-          <View style={styles.markLineMedium} />
-          <View style={styles.markLineShort} />
+      <View style={[styles.errorScreen, { backgroundColor: palette.background }]}>
+        <StatusBar style={dark ? 'light' : 'dark'} />
+        <View style={[styles.statusGlyph, { backgroundColor: dark ? '#1C1C1E' : '#EDEDF2' }]}>
+          <Text style={[styles.statusGlyphText, { color: palette.secondary }]}>!</Text>
         </View>
-        <Text style={styles.title}>Keine Verbindung</Text>
-        <Text style={styles.copy}>
-          SnapStudy konnte gerade nicht geladen werden. Deine Notizen bleiben erhalten.
+        <Text style={[styles.title, { color: palette.label }]}>Keine Verbindung</Text>
+        <Text style={[styles.copy, { color: palette.secondary }]}>
+          SnapStudy konnte gerade nicht geladen werden. Deine gespeicherten Notizen bleiben erhalten.
         </Text>
         <Pressable
           accessibilityRole="button"
-          style={styles.retryButton}
+          style={({ pressed }) => [
+            styles.retryButton,
+            { backgroundColor: palette.blue, opacity: pressed ? 0.76 : 1 },
+          ]}
           onPress={() => {
             retryCount.current = 0;
             setFailed(false);
@@ -79,23 +84,26 @@ export default function SnapStudyScreen() {
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          style={styles.browserButton}
+          style={({ pressed }) => [
+            styles.browserButton,
+            { backgroundColor: pressed ? (dark ? '#2C2C2E' : '#E9E9EE') : 'transparent' },
+          ]}
           onPress={() => void Linking.openURL(APP_URL)}
         >
-          <Text style={styles.browserText}>Im Browser öffnen</Text>
+          <Text style={[styles.browserText, { color: palette.blue }]}>Im Browser öffnen</Text>
         </Pressable>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="dark" />
+    <View style={[styles.container, { backgroundColor: palette.background }]}>
+      <StatusBar style={dark ? 'light' : 'dark'} />
       <WebView
         key={reloadKey}
         ref={webViewRef}
         source={{ uri: APP_URL }}
-        style={styles.webview}
+        style={[styles.webview, { backgroundColor: palette.background }]}
         originWhitelist={['https://*', 'blob:*', 'about:*']}
         onNavigationStateChange={onNavigation}
         onShouldStartLoadWithRequest={shouldLoad}
@@ -115,9 +123,9 @@ export default function SnapStudyScreen() {
         incognito={false}
         startInLoadingState
         renderLoading={() => (
-          <View style={styles.loading}>
-            <View style={styles.loadingBar} />
-            <Text style={styles.loadingText}>SnapStudy wird geladen …</Text>
+          <View style={[styles.loading, { backgroundColor: palette.background }]}>
+            <ActivityIndicator size="small" color={palette.blue} />
+            <Text style={[styles.loadingText, { color: palette.secondary }]}>SnapStudy</Text>
           </View>
         )}
       />
@@ -128,11 +136,9 @@ export default function SnapStudyScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F6F8',
   },
   webview: {
     flex: 1,
-    backgroundColor: '#F5F6F8',
   },
   loading: {
     position: 'absolute',
@@ -142,18 +148,11 @@ const styles = StyleSheet.create({
     left: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
-    backgroundColor: '#F5F6F8',
-  },
-  loadingBar: {
-    width: 34,
-    height: 3,
-    borderRadius: 999,
-    backgroundColor: '#3568D4',
+    gap: 12,
   },
   loadingText: {
-    color: '#737A84',
-    fontSize: 12,
+    fontSize: 14,
+    lineHeight: 19,
     fontWeight: '500',
   },
   errorScreen: {
@@ -161,91 +160,62 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 28,
-    backgroundColor: '#F5F6F8',
   },
-  mark: {
-    width: 48,
-    height: 58,
-    borderWidth: 2,
-    borderColor: '#2D333B',
-    borderRadius: 7,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 10,
-    paddingTop: 20,
-    gap: 5,
-    position: 'relative',
+  statusGlyph: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  markFold: {
-    position: 'absolute',
-    right: -2,
-    top: -2,
-    width: 13,
-    height: 13,
-    borderTopRightRadius: 6,
-    borderBottomLeftRadius: 5,
-    backgroundColor: '#E2B84B',
-  },
-  markLineLong: {
-    height: 2,
-    width: 23,
-    borderRadius: 999,
-    backgroundColor: '#3568D4',
-  },
-  markLineMedium: {
-    height: 2,
-    width: 18,
-    borderRadius: 999,
-    backgroundColor: '#3568D4',
-  },
-  markLineShort: {
-    height: 2,
-    width: 13,
-    borderRadius: 999,
-    backgroundColor: '#3568D4',
+  statusGlyphText: {
+    fontSize: 25,
+    lineHeight: 30,
+    fontWeight: '600',
   },
   title: {
-    marginTop: 20,
-    color: '#20242B',
-    fontSize: 22,
-    lineHeight: 27,
+    marginTop: 22,
+    fontSize: 24,
+    lineHeight: 30,
     fontWeight: '600',
+    letterSpacing: -0.35,
     textAlign: 'center',
   },
   copy: {
     marginTop: 8,
-    maxWidth: 300,
-    color: '#737A84',
-    fontSize: 13,
-    lineHeight: 19,
+    maxWidth: 314,
+    fontSize: 15,
+    lineHeight: 21,
+    fontWeight: '400',
     textAlign: 'center',
   },
   retryButton: {
-    marginTop: 20,
-    minHeight: 44,
-    minWidth: 168,
+    marginTop: 24,
+    minHeight: 50,
+    minWidth: 188,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
-    borderRadius: 6,
-    backgroundColor: '#3568D4',
+    borderRadius: 12,
   },
   retryText: {
     color: '#FFFFFF',
-    fontSize: 13,
+    fontSize: 16,
+    lineHeight: 20,
     fontWeight: '600',
   },
   browserButton: {
     marginTop: 8,
-    minHeight: 40,
-    minWidth: 168,
+    minHeight: 44,
+    minWidth: 188,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 18,
-    borderRadius: 6,
+    borderRadius: 10,
   },
   browserText: {
-    color: '#5F6670',
-    fontSize: 12,
+    fontSize: 15,
+    lineHeight: 20,
     fontWeight: '500',
   },
 });
