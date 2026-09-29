@@ -1,5 +1,5 @@
-const CACHE='snapstudy-v14.2';
-const SHELL=['/','/styles.css?v=14.2','/app.js?v=14.2','/manifest.webmanifest','/icon.svg'];
+const CACHE='snapstudy-v14.3';
+const SHELL=['/','/v14.css?v=14.3','/app.js?v=14.3','/manifest.webmanifest','/icon.svg'];
 
 self.addEventListener('install',event=>{
   self.skipWaiting();
@@ -15,7 +15,7 @@ self.addEventListener('fetch',event=>{
   if(event.request.method!=='GET') return;
   const url=new URL(event.request.url);
   if(url.origin!==location.origin) return;
-  if(url.pathname==='/app.js'||url.pathname==='/styles.css'||url.pathname==='/'||url.pathname==='/trophies'){
+  if(url.pathname==='/app.js'||url.pathname==='/v14.css'||url.pathname==='/'||url.pathname==='/trophies'){
     event.respondWith(fetch(event.request).then(res=>{
       const copy=res.clone();caches.open(CACHE).then(c=>c.put(event.request,copy));return res;
     }).catch(()=>caches.match(event.request).then(hit=>hit||caches.match('/'))));
