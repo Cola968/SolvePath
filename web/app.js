@@ -328,7 +328,7 @@ function renderNotesList(){
 
   root.innerHTML=shell(html,'notes');
   const search=$('#noteListSearch');
-  if(search)search.oninput=e=>{state.noteListQuery=e.target.value;renderNotesList();};
+  if(search)search.oninput=e=>{const pos=e.target.selectionStart??e.target.value.length;state.noteListQuery=e.target.value;renderNotesList();v14RestoreInput('noteListSearch',pos);};
   requestAnimationFrame(()=>{v14BindLargeTitle();v14BindDocumentGestures();});
 }
 
@@ -372,7 +372,7 @@ function renderLibrary(){
     (state.folderModal?'<div class="info-modal"><div><header><strong>'+(state.folderModalMode==='rename'?'Ordner umbenennen':'Neuer Ordner')+'</strong><button data-action="close-folder-modal">'+icon('close',15)+'</button></header><label>Name<input id="folderNameInput" autocomplete="off" value="'+esc(state.folderModalMode==='rename'?folderName(state.folderEditId):'')+'" placeholder="Ordnername"></label><button class="primary full foldercreate" data-action="'+(state.folderModalMode==='rename'?'save-folder-name':'create-folder')+'">'+(state.folderModalMode==='rename'?'Speichern':'Erstellen')+'</button></div></div>':''),
     'library'
   );
-  const search=$('#librarySearch');if(search)search.oninput=e=>{state.libraryQuery=e.target.value;renderLibrary();};
+  const search=$('#librarySearch');if(search)search.oninput=e=>{const pos=e.target.selectionStart??e.target.value.length;state.libraryQuery=e.target.value;renderLibrary();v14RestoreInput('librarySearch',pos);};
   const subject=$('#subjectSelect');if(subject){subject.value=state.librarySubject;subject.onchange=e=>{state.librarySubject=e.target.value;renderLibrary();};}
   const sort=$('#sortSelect');if(sort){sort.value=state.librarySort;sort.onchange=e=>{state.librarySort=e.target.value;renderLibrary();};}
   const bi=$('#backupInput');if(bi)bi.onchange=e=>restoreBackup(e.target.files?.[0]);
@@ -1264,6 +1264,14 @@ function v14BindLargeTitle(){
   scroller.addEventListener('scroll',sync,{passive:true});sync();
 }
 function v14TimeEstimate(count){return Math.max(2,Math.round(count*1.1));}
+function v14RestoreInput(id,pos){
+  requestAnimationFrame(()=>{
+    const el=document.getElementById(id);if(!el)return;
+    el.focus({preventScroll:true});
+    try{const p=Math.min(Number.isFinite(pos)?pos:el.value.length,el.value.length);el.setSelectionRange(p,p);}catch{}
+  });
+}
+
 function v14DeleteDocument(id){
   const notes=data.notes(),i=notes.findIndex(n=>n.id===id);if(i<0)return false;
   const next=notes.slice(),[n]=next.splice(i,1);n.deletedAt=Date.now();
@@ -1605,7 +1613,7 @@ function renderNotes(){
   const title=$('#noteTitle');if(title)title.oninput=e=>patchNote({title:e.target.value});
   const infoTitle=$('#infoTitle');if(infoTitle)infoTitle.oninput=e=>patchNote({title:e.target.value});
   const infoSubject=$('#infoSubject');if(infoSubject)infoSubject.oninput=e=>patchNote({subject:e.target.value});
-  const ds=$('#docSearchInput');if(ds){ds.oninput=e=>{state.docSearchQuery=e.target.value;renderNotes();};requestAnimationFrame(()=>{const x=$('#docSearchInput');if(x){x.focus();x.setSelectionRange(x.value.length,x.value.length);}});}
+  const ds=$('#docSearchInput');if(ds){ds.oninput=e=>{const pos=e.target.selectionStart??e.target.value.length;state.docSearchQuery=e.target.value;renderNotes();v14RestoreInput('docSearchInput',pos);};requestAnimationFrame(()=>{const x=$('#docSearchInput');if(x&&!document.activeElement?.id){x.focus();x.setSelectionRange(x.value.length,x.value.length);}});}
   bindNote(n,p);
 }
 
