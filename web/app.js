@@ -51,7 +51,7 @@ ICONS.pin='<path d="M9 4h6"/><path d="m10 4-1 6-3 3h12l-3-3-1-6"/><path d="M12 1
 
 const KEYS = {
   notes:'ss10:notes', rounds:'ss10:rounds', reviews:'ss10:reviews', profile:'ss10:profile',
-  trophies:'ss10:trophies', activity:'ss10:activity', deleted:'ss10:deleted'
+  trophies:'ss10:trophies', activity:'ss10:activity', deleted:'ss10:deleted', folders:'ss12:folders'
 };
 function defaultNote(){
   return {id:uid('note'),title:'Gravitation',subject:'Physik',paper:'ruled',favorite:false,pinned:false,createdAt:Date.now(),updatedAt:Date.now(),
@@ -73,13 +73,30 @@ function migrate(){
 }
 migrate();
 
+function normalizeDocumentsV12(){
+  const notes=load(KEYS.notes,[]),next=[];
+  notes.forEach(n=>{
+    if(Array.isArray(n.pages)&&n.pages.length){next.push(n);return;}
+    const pageId=uid('page');
+    const page={id:pageId,title:'Seite 1',text:String(n.text||''),paper:n.paper||'ruled',images:Array.isArray(n.images)?n.images:[],shapes:Array.isArray(n.shapes)?n.shapes:[],bookmark:false};
+    const oldStrokes=load('ss10:strokes:'+n.id,[]);
+    if(oldStrokes.length&&!localStorage.getItem('ss12:strokes:'+n.id+':'+pageId))save('ss12:strokes:'+n.id+':'+pageId,oldStrokes);
+    next.push(Object.assign({},n,{folderId:n.folderId||null,tags:Array.isArray(n.tags)?n.tags:[],pages:[page]}));
+  });
+  save(KEYS.notes,next);
+  if(!localStorage.getItem(KEYS.folders))save(KEYS.folders,[]);
+}
+normalizeDocumentsV12();
+
 const data = {
   notes:()=>load(KEYS.notes,[]), setNotes:v=>save(KEYS.notes,v),
   rounds:()=>load(KEYS.rounds,[]), setRounds:v=>save(KEYS.rounds,v),
   reviews:()=>load(KEYS.reviews,[]), setReviews:v=>save(KEYS.reviews,v),
   profile:()=>load(KEYS.profile,{xp:0,streak:0,last:'',sessions:0,perfects:0,reviewsDone:0}), setProfile:v=>save(KEYS.profile,v),
   deleted:()=>load(KEYS.deleted,[]), setDeleted:v=>save(KEYS.deleted,v),
-  strokes:id=>load('ss10:strokes:'+id,[]), setStrokes:(id,v)=>save('ss10:strokes:'+id,v)
+  folders:()=>load(KEYS.folders,[]), setFolders:v=>save(KEYS.folders,v),
+  strokes:(noteId,pageId)=>load(pageId?'ss12:strokes:'+noteId+':'+pageId:'ss10:strokes:'+noteId,[]),
+  setStrokes:(noteId,pageId,v)=>{if(v===undefined){v=pageId;pageId=null;}save(pageId?'ss12:strokes:'+noteId+':'+pageId:'ss10:strokes:'+noteId,v)}
 };
 
 const TROPHIES = [
@@ -133,9 +150,10 @@ function weekStats(){
 const state = {
   screen:location.pathname==='/trophies'?'trophies':'home',
   noteId:data.notes()[0]?.id,
+  pageId:data.notes()[0]?.pages?.[0]?.id,
   noteMode:'view', noteTool:'pen', penSize:5, markerSize:24, eraserSize:55, color:'#20242B',
   selection:null, history:{}, redo:{}, focus:false, noteNav:'pages', splitStudy:false, splitReveal:false, splitIndex:0, noteInfo:false, selectedImage:null, jumpStart:null,
-  libraryTab:'notes', libraryView:'list', libraryQuery:'', librarySort:'recent', librarySubject:'all',
+  libraryTab:'notes', libraryView:'list', libraryQuery:'', librarySort:'recent', librarySubject:'all', libraryFolder:'all', newMenu:false,
   recentColors:load('ss11:recentColors',['#20242B','#3568D4','#B75850','#26785B','#D39A23']),
   createMode:'photo', createText:'', createFile:null, createPreview:'', challenge:null, q:0, answered:false, score:0, lastCorrect:false, lastExplanation:'', quizMode:'normal',
   toast:''
@@ -159,32 +177,59 @@ function shell(content,active='home',opts={}){
   return '<main class="app '+(opts.wide?'wide':'')+'">'+(opts.noTop?'':topbar(!!opts.back))+'<div class="content">'+content+'</div>'+(opts.noNav?'':nav(active))+'</main>';
 }
 
-function noteOutline(n){
-  const text=String(n?.text||''),lines=text.split('\n'),out=[];let pos=0;
-  lines.forEach((raw,i)=>{
-    const line=raw.trim(),start=pos;pos+=raw.length+1;
-    if(!line)return;
-    const heading=i===0 || line.endsWith(':') || (/^[A-ZÄÖÜ0-9][^.!?]{2,55}$/u.test(line) && !/[=+*/]/.test(line));
-    if(heading&&out.length<10)out.push({label:line.replace(/:$/,''),start});
-  });
+function getNote(){return data.notes().find(n=>n.id===state.noteId)||data.notes()[0];}
+function getPage(n=getNote()){
+  if(!n)return null;
+  const pages=Array.isArray(n.pages)?n.pages:[];
+  let p=pages.find(x=>x.id===state.pageId)||pages[0]||null;
+  if(p&&state.pageId!==p.id)state.pageId=p.id;
+  return p;
+}
+function patchPage(patch){
+  const notes=data.notes().map(n=>n.id===state.noteId?Object.assign({},n,{pages:(n.pages||[]).map(p=>p.id===state.pageId?Object.assign({},p,patch):p),updatedAt:Date.now()}):n);
+  data.setNotes(notes);const s=$('#saveStatus');if(s)s.textContent='Gespeichert';
+}
+function addPage(){
+  const n=getNote();if(!n)return;
+  const p={id:uid('page'),title:'Seite '+((n.pages?.length||0)+1),text:'',paper:'ruled',images:[],shapes:[],bookmark:false};
+  data.setNotes(data.notes().map(x=>x.id===n.id?Object.assign({},x,{pages:[...(x.pages||[]),p],updatedAt:Date.now()}):x));
+  state.pageId=p.id;state.noteMode='edit';renderNotes();
+}
+function duplicatePage(){
+  const n=getNote(),p=getPage(n);if(!n||!p)return;
+  const cp=JSON.parse(JSON.stringify(p));cp.id=uid('page');cp.title=(p.title||'Seite')+' Kopie';
+  const pages=n.pages||[],idx=pages.findIndex(x=>x.id===p.id),next=pages.slice();next.splice(idx+1,0,cp);
+  data.setNotes(data.notes().map(x=>x.id===n.id?Object.assign({},x,{pages:next,updatedAt:Date.now()}):x));
+  data.setStrokes(n.id,cp.id,JSON.parse(JSON.stringify(data.strokes(n.id,p.id))));
+  state.pageId=cp.id;renderNotes();
+}
+function deletePage(){
+  const n=getNote(),p=getPage(n);if(!n||!p)return;
+  if((n.pages||[]).length<=1){toast('Mindestens eine Seite muss bleiben');return;}
+  const idx=n.pages.findIndex(x=>x.id===p.id),pages=n.pages.filter(x=>x.id!==p.id);
+  data.setNotes(data.notes().map(x=>x.id===n.id?Object.assign({},x,{pages,updatedAt:Date.now()}):x));
+  localStorage.removeItem('ss12:strokes:'+n.id+':'+p.id);state.pageId=pages[Math.max(0,idx-1)].id;renderNotes();
+}
+function noteOutline(page){
+  const text=String(page?.text||''),lines=text.split('\n'),out=[];let pos=0;
+  lines.forEach((raw,i)=>{const line=raw.trim(),start=pos;pos+=raw.length+1;if(!line)return;const heading=i===0||line.endsWith(':')||(/^[A-ZÄÖÜ0-9][^.!?]{2,55}$/u.test(line)&&!/[=+*/]/.test(line));if(heading&&out.length<12)out.push({label:line.replace(/:$/,''),start});});
   return out;
 }
-function subjectList(){
-  return [...new Set(data.notes().map(n=>n.subject||'Ohne Fach'))].sort((a,b)=>a.localeCompare(b,'de'));
+function subjectList(){return [...new Set(data.notes().map(n=>n.subject||'Ohne Fach'))].sort((a,b)=>a.localeCompare(b,'de'));}
+function folderName(id){return data.folders().find(f=>f.id===id)?.name||'';}
+function createFolder(name){
+  name=String(name||'').trim();if(!name)return;
+  const folder={id:uid('folder'),name,createdAt:Date.now()};data.setFolders([...data.folders(),folder]);state.libraryFolder=folder.id;renderLibrary();
 }
+function moveNoteToFolder(folderId){patchNote({folderId:folderId==='none'?null:folderId});}
 function splitChallenge(n){
-  const t=String(n?.text||'').trim();
-  return t.length>=20?localChallenge(t,n.title):null;
+  const text=(n?.pages||[]).map(p=>p.text||'').join('\n').trim();
+  return text.length>=20?localChallenge(text,n.title):null;
 }
 function markNoteForReview(){
-  const n=getNote(),ch=splitChallenge(n);
-  if(!ch||!ch.questions.length){toast('Die Notiz braucht etwas mehr Text');return;}
-  addReview(ch.questions[0],ch,'note');toast('Für Wiederholung markiert');
+  const n=getNote(),ch=splitChallenge(n);if(!ch||!ch.questions.length){toast('Das Dokument braucht etwas mehr Text');return;}addReview(ch.questions[0],ch,'note');toast('Für Wiederholung markiert');
 }
-function updateRecentColor(color){
-  const next=[color,...state.recentColors.filter(c=>c!==color)].slice(0,5);
-  state.recentColors=next;save('ss11:recentColors',next);
-}
+function updateRecentColor(color){const next=[color,...state.recentColors.filter(c=>c!==color)].slice(0,5);state.recentColors=next;save('ss11:recentColors',next);}
 function noteRow(n){
   const marks=(n.pinned?'<i class="pinmark">'+icon('pin',12)+'</i>':'')+(n.favorite?'<i class="fav">★</i>':'');
   return '<article class="row"><button data-action="open-note" data-id="'+esc(n.id)+'"><span class="fileicon">'+icon('note',17)+'</span><span class="rowcopy"><strong>'+esc(n.title||'Unbenannt')+'</strong><small>'+esc(n.subject||'Ohne Fach')+' · '+(n.updatedAt?fmtDate(n.updatedAt):'')+'</small></span></button><span class="rowmarks">'+marks+'</span></article>';
