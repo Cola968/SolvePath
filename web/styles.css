@@ -2396,3 +2396,13 @@ button:active{transform:scale(.975);opacity:.82}
 @media(prefers-reduced-motion:reduce){
   *,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
 }
+
+
+.v14-paperthumb.image{background:none}
+.v14-paperthumb.image img{width:100%;height:100%;display:block;object-fit:cover}
+.v14-editor.view .v14-canvas{padding-top:calc(78px + env(safe-area-inset-top))}
+.v14-editor.view .v14-editorbar{background:var(--ss-material-strong)}
+::view-transition-old(root){animation:180ms ease both ssOld}
+::view-transition-new(root){animation:260ms cubic-bezier(.22,.78,.25,1) both ssNew}
+@keyframes ssOld{to{opacity:.82;transform:scale(.995)}}
+@keyframes ssNew{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
