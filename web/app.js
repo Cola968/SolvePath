@@ -513,6 +513,16 @@ function renderNotes(){
     '</div>';
   }
 
+  const documentSearch=state.docSearchOpen
+    ?'<section class="docsearch"><label>'+icon('search',15)+'<input id="docSearchInput" value="'+esc(state.docSearchQuery)+'" placeholder="Im Dokument suchen"></label>'+
+      (searchTerm
+        ?'<div class="docsearch-results">'+(searchResults.length
+          ?searchResults.map(r=>'<button data-action="doc-search-result" data-page="'+esc(r.pageId)+'" data-start="'+r.start+'"><strong>Seite '+r.page+'</strong><span>'+esc(r.snippet)+'</span></button>').join('')
+          :'<small>Keine Treffer</small>')+'</div>'
+        :'')+
+     '</section>'
+    :'';
+
   const footer=!state.focus
     ?'<footer class="notefoot">'+
        '<button data-action="note-info">'+esc(n.subject||'Ohne Fach')+'</button>'+
