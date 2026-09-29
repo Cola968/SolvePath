@@ -1383,3 +1383,188 @@ app.onclick=function(e){
   if(a==='gn8-split'){state.noteSplitV8=!state.noteSplitV8;renderNotes();return}
   if(v8PrevClick)v8PrevClick(e)
 };
+
+
+/* V9 — Trophy cabinet, goals and mastery progression */
+function v9Activity(){return v4Load('snapstudy-activity-v9',[])}
+function v9SaveActivity(v){v4Save('snapstudy-activity-v9',v.slice(-180))}
+function v9TrophyState(){return v4Load('snapstudy-trophies-v9',{unlocked:{},seen:{}})}
+function v9SaveTrophyState(v){v4Save('snapstudy-trophies-v9',v)}
+function v9Day(){return new Date().toISOString().slice(0,10)}
+function v9WeekKey(ts){
+  const d=new Date(ts||Date.now()),u=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()));
+  const day=u.getUTCDay()||7;u.setUTCDate(u.getUTCDate()+4-day);
+  const y=new Date(Date.UTC(u.getUTCFullYear(),0,1));
+  const w=Math.ceil((((u-y)/86400000)+1)/7);
+  return u.getUTCFullYear()+'-W'+String(w).padStart(2,'0')
+}
+function v9WeekStats(){
+  const key=v9WeekKey(),rows=v9Activity().filter(function(x){return x.week===key});
+  return rows.reduce(function(a,x){a.sessions+=x.sessions||0;a.reviews+=x.reviews||0;a.perfect+=x.perfect||0;return a},{sessions:0,reviews:0,perfect:0})
+}
+function v9RecordResult(pct,mode){
+  const day=v9Day(),week=v9WeekKey(),rows=v9Activity(),row=rows.find(function(x){return x.day===day});
+  if(row){row.sessions=(row.sessions||0)+1;row.reviews=(row.reviews||0)+(mode==='review'?1:0);row.perfect=(row.perfect||0)+(pct===100?1:0);row.week=week}
+  else rows.push({day:day,week:week,sessions:1,reviews:mode==='review'?1:0,perfect:pct===100?1:0});
+  v9SaveActivity(rows)
+}
+function v9Stats(){
+  const p=profile(),notes=notesStore(),reviews=v4Reviews(),week=v9WeekStats(),activity=v9Activity();
+  return{
+    xp:p.xp||0,
+    streak:p.streak||0,
+    sessions:p.sessions||0,
+    perfects:p.perfects||0,
+    notes:notes.length,
+    rounds:v4Library().length,
+    reviewsDone:p.reviewsDone||0,
+    mastered:reviews.filter(function(x){return(x.stage||0)>=3}).length,
+    weekSessions:week.sessions,
+    weekReviews:week.reviews,
+    activeDays:activity.filter(function(x){return(x.sessions||0)>0}).length
+  }
+}
+const V9_TROPHIES=[
+  {id:'first',name:'Losgelegt',desc:'1 Lernrunde abgeschlossen',tier:'Bronze',points:20,metric:'sessions',target:1},
+  {id:'sessions5',name:'Im Rhythmus',desc:'5 Lernrunden abgeschlossen',tier:'Bronze',points:30,metric:'sessions',target:5},
+  {id:'streak3',name:'Drei Tage',desc:'3 Tage in Folge gelernt',tier:'Bronze',points:35,metric:'streak',target:3},
+  {id:'xp250',name:'250 XP',desc:'250 XP gesammelt',tier:'Bronze',points:30,metric:'xp',target:250},
+  {id:'perfect1',name:'Fehlerfrei',desc:'Eine Runde mit 100 %',tier:'Silver',points:50,metric:'perfects',target:1},
+  {id:'notes5',name:'Notizsammler',desc:'5 Notizen angelegt',tier:'Silver',points:45,metric:'notes',target:5},
+  {id:'sessions20',name:'20 Runden',desc:'20 Lernrunden abgeschlossen',tier:'Silver',points:65,metric:'sessions',target:20},
+  {id:'streak7',name:'Eine Woche',desc:'7 Tage in Folge gelernt',tier:'Silver',points:75,metric:'streak',target:7},
+  {id:'reviews10',name:'Drangeblieben',desc:'10 Wiederholungen abgeschlossen',tier:'Silver',points:60,metric:'reviewsDone',target:10},
+  {id:'xp1000',name:'1.000 XP',desc:'1.000 XP gesammelt',tier:'Gold',points:90,metric:'xp',target:1000},
+  {id:'perfect5',name:'Präzise',desc:'5 fehlerfreie Runden',tier:'Gold',points:100,metric:'perfects',target:5},
+  {id:'notes20',name:'Archiv',desc:'20 Notizen angelegt',tier:'Gold',points:90,metric:'notes',target:20},
+  {id:'master5',name:'Gefestigt',desc:'5 Inhalte bis Stufe 3 wiederholt',tier:'Gold',points:110,metric:'mastered',target:5},
+  {id:'sessions50',name:'50 Runden',desc:'50 Lernrunden abgeschlossen',tier:'Gold',points:120,metric:'sessions',target:50},
+  {id:'streak30',name:'30 Tage',desc:'30 Tage in Folge gelernt',tier:'Platin',points:180,metric:'streak',target:30},
+  {id:'xp5000',name:'5.000 XP',desc:'5.000 XP gesammelt',tier:'Platin',points:200,metric:'xp',target:5000},
+  {id:'sessions100',name:'100 Runden',desc:'100 Lernrunden abgeschlossen',tier:'Platin',points:220,metric:'sessions',target:100}
+];
+function v9Metric(t,s){return Math.max(0,Number(s[t.metric]||0))}
+function v9Evaluate(){
+  const s=v9Stats(),state=v9TrophyState(),newOnes=[];
+  V9_TROPHIES.forEach(function(t){
+    if(v9Metric(t,s)>=t.target&&!state.unlocked[t.id]){state.unlocked[t.id]=Date.now();newOnes.push(t)}
+  });
+  v9SaveTrophyState(state);return newOnes
+}
+function v9CupScore(){
+  const state=v9TrophyState();
+  return V9_TROPHIES.reduce(function(sum,t){return sum+(state.unlocked[t.id]?t.points:0)},0)
+}
+function v9League(score){
+  if(score>=900)return{name:'Platin',next:null,min:900,max:900};
+  if(score>=450)return{name:'Gold',next:'Platin',min:450,max:900};
+  if(score>=180)return{name:'Silber',next:'Gold',min:180,max:450};
+  return{name:'Bronze',next:'Silber',min:0,max:180}
+}
+function v9NextTrophy(){
+  const s=v9Stats(),state=v9TrophyState(),locked=V9_TROPHIES.filter(function(t){return!state.unlocked[t.id]});
+  locked.sort(function(a,b){
+    const pa=Math.min(1,v9Metric(a,s)/a.target),pb=Math.min(1,v9Metric(b,s)/b.target);
+    return pb-pa||a.target-b.target
+  });
+  return locked[0]||null
+}
+function v9Progress(t){
+  if(!t)return{value:1,current:0,target:0};
+  const current=Math.min(t.target,v9Metric(t,v9Stats()));
+  return{value:t.target?current/t.target:0,current:current,target:t.target}
+}
+function v9TierIcon(tier){
+  return tier==='Platin'?'✦':tier==='Gold'?'◆':tier==='Silver'?'◇':'●'
+}
+function v9TrophyCard(t){
+  const state=v9TrophyState(),on=!!state.unlocked[t.id],p=v9Progress(t),pct=Math.round(p.value*100);
+  return'<article class="v9-trophy '+(on?'unlocked':'locked')+'"><span class="v9-cup">'+v4Icon('trophy',20)+'</span><div><div class="v9-trophy-title"><strong>'+esc(t.name)+'</strong><i class="'+t.tier.toLowerCase()+'">'+v9TierIcon(t.tier)+' '+esc(t.tier)+'</i></div><small>'+esc(t.desc)+'</small>'+(on?'<em>+'+t.points+' Pokalpunkte</em>':'<div class="v9-mini-progress"><i style="width:'+pct+'%"></i><span>'+p.current+' / '+p.target+'</span></div>')+'</div></article>'
+}
+function renderTrophies(){
+  v9Evaluate();
+  const state=v9TrophyState(),score=v9CupScore(),league=v9League(score),next=v9NextTrophy(),np=v9Progress(next),week=v9WeekStats(),unlocked=V9_TROPHIES.filter(function(t){return state.unlocked[t.id]}).length;
+  const leaguePct=league.next?Math.max(0,Math.min(100,Math.round((score-league.min)/(league.max-league.min)*100))):100;
+  app.innerHTML=shell(
+    '<section class="v9-head"><button data-action="today">'+v4Icon('back',18)+'</button><div><span>Pokale</span><h1>'+score+' Punkte</h1></div><strong>'+unlocked+' / '+V9_TROPHIES.length+'</strong></section>'+
+    '<section class="v9-league"><div><span class="v9-league-mark">'+v4Icon('trophy',24)+'</span><div><small>Stufe</small><strong>'+league.name+'</strong></div></div><div class="v9-league-progress"><i style="width:'+leaguePct+'%"></i></div>'+(league.next?'<small>Noch '+Math.max(0,league.max-score)+' bis '+league.next+'</small>':'<small>Höchste Stufe erreicht</small>')+'</section>'+
+    (next?'<section class="v9-next"><div class="v9-sectionline"><h2>Nächster Pokal</h2><span>'+Math.round(np.value*100)+'%</span></div>'+v9TrophyCard(next)+'</section>':'')+
+    '<section class="v9-week"><div class="v9-sectionline"><h2>Diese Woche</h2><span>'+week.sessions+' Runden</span></div><div class="v9-goals">'+
+      '<div><strong>5 Runden</strong><span><i style="width:'+Math.min(100,week.sessions/5*100)+'%"></i></span><small>'+Math.min(5,week.sessions)+' / 5</small></div>'+
+      '<div><strong>2 Wiederholungen</strong><span><i style="width:'+Math.min(100,week.reviews/2*100)+'%"></i></span><small>'+Math.min(2,week.reviews)+' / 2</small></div>'+
+    '</div></section>'+
+    '<section class="v9-cabinet"><div class="v9-sectionline"><h2>Sammlung</h2><span>'+unlocked+' freigeschaltet</span></div><div class="v9-trophies">'+V9_TROPHIES.map(v9TrophyCard).join('')+'</div></section>',
+    true,'today',true
+  )
+}
+function v9TrophyStrip(){
+  const score=v9CupScore(),league=v9League(score),next=v9NextTrophy(),p=v9Progress(next);
+  return '<button class="v9-home-strip" data-action="trophies"><span>'+v4Icon('trophy',18)+'</span><div><strong>'+league.name+' · '+score+' Punkte</strong><small>'+(next?('Nächster Pokal: '+next.name):'Alle Pokale freigeschaltet')+'</small></div>'+(next?'<i><b style="width:'+Math.round(p.value*100)+'%"></b></i>':'')+v4Icon('arrow',15)+'</button>'
+}
+function v9UnlockOverlay(list){
+  if(!list||!list.length)return'';
+  const t=list[0];
+  return '<div class="v9-unlock"><div>'+v4Icon('trophy',34)+'</div><span>Neuer Pokal</span><strong>'+esc(t.name)+'</strong><small>+'+t.points+' Pokalpunkte</small></div>'
+}
+
+/* Header now surfaces trophies without bringing back gamified clutter. */
+function topbar(back){
+  const score=v9CupScore();
+  return '<header class="v6-topbar">'+
+    (back?'<button class="v6-top-icon" data-action="home" aria-label="Zurück">'+v4Icon('back',18)+'</button>':'<button class="v6-wordmark" data-action="home">SnapStudy</button>')+
+    '<span class="v6-top-spacer"></span>'+
+    '<button class="v9-top-cup" data-action="trophies">'+v4Icon('trophy',15)+'<span>'+score+'</span></button>'+
+    '<button class="v6-top-icon" data-action="library" aria-label="Suchen">'+v4Icon('search',17)+'</button>'+
+  '</header>'
+}
+
+function renderHome(){
+  v9Evaluate();
+  const due=v4Due(),rounds=v4Library(),notes=v6RecentNotes(),recentNotes=notes.slice(0,4),recentRounds=rounds.slice(0,2);
+  app.innerHTML=shell(
+    '<section class="v7-pagehead"><h1>Heute</h1></section>'+
+    v9TrophyStrip()+
+    (due.length
+      ?'<section class="v7-review-strip"><div><strong>Wiederholen</strong><span>'+due.length+' fällig</span></div><button data-action="start-due">Starten</button></section>'
+      :'<section class="v7-review-strip clear"><div><strong>Wiederholen</strong><span>Nichts fällig</span></div></section>')+
+    '<section class="v7-section"><h2>Neu</h2><div class="v7-new-actions">'+
+      '<button data-action="v6-new-note">'+v4Icon('note',18)+'<span>Notiz</span></button>'+
+      '<button data-action="create">'+v4Icon('camera',18)+'<span>Foto</span></button>'+
+      '<button data-action="create-text">'+v4Icon('text',18)+'<span>Text</span></button>'+
+    '</div></section>'+
+    '<section class="v7-section"><div class="v7-sectionhead"><h2>Zuletzt</h2><button data-action="library">Alle</button></div><div class="v6-doclist">'+
+      (recentNotes.length?recentNotes.map(v6DocRow).join(''):'<div class="v7-empty">Keine Notizen</div>')+
+    '</div></section>'+
+    (recentRounds.length?'<section class="v7-section"><h2>Lernrunden</h2><div class="v6-doclist">'+recentRounds.map(v6RoundRow).join('')+'</div></section>':''),
+    false,'today',false
+  )
+}
+
+function renderResult(){
+  const total=state.challenge.questions.length,pct=Math.round(state.score/total*100),p=profile(),day=v9Day(),y=new Date(Date.now()-86400000).toISOString().slice(0,10);
+  if(p.last!==day){p.streak=p.last===y?(p.streak||0)+1:1;p.last=day}
+  p.xp=(p.xp||0)+Math.max(10,pct);
+  p.sessions=(p.sessions||0)+1;
+  p.perfects=(p.perfects||0)+(pct===100?1:0);
+  p.reviewsDone=(p.reviewsDone||0)+(state.mode==='review'?1:0);
+  localStorage.setItem('snapstudy-profile',JSON.stringify(p));
+  v9RecordResult(pct,state.mode);
+  if(state.mode!=='review')v4SaveRound(state.challenge);
+  const newTrophies=v9Evaluate(),score=v9CupScore(),league=v9League(score);
+  if(newTrophies.length&&navigator.vibrate)navigator.vibrate([25,35,25]);
+  app.innerHTML=shell(
+    '<section class="v7-result"><span>Ergebnis</span><strong>'+state.score+' / '+total+'</strong><small>'+pct+'%</small></section>'+
+    '<div class="v9-result-progress"><span>'+v4Icon('trophy',16)+' '+league.name+'</span><strong>'+score+' Pokalpunkte</strong></div>'+
+    (newTrophies.length?'<button class="v9-new-trophy" data-action="trophies">'+v4Icon('trophy',19)+'<span><strong>'+esc(newTrophies[0].name)+'</strong><small>Neuer Pokal · +'+newTrophies[0].points+'</small></span>'+v4Icon('arrow',15)+'</button>':'')+
+    '<div class="v7-buttonstack"><button class="v4-btn primary full" data-action="today">Fertig</button><button class="v4-btn secondary full" data-action="duel">'+v4Icon('share',15)+'Teilen</button></div>'+
+    v9UnlockOverlay(newTrophies),
+    false,'today',true
+  )
+}
+
+const v9PrevClick=app.onclick;
+app.onclick=function(e){
+  const b=e.target.closest('[data-action]');if(!b){if(v9PrevClick)v9PrevClick(e);return}
+  if(b.dataset.action==='trophies'){renderTrophies();return}
+  if(v9PrevClick)v9PrevClick(e)
+};
