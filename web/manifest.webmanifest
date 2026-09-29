@@ -1,7 +1,7 @@
 {
   "name": "SnapStudy",
   "short_name": "SnapStudy",
-  "description": "Foto rein. 5-Fragen-Challenge raus.",
+  "description": "Notizen, Lernrunden, Wiederholungen und Lernfortschritt.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#F5F6F8",
