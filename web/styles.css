@@ -2666,3 +2666,34 @@ button:active{transform:scale(.975);opacity:.82}
   55%{transform:translateX(85%)}
   100%{transform:translateX(240%)}
 }
+
+
+/* V14.2 transient feedback */
+.toast{
+  position:fixed!important;
+  z-index:420!important;
+  left:50%!important;
+  bottom:calc(92px + env(safe-area-inset-bottom))!important;
+  transform:translateX(-50%)!important;
+  width:max-content!important;
+  max-width:calc(100vw - 40px)!important;
+  min-height:38px!important;
+  box-sizing:border-box!important;
+  padding:9px 13px!important;
+  border:0!important;
+  border-radius:12px!important;
+  background:rgba(28,28,30,.88)!important;
+  backdrop-filter:saturate(160%) blur(20px)!important;
+  -webkit-backdrop-filter:saturate(160%) blur(20px)!important;
+  box-shadow:0 4px 18px rgba(0,0,0,.13)!important;
+  color:#fff!important;
+  font-size:13px!important;
+  line-height:18px!important;
+  font-weight:500!important;
+  text-align:center!important;
+  animation:ssToast .2s cubic-bezier(.22,.78,.25,1) both!important;
+}
+@keyframes ssToast{
+  from{opacity:0;transform:translate(-50%,8px) scale(.98)}
+  to{opacity:1;transform:translate(-50%,0) scale(1)}
+}
