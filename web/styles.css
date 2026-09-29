@@ -683,3 +683,51 @@ button{letter-spacing:0!important}
   .v7-new-actions button{height:54px}
   .v7-question h1{font-size:21px}
 }
+
+
+/* V8 — library and split-study */
+.v8-head{display:flex;align-items:center;justify-content:space-between;padding:18px 0 12px;border-bottom:1px solid var(--app-border)}
+.v8-head h1{margin:0;font-size:21px;font-weight:650}
+.v8-head button{height:30px;border:1px solid var(--app-border);background:#fff;border-radius:5px;padding:0 8px;display:flex;align-items:center;gap:4px;font-size:8px;font-weight:600;color:#4f565f}
+.v8-search{height:36px;margin:12px 0 6px;border:1px solid var(--app-border);background:#fff;border-radius:5px;display:flex;align-items:center;gap:7px;padding:0 9px;color:#7a8089}
+.v8-search input{border:0;outline:0;background:transparent;min-width:0;flex:1;font-size:9px}
+.v8-tabs{display:flex;gap:14px;overflow-x:auto;border-bottom:1px solid var(--app-border)}
+.v8-tabs button{height:31px;border:0;background:transparent;color:#737982;font-size:8px;font-weight:600;padding:0 1px;position:relative;white-space:nowrap}
+.v8-tabs button.active{color:#20242b}
+.v8-tabs button.active:after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:#2f65cc}
+.v8-tools{min-height:36px;display:flex;align-items:center;gap:5px;border-bottom:1px solid var(--app-border);overflow-x:auto}
+.v8-tools select,.v8-tools button,.v8-tools label{height:25px;border:0;background:transparent;border-radius:4px;color:#666d76;font-size:7.5px;padding:0 5px;display:flex;align-items:center;gap:3px;white-space:nowrap}
+.v8-tools select:hover,.v8-tools button:hover,.v8-tools label:hover{background:#eef0f3}
+.v8-tools span{flex:1}
+.v8-tools input{display:none}
+.v8-list{border-top:1px solid var(--app-border)}
+.v8-row{min-height:53px;border-bottom:1px solid var(--app-border);display:flex;align-items:center}
+.v8-row>button,.v8-row>div{flex:1;min-width:0;border:0;background:transparent;display:flex;align-items:center;gap:9px;padding:7px 1px;text-align:left;color:#20242b}
+.v8-row>i{font-style:normal;color:#d59c28;font-size:10px}
+.v8-row span+span{display:grid;gap:1px;min-width:0}
+.v8-row strong{font-size:9.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.v8-row small{font-size:7.5px;color:#858b94}
+.v8-doc{width:29px;height:34px;border:1px solid var(--app-border);background:#fff;border-radius:3px;display:grid;place-items:center;color:#626872;flex:0 0 auto}
+.v8-row.deleted footer{display:flex;gap:4px}
+.v8-row.deleted footer button{height:25px;border:0;background:transparent;border-radius:4px;padding:0 5px;font-size:7.5px;color:#666d76}
+.v8-row.deleted footer button:last-child{color:#a84e48}
+.v8-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding-top:12px}
+.v8-grid>button{border:0;background:transparent;text-align:left;color:#20242b;padding:0}
+.v8-sheet{display:block;aspect-ratio:.707;border:1px solid var(--app-border);background:#fffefb}
+.v8-sheet.ruled{background-image:linear-gradient(to bottom,transparent 18px,#ebe7df 19px);background-size:100% 19px}
+.v8-sheet.grid{background-image:linear-gradient(#ebe7df 1px,transparent 1px),linear-gradient(90deg,#ebe7df 1px,transparent 1px);background-size:18px 18px}
+.v8-sheet.dotted{background-image:radial-gradient(#d8d4cc 1px,transparent 1px);background-size:16px 16px}
+.v8-sheet.cornell{background-image:linear-gradient(90deg,transparent 0 28%,#e8e4dd 28% 28.5%,transparent 28.5% 100%),linear-gradient(to bottom,transparent 0 84%,#e8e4dd 84% 84.5%,transparent 84.5% 100%)}
+.v8-grid strong{display:block;margin-top:5px;font-size:8.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.v8-grid small{font-size:7px;color:#858b94}
+.v8-empty{padding:54px 0;text-align:center;color:#858b94;font-size:8.5px;border-top:1px solid var(--app-border)}
+.gn8-study{position:absolute;right:10px;top:116px;z-index:45;width:min(290px,calc(100% - 20px));border:1px solid var(--app-border);background:#fbfbfa;padding:10px;box-shadow:0 8px 24px rgba(24,28,34,.12)}
+.gn8-study header{display:flex;align-items:center;justify-content:space-between}
+.gn8-study header strong{font-size:9px;font-weight:600}
+.gn8-study header button{width:25px;height:25px;border:0;background:transparent;display:grid;place-items:center}
+.gn8-study p{margin:12px 0;font-size:10px;line-height:1.4}
+.gn8-study>button{width:100%;height:30px;border:1px solid var(--app-border);background:#fff;border-radius:4px;font-size:8px}
+.gn4-docbar button.active{background:#edf3ff;color:#2f65cc}
+.gn4-paper.cornell{background-image:linear-gradient(90deg,transparent 0 28%,#e7e3dc 28% 28.2%,transparent 28.2% 100%),linear-gradient(to bottom,transparent 0 84%,#e7e3dc 84% 84.2%,transparent 84.2% 100%)}
+@media(min-width:720px){.v8-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:700px){.gn8-study{position:static;width:auto;box-shadow:none;border-left:0;border-right:0;border-top:1px solid var(--app-border)}}
