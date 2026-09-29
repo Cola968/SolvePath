@@ -189,7 +189,7 @@ function noteRow(n){
   const marks=(n.pinned?'<i class="pinmark">'+icon('pin',12)+'</i>':'')+(n.favorite?'<i class="fav">★</i>':'');
   return '<article class="row"><button data-action="open-note" data-id="'+esc(n.id)+'"><span class="fileicon">'+icon('note',17)+'</span><span class="rowcopy"><strong>'+esc(n.title||'Unbenannt')+'</strong><small>'+esc(n.subject||'Ohne Fach')+' · '+(n.updatedAt?fmtDate(n.updatedAt):'')+'</small></span></button><span class="rowmarks">'+marks+'</span></article>';
 }
-function roundRowfunction roundRow(r){
+function roundRow(r){
   return '<article class="row"><button data-action="play-round" data-id="'+esc(r.id)+'"><span class="fileicon blue">'+icon('stack',17)+'</span><span class="rowcopy"><strong>'+esc(r.title||'Lernrunde')+'</strong><small>'+esc(r.topic||'')+' · '+(r.questions?.length||0)+' Fragen</small></span></button></article>';
 }
 
