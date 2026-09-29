@@ -152,7 +152,7 @@ const state = {
   screen:location.pathname==='/trophies'?'trophies':'home',
   noteId:data.notes()[0]?.id,
   pageId:data.notes()[0]?.pages?.[0]?.id,
-  noteMode:'view', noteTool:'pen', penSize:5, markerSize:24, eraserSize:55, color:'#20242B',
+  noteMode:'view', noteTool:'pen', penSize:5, markerSize:24, eraserSize:55, eraserMode:'precision', color:'#20242B',
   selection:null, history:{}, redo:{}, focus:false, noteNav:'pages', splitStudy:false, splitReveal:false, splitIndex:0, noteInfo:false, selectedImage:null, jumpStart:null,
   libraryTab:'notes', libraryView:'list', libraryQuery:'', librarySort:'recent', librarySubject:'all', libraryFolder:'all', newMenu:false, folderModal:false,
   recentColors:load('ss11:recentColors',['#20242B','#3568D4','#B75850','#26785B','#D39A23']),
@@ -574,7 +574,7 @@ function paperName(p){return ({plain:'Blanko',ruled:'Liniert',grid:'Kariert',dot
 function toolOptions(){
   if(state.noteTool==='pen')return '<div class="toolopts"><span>Stift</span><div class="presetdots">'+[3,6,10].map(v=>'<button data-action="pen-size" data-size="'+v+'" class="'+(state.penSize===v?'active':'')+'"><i style="width:'+Math.max(5,v)+'px;height:'+Math.max(5,v)+'px"></i></button>').join('')+'</div><input id="penSize" type="range" min="2" max="16" value="'+state.penSize+'"><b>'+state.penSize+'</b></div>';
   if(state.noteTool==='marker')return '<div class="toolopts"><span>Marker</span><div class="presetdots">'+[18,28,42].map(v=>'<button data-action="marker-size" data-size="'+v+'" class="'+(state.markerSize===v?'active':'')+'"><i class="marker-dot" style="width:'+Math.max(10,v/2)+'px"></i></button>').join('')+'</div><input id="markerSize" type="range" min="12" max="60" value="'+state.markerSize+'"><b>'+state.markerSize+'</b></div>';
-  if(state.noteTool==='eraser')return '<div class="toolopts"><span>Radierer</span>'+[30,55,90].map(v=>'<button data-action="eraser-size" data-size="'+v+'" class="'+(state.eraserSize===v?'active':'')+'">'+(v===30?'S':v===55?'M':'L')+'</button>').join('')+'</div>';
+  if(state.noteTool==='eraser')return '<div class="toolopts"><span>Radierer</span><div class="erasermodes"><button data-action="eraser-mode" data-mode="precision" class="'+(state.eraserMode==='precision'?'active':'')+'">Präzise</button><button data-action="eraser-mode" data-mode="stroke" class="'+(state.eraserMode==='stroke'?'active':'')+'">Strich</button></div>'+[30,55,90].map(v=>'<button data-action="eraser-size" data-size="'+v+'" class="'+(state.eraserSize===v?'active':'')+'">'+(v===30?'S':v===55?'M':'L')+'</button>').join('')+'</div>';
   if(state.noteTool==='shape')return '<div class="toolopts"><span>Form</span><button data-action="shape-kind" data-kind="line" class="'+((state.shapeKind||'line')==='line'?'active':'')+'">Linie</button><button data-action="shape-kind" data-kind="rect" class="'+(state.shapeKind==='rect'?'active':'')+'">Rechteck</button><button data-action="shape-kind" data-kind="ellipse" class="'+(state.shapeKind==='ellipse'?'active':'')+'">Ellipse</button></div>';
   if(state.noteTool==='select')return '<div class="toolopts"><span>Lasso</span><small>Bereich wählen und direkt verschieben, kopieren oder färben.</small></div>';
   return '<div class="toolopts"><span>'+state.noteTool.charAt(0).toUpperCase()+state.noteTool.slice(1)+'</span></div>';
@@ -605,6 +605,22 @@ function bindNote(n,p){
   };
   const segDist=(q,a,b)=>{const dx=b.x-a.x,dy=b.y-a.y,l=dx*dx+dy*dy;if(!l)return Math.hypot(q.x-a.x,q.y-a.y);let t=((q.x-a.x)*dx+(q.y-a.y)*dy)/l;t=Math.max(0,Math.min(1,t));return Math.hypot(q.x-(a.x+t*dx),q.y-(a.y+t*dy));};
   const hit=(s,q,r)=>{for(let i=1;i<s.points.length;i++)if(segDist(q,s.points[i-1],s.points[i])<=r+(s.width||0)/2)return true;return false;};
+  const precisionErase=(items,q,r)=>{
+    const out=[];
+    items.forEach(stroke=>{
+      const pts=stroke.points||[];
+      if(pts.length<2){if(!pts.length||Math.hypot(pts[0].x-q.x,pts[0].y-q.y)>r)out.push(stroke);return;}
+      let segment=[];
+      const flush=()=>{if(segment.length>1)out.push(Object.assign({},stroke,{id:uid('s'),points:segment}));segment=[];};
+      pts.forEach(pt=>{
+        if(Math.hypot(pt.x-q.x,pt.y-q.y)<=r){flush();}
+        else segment.push(pt);
+      });
+      flush();
+    });
+    return out;
+  };
+  const eraseAt=(items,q)=>state.eraserMode==='stroke'?items.filter(s=>!hit(s,q,state.eraserSize)):precisionErase(items,q,state.eraserSize*.55);
   const historyKey=n.id+':'+p.id;
   const snapshot=()=>{(state.history[historyKey]||(state.history[historyKey]=[])).push(JSON.stringify(strokes));state.history[historyKey]=state.history[historyKey].slice(-30);state.redo[historyKey]=[];};
   const events=e=>{if(e.getCoalescedEvents){const a=e.getCoalescedEvents();if(a.length)return a.map(pos);}return[pos(e)];};
@@ -614,7 +630,7 @@ function bindNote(n,p){
   if(state.noteMode==='view'){canvas.style.pointerEvents='none';return;}
   canvas.onpointerdown=e=>{
     e.preventDefault();canvas.setPointerCapture(e.pointerId);drawing=true;const q=pos(e);start=q;
-    if(state.noteTool==='eraser'){snapshot();strokes=strokes.filter(s=>!hit(s,q,state.eraserSize));data.setStrokes(n.id,p.id,strokes);renderCanvas();return;}
+    if(state.noteTool==='eraser'){snapshot();strokes=eraseAt(strokes,q);data.setStrokes(n.id,p.id,strokes);renderCanvas();return;}
     if(state.noteTool==='select'){
       const box=selectionBox();
       if(inside(q,box)&&state.selection?.ids?.length){snapshot();moveBase=JSON.parse(JSON.stringify(strokes));moveOrigin=q;lasso=null;return;}
@@ -626,7 +642,7 @@ function bindNote(n,p){
   };
   canvas.onpointermove=e=>{
     if(!drawing)return;const pts=events(e),q=pts[pts.length-1];
-    if(state.noteTool==='eraser'){let changed=false;pts.forEach(v=>{const before=strokes.length;strokes=strokes.filter(s=>!hit(s,v,state.eraserSize));changed=changed||before!==strokes.length;});if(changed){data.setStrokes(n.id,p.id,strokes);renderCanvas();}return;}
+    if(state.noteTool==='eraser'){let changed=false;pts.forEach(v=>{const before=JSON.stringify(strokes);strokes=eraseAt(strokes,v);changed=changed||before!==JSON.stringify(strokes);});if(changed){data.setStrokes(n.id,p.id,strokes);renderCanvas();}return;}
     if(state.noteTool==='select'&&moveBase&&moveOrigin){
       const dx=q.x-moveOrigin.x,dy=q.y-moveOrigin.y,ids=state.selection.ids;
       strokes=moveBase.map(s=>ids.includes(s.id)?Object.assign({},s,{points:(s.points||[]).map(v=>({x:v.x+dx,y:v.y+dy}))}):s);renderCanvas();return;
@@ -830,6 +846,7 @@ window.addEventListener('click',e=>{
   else if(a==='pen-size'){state.penSize=+b.dataset.size;renderNotes();}
   else if(a==='marker-size'){state.markerSize=+b.dataset.size;renderNotes();}
   else if(a==='eraser-size'){state.eraserSize=+b.dataset.size;renderNotes();}
+  else if(a==='eraser-mode'){state.eraserMode=b.dataset.mode||'precision';renderNotes();}
   else if(a==='copy-selection')copySelection();
   else if(a==='delete-selection')deleteSelection();
   else if(a==='recolor-selection')recolorSelection();
