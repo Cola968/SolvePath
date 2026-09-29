@@ -575,3 +575,15 @@ button{transition:background-color .12s ease,border-color .12s ease,color .12s e
 .paper .contextbar button.danger{color:var(--red)}
 .paper .contextbar button i{display:block;width:13px;height:13px;border-radius:50%;border:1px solid #dadce0}
 .selectionbar,.imagebar{display:none!important}
+
+
+.toolmenu{
+  position:absolute;right:8px;top:48px;z-index:60;width:152px;border:1px solid var(--line);background:#fff;border-radius:6px;padding:4px;
+  box-shadow:0 6px 18px rgba(60,64,67,.14)
+}
+.toolmenu button,.toolmenu label{
+  position:relative;width:100%;min-height:38px;border:0;background:transparent;border-radius:4px;padding:0 8px;
+  display:flex;align-items:center;gap:8px;color:#3c4043;font-size:9px;text-align:left
+}
+.toolmenu button:hover,.toolmenu label:hover{background:#f1f3f4}
+.toolmenu input{position:absolute;inset:0;opacity:0;cursor:pointer}
