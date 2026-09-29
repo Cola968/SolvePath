@@ -3,21 +3,21 @@
     "name": "SnapStudy",
     "slug": "snapstudy",
     "scheme": "snapstudy",
-    "version": "0.9.0",
+    "version": "0.10.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "app.snapstudy.mobile",
-      "buildNumber": "1",
+      "buildNumber": "2",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "package": "app.snapstudy.mobile",
-      "versionCode": 1,
+      "versionCode": 2,
       "edgeToEdgeEnabled": true,
       "permissions": [
         "CAMERA"
@@ -29,7 +29,7 @@
           "data": [
             {
               "scheme": "https",
-              "host": "snapstudy-beta-v2.onrender.com"
+              "host": "snapstudy-live-v3.onrender.com"
             }
           ],
           "category": [
