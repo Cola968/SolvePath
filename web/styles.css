@@ -1193,7 +1193,7 @@ html,body{
   margin:0!important;
   background:var(--ss-content)!important;
   color:var(--ss-label)!important;
-  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",system-ui,"Segoe UI",Roboto,Helvetica,Arial,sans-serif!important;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Inter",system-ui,"Segoe UI",Roboto,Helvetica,Arial,sans-serif!important;
   -webkit-font-smoothing:antialiased;
   text-rendering:optimizeLegibility;
 }
@@ -2204,7 +2204,7 @@ button:active{transform:scale(.975);opacity:.82}
   box-shadow:0 .5px 1px rgba(0,0,0,.12),0 4px 18px rgba(0,0,0,.06)!important;
 }
 .v14-canvas .paper textarea{
-  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif!important;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter",system-ui,sans-serif!important;
   font-size:16px!important;
   line-height:32px!important;
   color:#1c1c1e!important;
