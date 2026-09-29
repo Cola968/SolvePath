@@ -87,6 +87,11 @@ button:disabled{opacity:.38;cursor:default}
    SNAPSTUDY V14 — NATIVE MATERIAL SYSTEM
    ========================================================= */
 :root{
+  --native-safe-top:0px;
+  --native-safe-bottom:0px;
+  --ss-safe-top:max(env(safe-area-inset-top),var(--native-safe-top));
+  --ss-safe-bottom:max(env(safe-area-inset-bottom),var(--native-safe-bottom));
+
   --ss-bg:#f2f2f7;
   --ss-content:#ffffff;
   --ss-grouped:#f2f2f7;
@@ -137,7 +142,7 @@ button:active{transform:scale(.975);opacity:.82}
   overflow-y:auto;
   overscroll-behavior-y:contain;
   -webkit-overflow-scrolling:touch;
-  padding:0 var(--ss-screen) calc(var(--ss-tabbar) + env(safe-area-inset-bottom) + 28px);
+  padding:0 var(--ss-screen) calc(var(--ss-tabbar) + var(--ss-safe-bottom) + 28px);
   box-sizing:border-box;
   scrollbar-width:none;
 }
@@ -151,7 +156,7 @@ button:active{transform:scale(.975);opacity:.82}
   top:0;
   min-height:52px;
   margin:0 calc(var(--ss-screen) * -1);
-  padding:calc(4px + env(safe-area-inset-top)) var(--ss-screen) 4px;
+  padding:calc(4px + var(--ss-safe-top)) var(--ss-screen) 4px;
   display:flex;
   align-items:flex-end;
   justify-content:space-between;
@@ -216,8 +221,8 @@ button:active{transform:scale(.975);opacity:.82}
   position:fixed;
   z-index:180;
   left:0;right:0;bottom:0;
-  min-height:calc(var(--ss-tabbar) + env(safe-area-inset-bottom));
-  padding:0 8px env(safe-area-inset-bottom);
+  min-height:calc(var(--ss-tabbar) + var(--ss-safe-bottom));
+  padding:0 8px var(--ss-safe-bottom);
   box-sizing:border-box;
   display:flex;
   align-items:flex-start;
@@ -679,7 +684,7 @@ button:active{transform:scale(.975);opacity:.82}
   position:fixed;
   z-index:250;
   left:0;right:0;bottom:0;
-  padding:10px 20px calc(18px + env(safe-area-inset-bottom));
+  padding:10px 20px calc(18px + var(--ss-safe-bottom));
   background:var(--ss-material-strong);
   backdrop-filter:saturate(180%) blur(30px);
   -webkit-backdrop-filter:saturate(180%) blur(30px);
@@ -687,7 +692,7 @@ button:active{transform:scale(.975);opacity:.82}
   box-shadow:0 -1px 0 rgba(255,255,255,.38);
   animation:ssSheet .34s cubic-bezier(.22,.88,.26,1.08) both;
 }
-.v14-actionsheet.compact{padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+.v14-actionsheet.compact{padding-bottom:calc(12px + var(--ss-safe-bottom))}
 .v14-sheetgrabber{
   width:38px;height:5px;
   margin:0 auto 10px;
@@ -771,7 +776,7 @@ button:active{transform:scale(.975);opacity:.82}
   position:fixed;
   z-index:260;
   left:0;right:0;bottom:0;
-  padding:18px 20px calc(18px + env(safe-area-inset-bottom));
+  padding:18px 20px calc(18px + var(--ss-safe-bottom));
   border-radius:24px 24px 0 0;
   background:var(--ss-material-strong);
   backdrop-filter:saturate(180%) blur(30px);
@@ -810,8 +815,8 @@ button:active{transform:scale(.975);opacity:.82}
 
 /* Create flow */
 .v14-compactnav{
-  min-height:calc(58px + env(safe-area-inset-top));
-  padding:env(safe-area-inset-top) 12px 0;
+  min-height:calc(58px + var(--ss-safe-top));
+  padding:var(--ss-safe-top) 12px 0;
   box-sizing:border-box;
   display:grid;
   grid-template-columns:44px minmax(0,1fr) 44px;
@@ -874,8 +879,8 @@ button:active{transform:scale(.975);opacity:.82}
   color:var(--ss-label);
 }
 .v14-study>header{
-  min-height:calc(66px + env(safe-area-inset-top));
-  padding:env(safe-area-inset-top) 18px 0;
+  min-height:calc(66px + var(--ss-safe-top));
+  padding:var(--ss-safe-top) 18px 0;
   box-sizing:border-box;
   display:grid;
   grid-template-columns:44px minmax(0,1fr) 44px;
@@ -1010,8 +1015,8 @@ button:active{transform:scale(.975);opacity:.82}
   position:fixed;
   z-index:170;
   left:0;right:0;top:0;
-  min-height:calc(58px + env(safe-area-inset-top));
-  padding:env(safe-area-inset-top) 10px 0;
+  min-height:calc(58px + var(--ss-safe-top));
+  padding:var(--ss-safe-top) 10px 0;
   box-sizing:border-box;
   display:grid;
   grid-template-columns:44px minmax(0,1fr) 44px;
@@ -1041,7 +1046,7 @@ button:active{transform:scale(.975);opacity:.82}
 .v14-toolglass{
   position:fixed;
   z-index:165;
-  top:calc(67px + env(safe-area-inset-top));
+  top:calc(67px + var(--ss-safe-top));
   left:50%;
   transform:translateX(-50%);
   min-height:50px;
@@ -1067,7 +1072,7 @@ button:active{transform:scale(.975);opacity:.82}
 .v14-toolaccessory{
   position:fixed;
   z-index:164;
-  top:calc(123px + env(safe-area-inset-top));
+  top:calc(123px + var(--ss-safe-top));
   left:50%;
   transform:translateX(-50%);
   min-height:42px;
@@ -1106,7 +1111,7 @@ button:active{transform:scale(.975);opacity:.82}
   position:fixed;
   inset:0;
   overflow:auto;
-  padding:calc(178px + env(safe-area-inset-top)) 14px calc(84px + env(safe-area-inset-bottom));
+  padding:calc(178px + var(--ss-safe-top)) 14px calc(84px + var(--ss-safe-bottom));
   box-sizing:border-box;
   display:flex;
   justify-content:center;
@@ -1133,8 +1138,8 @@ button:active{transform:scale(.975);opacity:.82}
   position:fixed;
   z-index:175;
   left:0;right:0;bottom:0;
-  min-height:calc(64px + env(safe-area-inset-bottom));
-  padding:6px 12px env(safe-area-inset-bottom);
+  min-height:calc(64px + var(--ss-safe-bottom));
+  padding:6px 12px var(--ss-safe-bottom);
   box-sizing:border-box;
   display:flex;
   align-items:center;
@@ -1184,7 +1189,7 @@ button:active{transform:scale(.975);opacity:.82}
 .v14-docsearch{
   position:fixed;
   z-index:190;
-  top:calc(58px + env(safe-area-inset-top));
+  top:calc(58px + var(--ss-safe-top));
   left:0;right:0;
   padding:10px 12px;
   background:var(--ss-material-strong);
@@ -1320,7 +1325,7 @@ button:active{transform:scale(.975);opacity:.82}
 
 .v14-paperthumb.image{background:none}
 .v14-paperthumb.image img{width:100%;height:100%;display:block;object-fit:cover}
-.v14-editor.view .v14-canvas{padding-top:calc(78px + env(safe-area-inset-top))}
+.v14-editor.view .v14-canvas{padding-top:calc(78px + var(--ss-safe-top))}
 .v14-editor.view .v14-editorbar{background:var(--ss-material-strong)}
 ::view-transition-old(root){animation:180ms ease both ssOld}
 ::view-transition-new(root){animation:260ms cubic-bezier(.22,.78,.25,1) both ssNew}
@@ -1593,7 +1598,7 @@ button:active{transform:scale(.975);opacity:.82}
   position:fixed!important;
   z-index:420!important;
   left:50%!important;
-  bottom:calc(92px + env(safe-area-inset-bottom))!important;
+  bottom:calc(92px + var(--ss-safe-bottom))!important;
   transform:translateX(-50%)!important;
   width:max-content!important;
   max-width:calc(100vw - 40px)!important;
