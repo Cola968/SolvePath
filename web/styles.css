@@ -802,3 +802,13 @@ button{letter-spacing:0!important}
   .v9-home-strip{grid-template-columns:auto 1fr auto}.v9-home-strip>i{display:none}
   .v9-goals>div{grid-template-columns:95px 1fr 32px}
 }
+
+
+/* Google typography pass */
+html,body,button,input,textarea,select,
+h1,h2,h3,h4,h5,h6,strong,b,.v6-wordmark,.gn4-paper textarea,.note-text{
+  font-family:"Roboto",Arial,sans-serif!important;
+}
+body{font-weight:400}
+h1,h2,h3,strong,b{font-weight:600!important}
+button{font-weight:500}
