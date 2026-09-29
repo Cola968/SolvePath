@@ -494,3 +494,5 @@ window.addEventListener('keydown',e=>{if(e.key==='Enter'&&$('#answerInput')&&sta
 window.addEventListener('popstate',()=>{state.screen=location.pathname==='/trophies'?'trophies':'home';render();});
 
 try{render();}catch(err){console.error(err);root.innerHTML='<main class="fatal"><h1>SnapStudy</h1><p>Die App konnte nicht gestartet werden.</p><button onclick="location.reload()">Neu laden</button></main>';}
+
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js',{updateViaCache:'none'}).catch(()=>{}));}
