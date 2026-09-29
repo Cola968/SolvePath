@@ -588,3 +588,98 @@ body{color:var(--app-text)}
   .v6-docrow{min-height:52px}
   .v6-fileicon{width:29px;height:33px}
 }
+
+
+/* V7 — native typography, shorter copy, no AI-presentation aesthetic */
+html,body,button,input,textarea,select{
+  font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif!important
+}
+body{font-weight:400;letter-spacing:0}
+h1,h2,h3,strong,b,.v6-wordmark,.v4-page-title h1,.v4-question h1,.v4-result h1,.v4-invite h1{
+  font-family:inherit!important;
+  letter-spacing:-.015em!important;
+  font-weight:650!important
+}
+button{letter-spacing:0!important}
+.gn4-paper textarea,.note-text{
+  font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif!important;
+  letter-spacing:0!important
+}
+.v6-wordmark{font-size:15px;font-weight:650!important}
+.v4-nav button{font-weight:550}
+.v4-nav button span{font-size:8.5px}
+.v4-btn{font-weight:600;min-height:40px}
+.v4-answer b{font-weight:550!important}
+.v4-feedback strong{font-weight:650!important}
+.v4-review-row strong{font-weight:550!important}
+.v6-doccopy strong{font-weight:600!important}
+.v6-doccopy small{font-size:8.5px}
+.v7-pagehead{padding:18px 0 12px;border-bottom:1px solid var(--app-border)}
+.v7-pagehead h1{margin:0;font-size:23px;line-height:1.15;font-weight:650!important}
+.v7-pagehead p{margin:5px 0 0;font-size:10px;color:var(--app-muted)}
+.v7-review-strip{min-height:52px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--app-border)}
+.v7-review-strip>div{display:grid;gap:1px;flex:1}
+.v7-review-strip strong{font-size:11px;font-weight:600!important}
+.v7-review-strip span{font-size:9px;color:var(--app-muted)}
+.v7-review-strip button{height:29px;border:0;background:var(--app-blue);color:#fff;border-radius:5px;padding:0 10px;font-size:9px;font-weight:600}
+.v7-review-strip.clear{color:#4f565f}
+.v7-section{margin-top:18px}
+.v7-section>h2,.v7-sectionhead h2{margin:0;font-size:11px;font-weight:600!important}
+.v7-sectionhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+.v7-sectionhead button,.v7-sectionhead span{border:0;background:transparent;color:#777e87;font-size:8.5px;padding:0}
+.v7-new-actions{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--app-border);border-bottom:1px solid var(--app-border)}
+.v7-new-actions button{height:58px;border:0;border-right:1px solid var(--app-border);background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:#555c65;font-size:9px}
+.v7-new-actions button:last-child{border-right:0}
+.v7-new-actions button:hover{background:#fafbfc}
+.v7-empty{padding:13px 0;border-bottom:1px solid var(--app-border);font-size:9px;color:#858b94}
+.v7-segment{display:flex;border-bottom:1px solid var(--app-border);gap:12px;margin-bottom:12px}
+.v7-segment button{height:34px;border:0;background:transparent;color:#727882;font-size:9px;font-weight:600;position:relative;padding:0 1px}
+.v7-segment button.active{color:#20242b}
+.v7-segment button.active:after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--app-blue)}
+.v7-create{display:grid;gap:12px}
+.v7-upload{position:relative;min-height:155px;border:1px solid var(--app-border);background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;overflow:hidden}
+.v7-upload input{position:absolute;inset:0;opacity:0}
+.v7-upload>span{color:#68707a}
+.v7-upload strong{font-size:10px;font-weight:600!important}
+.v7-upload small{font-size:8.5px;color:#8a9098}
+.v7-upload em{position:absolute;right:8px;bottom:8px;background:#fff;border:1px solid var(--app-border);border-radius:4px;padding:4px 6px;font-style:normal;font-size:8px}
+.v7-field{display:grid;gap:5px}
+.v7-field>span{font-size:9px;font-weight:600}
+.v7-field textarea{min-height:105px;border:1px solid var(--app-border);border-radius:5px;background:#fff;padding:10px;box-shadow:none;outline:none}
+.v7-field textarea:focus{border-color:#aeb7c4;box-shadow:none}
+.v7-usage{text-align:center;color:#8a9098;font-size:8px}
+.v7-loading{min-height:58dvh;display:flex;align-items:center;justify-content:center;gap:9px;color:#4f565f}
+.v7-loading strong{font-size:10px;font-weight:550!important}
+.v7-buttonstack{display:grid;gap:7px;margin-top:14px}
+.v7-question{padding:22px 0 17px}
+.v7-question>span{display:block;margin-bottom:7px;color:#818791;font-size:8.5px}
+.v7-question h1{margin:0;font-size:23px;line-height:1.25;font-weight:600!important;letter-spacing:-.01em!important}
+.v7-result{min-height:56dvh;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.v7-result>span{font-size:9px;color:#858b94;margin-bottom:8px}
+.v7-result>strong{font-size:40px;font-weight:600!important;letter-spacing:-.035em!important}
+.v7-result>small{font-size:10px;color:#777e87;margin-top:4px}
+.v7-empty-state{min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;border-top:1px solid var(--app-border)}
+.v7-empty-state strong{font-size:10px;font-weight:550!important;color:#5d646d}
+.v7-start{margin-top:9px}
+.v7-share-row{min-height:58px;display:flex;align-items:center;gap:10px;border-top:1px solid var(--app-border);border-bottom:1px solid var(--app-border);margin-bottom:12px}
+.v7-share-row>div{display:grid;gap:2px}
+.v7-share-row strong{font-size:10px;font-weight:600!important}
+.v7-share-row small{font-size:8.5px;color:#858b94}
+.gn4-title>span{font-size:7.5px}
+.gn4-title input{font-weight:600!important;letter-spacing:0}
+.gn4-mode button,.gn4-tabs button,.gn4-sidehead strong,.gn4-page b,.gn4-page small,.gn4-toolbar button,.gn3-options,.gn4-docbar,.gn4-bottom,.gn4-viewbar{
+  font-family:inherit!important
+}
+.gn4-mode button{font-weight:550}
+.gn4-tabs button{font-weight:550}
+.gn4-page b{font-weight:550!important}
+.gn4-toolbar>button:not(.gn4-color):not(.gn4-mini){font-weight:550}
+.gn3-options>span{font-weight:550}
+.gn4-bottom>button{font-weight:550}
+.gn4-viewbar button{font-weight:550}
+@media(max-width:700px){
+  .v7-pagehead{padding-top:15px}
+  .v7-pagehead h1{font-size:21px}
+  .v7-new-actions button{height:54px}
+  .v7-question h1{font-size:21px}
+}
