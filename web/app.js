@@ -1199,3 +1199,118 @@ function topbar(back){
     '<button class="v6-top-icon" data-action="library" aria-label="Suchen">'+v4Icon('search',17)+'</button>'+
   '</header>'
 }
+
+
+/* V7 — native typography and neutral product copy */
+function nav(active){
+  const items=[['today','Heute','today'],['notes','Notizen','text'],['reviews','Wiederholen','repeat'],['library','Sammlung','stack']];
+  return '<nav class="v4-nav">'+items.map(function(x){return'<button data-action="'+x[0]+'" class="'+(active===x[0]?'active':'')+'">'+v4Icon(x[2],20)+'<span>'+x[1]+'</span></button>'}).join('')+'</nav>'
+}
+
+function renderHome(){
+  const due=v4Due(),rounds=v4Library(),notes=v6RecentNotes(),recentNotes=notes.slice(0,4),recentRounds=rounds.slice(0,2);
+  app.innerHTML=shell(
+    '<section class="v7-pagehead"><h1>Heute</h1></section>'+
+    (due.length
+      ?'<section class="v7-review-strip"><div><strong>Wiederholen</strong><span>'+due.length+' fällig</span></div><button data-action="start-due">Starten</button></section>'
+      :'<section class="v7-review-strip clear"><div><strong>Wiederholen</strong><span>Nichts fällig</span></div></section>')+
+    '<section class="v7-section"><h2>Neu</h2><div class="v7-new-actions">'+
+      '<button data-action="v6-new-note">'+v4Icon('note',18)+'<span>Notiz</span></button>'+
+      '<button data-action="create">'+v4Icon('camera',18)+'<span>Foto</span></button>'+
+      '<button data-action="create-text">'+v4Icon('text',18)+'<span>Text</span></button>'+
+    '</div></section>'+
+    '<section class="v7-section"><div class="v7-sectionhead"><h2>Zuletzt</h2><button data-action="library">Alle</button></div><div class="v6-doclist">'+
+      (recentNotes.length?recentNotes.map(v6DocRow).join(''):'<div class="v7-empty">Keine Notizen</div>')+
+    '</div></section>'+
+    (recentRounds.length?'<section class="v7-section"><h2>Lernrunden</h2><div class="v6-doclist">'+recentRounds.map(v6RoundRow).join('')+'</div></section>':''),
+    false,'today',false
+  )
+}
+
+function renderCreate(textOnly){
+  const only=!!textOnly,preview=state.preview?'<img class="v4-preview" src="'+esc(state.preview)+'" alt="">':'';
+  const photo=only?'':'<label class="v7-upload">'+preview+'<input id="photoInput" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment">'+(!state.preview?'<span>'+v4Icon('camera',22)+'</span><strong>Foto auswählen</strong><small>Kamera oder Galerie</small>':'<em>Ändern</em>')+'</label>';
+  app.innerHTML=shell(
+    '<section class="v7-pagehead"><h1>Neue Lernrunde</h1></section>'+
+    '<div class="v7-segment"><button data-action="create" class="'+(!only?'active':'')+'">Foto</button><button data-action="create-text" class="'+(only?'active':'')+'">Text</button></div>'+
+    '<div class="v7-create">'+photo+
+      '<label class="v7-field"><span>'+(only?'Text':'Notiz')+'</span><textarea id="studyText" placeholder="'+(only?'Text einfügen':'Optional')+'">'+esc(state.textDraft)+'</textarea></label>'+
+      '<button class="v4-btn primary full" data-action="analyze">Fragen erstellen</button>'+
+      '<small class="v7-usage">'+remaining()+' heute verfügbar</small>'+
+    '</div>',
+    true,'today',true
+  );
+  const input=document.getElementById('photoInput');
+  if(input)input.onchange=function(e){const file=e.target.files&&e.target.files[0];if(!file)return;if(file.size>8*1024*1024){renderError('Datei zu groß.',true);return}state.file=file;if(state.preview)URL.revokeObjectURL(state.preview);state.preview=URL.createObjectURL(file);renderCreate(false)}
+}
+
+function renderLoading(){
+  app.innerHTML=shell('<section class="v7-loading"><span class="v4-loader"></span><strong>Fragen werden erstellt…</strong></section>',false,'today',true)
+}
+
+function renderError(message,localOnly){
+  const canText=String(state.textDraft||'').trim().length>=20;
+  app.innerHTML=shell(
+    '<section class="v7-pagehead"><h1>Nicht verfügbar</h1><p>'+(localOnly?esc(message):'Die Erstellung ist gerade nicht erreichbar.')+'</p></section>'+
+    '<div class="v7-buttonstack"><button class="v4-btn primary full" data-action="retry-analyze">Erneut versuchen</button>'+
+    (canText?'<button class="v4-btn secondary full" data-action="local-text">Nur Text verwenden</button>':'<button class="v4-btn secondary full" data-action="continue-text">Text eingeben</button>')+'</div>',
+    true,'today',true
+  )
+}
+
+function renderQuestion(){
+  const ch=state.challenge,q=ch.questions[state.qIndex],total=ch.questions.length,pct=((state.qIndex+(state.answered?1:0))/total)*100;
+  let input='';
+  if(q.choices&&q.choices.length)input='<div class="v4-answers">'+q.choices.map(function(x,i){return'<button class="v4-answer" data-action="choice" data-value="'+esc(x)+'"><span>'+String.fromCharCode(65+i)+'</span><b>'+esc(x)+'</b></button>'}).join('')+'</div>';
+  else input='<div class="v4-free"><input id="answerInput" placeholder="Antwort"><button class="v4-btn primary" data-action="submit-answer">Prüfen</button></div>';
+  let after='';
+  if(state.answered)after='<div class="v4-feedback '+(state.lastCorrect?'good':'bad')+'"><div>'+v4Icon(state.lastCorrect?'check':'alert',18)+'<strong>'+(state.lastCorrect?'Richtig':'Falsch')+'</strong></div><p>'+esc(state.lastExplanation||'')+'</p></div>'+
+    (state.lastCorrect&&state.mode==='normal'?'<button class="v4-uncertain '+(state.uncertainMarked?'marked':'')+'" data-action="mark-uncertain">'+v4Icon('repeat',15)+(state.uncertainMarked?'Markiert':'Später wiederholen')+'</button>':'')+
+    '<button class="v4-btn primary full" data-action="next">'+(state.qIndex===total-1?'Ergebnis':'Weiter')+'</button>';
+  app.innerHTML=shell(
+    '<div class="v4-lesson-top"><button class="v4-icon-btn quiet" data-action="home">'+v4Icon('back',19)+'</button><div class="v4-progress"><i style="width:'+pct+'%"></i></div><span>'+(state.qIndex+1)+' / '+total+'</span></div>'+
+    '<section class="v7-question"><span>'+esc(ch.topic||'Lernrunde')+'</span><h1>'+esc(q.prompt)+'</h1></section>'+
+    (state.answered?'':input)+after,
+    false,'today',true
+  )
+}
+
+function renderResult(){
+  const total=state.challenge.questions.length,pct=Math.round(state.score/total*100),p=profile(),day=new Date().toISOString().slice(0,10),y=new Date(Date.now()-86400000).toISOString().slice(0,10);
+  if(p.last!==day){p.streak=p.last===y?(p.streak||0)+1:1;p.last=day}p.xp=(p.xp||0)+Math.max(10,pct);p.sessions=(p.sessions||0)+1;localStorage.setItem('snapstudy-profile',JSON.stringify(p));
+  if(state.mode!=='review')v4SaveRound(state.challenge);
+  app.innerHTML=shell(
+    '<section class="v7-result"><span>Ergebnis</span><strong>'+state.score+' / '+total+'</strong><small>'+pct+'%</small></section>'+
+    '<div class="v7-buttonstack"><button class="v4-btn primary full" data-action="today">Fertig</button><button class="v4-btn secondary full" data-action="duel">'+v4Icon('share',15)+'Teilen</button></div>',
+    false,'today',true
+  )
+}
+
+function renderReviewsV4(){
+  const all=v4Reviews().slice().sort(function(a,b){return(a.dueAt||0)-(b.dueAt||0)}),due=all.filter(function(x){return(x.dueAt||0)<=Date.now()}),later=all.filter(function(x){return(x.dueAt||0)>Date.now()});
+  let body='';
+  if(!all.length)body='<div class="v7-empty-state"><strong>Nichts fällig</strong><button class="v4-btn secondary" data-action="create">Neue Lernrunde</button></div>';
+  else body=(due.length?'<section class="v7-section"><div class="v7-sectionhead"><h2>Heute</h2><span>'+due.length+'</span></div><div class="v4-review-list">'+due.slice(0,8).map(v4ReviewRow).join('')+'</div><button class="v4-btn primary full v7-start" data-action="start-due">Starten</button></section>':'')+
+    (later.length?'<section class="v7-section"><div class="v7-sectionhead"><h2>Später</h2><span>'+later.length+'</span></div><div class="v4-review-list muted">'+later.slice(0,8).map(v4ReviewRow).join('')+'</div></section>':'');
+  app.innerHTML=shell('<section class="v7-pagehead"><h1>Wiederholen</h1></section>'+body,false,'reviews',false)
+}
+
+function renderDuel(){
+  const list=v4Library(),current=state.challenge&&state.challenge.questions?state.challenge:list[0];
+  app.innerHTML=shell(
+    '<section class="v7-pagehead"><h1>Teilen</h1></section>'+
+    (current?'<div class="v7-share-row"><span class="v6-fileicon round">'+v4Icon('stack',18)+'</span><div><strong>'+esc(current.title)+'</strong><small>'+current.questions.length+' Fragen</small></div></div><button class="v4-btn primary full" data-action="share-current">Link teilen</button>':
+    '<div class="v7-empty-state"><strong>Keine Lernrunde ausgewählt</strong><button class="v4-btn secondary" data-action="create">Neue Lernrunde</button></div>'),
+    false,'today',true
+  )
+}
+
+function gn3ToolOptions(){
+  if(state.gnTool==='pen')return '<div class="gn3-options"><span>Stift</span><input id="gnPenSize" type="range" min="2" max="16" value="'+state.gnPenSize+'"><b>'+state.gnPenSize+'</b></div>';
+  if(state.gnTool==='marker')return '<div class="gn3-options"><span>Marker</span><input id="gnMarkerSize" type="range" min="14" max="64" value="'+state.gnMarkerSize+'"><b>'+state.gnMarkerSize+'</b></div>';
+  if(state.gnTool==='eraser')return '<div class="gn3-options"><span>Radierer</span><div class="gn3-segment"><button data-action="gn3-erase-mode" data-mode="stroke" class="'+(state.gnEraserMode==='stroke'?'active':'')+'">Strich</button><button data-action="gn3-erase-mode" data-mode="precision" class="'+(state.gnEraserMode==='precision'?'active':'')+'">Teil</button></div><div class="gn3-segment">'+[34,58,92].map(function(v){return'<button data-action="gn-eraser-size" data-size="'+v+'" class="'+(state.gnEraserSize===v?'active':'')+'">'+(v===34?'S':v===58?'M':'L')+'</button>'}).join('')+'</div></div>';
+  if(state.gnTool==='shape')return '<div class="gn3-options"><span>Form</span><div class="gn3-segment"><button data-action="gn3-shape-kind" data-kind="line" class="'+(state.gnShapeKind==='line'?'active':'')+'">Linie</button><button data-action="gn3-shape-kind" data-kind="rect" class="'+(state.gnShapeKind==='rect'?'active':'')+'">Rechteck</button><button data-action="gn3-shape-kind" data-kind="ellipse" class="'+(state.gnShapeKind==='ellipse'?'active':'')+'">Ellipse</button></div></div>';
+  if(state.gnTool==='select')return '<div class="gn3-options"><span>Lasso</span></div>';
+  if(state.gnTool==='text')return '<div class="gn3-options"><span>Text</span></div>';
+  return ''
+}
