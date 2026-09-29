@@ -161,7 +161,7 @@ const state = {
   libraryTab:'notes', libraryView:'list', libraryQuery:'', librarySort:'recent', librarySubject:'all', libraryFolder:'all', newMenu:false, folderModal:false, folderModalMode:'create', folderEditId:null, folderMenu:false,
   recentColors:load('ss11:recentColors',['#20242B','#3568D4','#B75850','#26785B','#D39A23']),
   createMode:'photo', createText:'', createFile:null, createPreview:'', challenge:null, q:0, answered:false, score:0, lastCorrect:false, lastExplanation:'', quizMode:'normal',
-  toast:'', quickCreateOpen:false, pagesSheetOpen:false, sortSheetOpen:false, docContextId:null, moveSheetOpen:false
+  toast:'', quickCreateOpen:false, pagesSheetOpen:false, sortSheetOpen:false, docContextId:null, moveSheetOpen:false, noteListQuery:'', editorReturn:'library'
 };
 
 function toast(msg){
@@ -302,6 +302,36 @@ function renderHome(){
     'home'
   );
 }
+
+function renderNotesList(){
+  state.screen='noteslist';
+  let notes=data.notes().slice().sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  const q=state.noteListQuery.trim().toLowerCase();
+  if(q){
+    notes=notes.filter(n=>{
+      const text=(n.pages||[]).map(p=>p.text||'').join(' ');
+      return (String(n.title||'')+' '+String(n.subject||'')+' '+text+' '+(n.tags||[]).join(' ')).toLowerCase().includes(q);
+    });
+  }
+  const pinned=notes.filter(n=>n.pinned);
+  const rest=notes.filter(n=>!n.pinned);
+  const add='<button class="v14-circle" data-action="new-note-from-list" aria-label="Neue Notiz">'+icon('plus',21)+'</button>';
+  let html=v14LargeNav('Notizen','',add)+
+    '<label class="v14-search">'+icon('search',18)+'<input id="noteListSearch" placeholder="Notizen durchsuchen" value="'+esc(state.noteListQuery)+'"></label>';
+
+  if(pinned.length){
+    html+='<section class="v14-section">'+v14Section('Angepinnt')+'<div class="v14-list">'+pinned.map(v14DocRow).join('')+'</div></section>';
+  }
+  html+='<section class="v14-section">'+v14Section(q?'Ergebnisse':'Alle Notizen')+
+    (rest.length?'<div class="v14-list">'+rest.map(v14DocRow).join('')+'</div>':(q?v14Empty('Keine Treffer','Versuche einen anderen Suchbegriff.'):v14Empty('Noch keine Notizen','Erstelle deine erste Notiz.','new-note-from-list','Neue Notiz')))+
+  '</section>'+v14ContextSheet();
+
+  root.innerHTML=shell(html,'notes');
+  const search=$('#noteListSearch');
+  if(search)search.oninput=e=>{state.noteListQuery=e.target.value;renderNotesList();};
+  requestAnimationFrame(()=>{v14BindLargeTitle();v14BindDocumentGestures();});
+}
+
 function renderLibrary(){
   let notes=data.notes(),rounds=data.rounds(),deleted=data.deleted(),folders=data.folders(),q=state.libraryQuery.trim().toLowerCase();
   if(state.libraryFolder!=='all')notes=notes.filter(n=>n.folderId===state.libraryFolder);
@@ -1217,6 +1247,7 @@ function v14Transition(fn){
 function v14RenderCurrent(){
   if(state.screen==='library')renderLibrary();
   else if(state.screen==='reviews')renderReviews();
+  else if(state.screen==='noteslist')renderNotesList();
   else if(state.screen==='notes')renderNotes();
   else renderHome();
 }
@@ -1521,7 +1552,7 @@ function renderNotes(){
   const results=searchTerm?pages.flatMap((pg,i)=>{const hay=String(pg.text||'').toLowerCase(),out=[];let at=hay.indexOf(searchTerm),guard=0;while(at>=0&&guard<10){out.push({pageId:pg.id,page:i+1,start:at,snippet:String(pg.text||'').slice(Math.max(0,at-28),at+searchTerm.length+55).replace(/\n+/g,' ')});at=hay.indexOf(searchTerm,at+Math.max(1,searchTerm.length));guard++;}return out;}):[];
 
   let html='<section class="v14-editor '+(state.noteMode==='view'?'view':'edit')+'">'+
-    '<header class="v14-editornav"><button data-action="library">'+icon('back',22)+'</button><div><input id="noteTitle" value="'+esc(n.title)+'"><small id="saveStatus">Gespeichert</small></div><button data-action="note-more">'+icon('more',22)+'</button></header>';
+    '<header class="v14-editornav"><button data-action="editor-back">'+icon('back',22)+'</button><div><input id="noteTitle" value="'+esc(n.title)+'"><small id="saveStatus">Gespeichert</small></div><button data-action="note-more">'+icon('more',22)+'</button></header>';
 
   if(state.noteMode==='edit'&&!state.focus){
     html+='<nav class="v14-toolglass">'+[['pen','pen'],['marker','marker'],['eraser','eraser'],['select','select'],['text','text']].map(x=>'<button data-action="note-tool" data-tool="'+x[0]+'" class="'+(state.noteTool===x[0]?'active':'')+'">'+icon(x[1],21)+'</button>').join('')+'<button data-action="toggle-tool-menu" class="'+(state.toolMenu?'active':'')+'">'+icon('plus',21)+'</button></nav>'+v14ToolOptions();
@@ -1582,6 +1613,7 @@ function renderTrophies(){
 function render(){
   if(state.screen==='home')renderHome();
   else if(state.screen==='library')renderLibrary();
+  else if(state.screen==='noteslist')renderNotesList();
   else if(state.screen==='notes')renderNotes();
   else if(state.screen==='reviews')renderReviews();
   else if(state.screen==='trophies')renderTrophies();
@@ -1599,7 +1631,7 @@ window.addEventListener('click',e=>{
   else if(a==='quick-pin'){const id=b.dataset.id;data.setNotes(data.notes().map(n=>n.id===id?Object.assign({},n,{pinned:!n.pinned,updatedAt:Date.now()}):n));v14Haptic();v14RenderCurrent();}
   else if(a==='quick-delete'){state.docContextId=b.dataset.id;const id=state.docContextId;const prev=state.noteId;state.noteId=id;softDelete(id);state.noteId=prev;state.docContextId=null;v14Haptic(16);v14RenderCurrent();}
   else if(a==='close-doc-context'){state.docContextId=null;state.moveSheetOpen=false;v14RenderCurrent();}
-  else if(a==='context-open'){const id=state.docContextId;state.docContextId=null;state.moveSheetOpen=false;if(id){state.noteId=id;state.pageId=data.notes().find(n=>n.id===id)?.pages?.[0]?.id;state.noteMode='view';state.screen='notes';renderNotes();}}
+  else if(a==='context-open'){const id=state.docContextId;const origin=state.screen;state.docContextId=null;state.moveSheetOpen=false;if(id){state.editorReturn=origin;state.noteId=id;state.pageId=data.notes().find(n=>n.id===id)?.pages?.[0]?.id;state.noteMode='view';state.screen='notes';renderNotes();}}
   else if(a==='context-pin'){const id=state.docContextId;data.setNotes(data.notes().map(n=>n.id===id?Object.assign({},n,{pinned:!n.pinned,updatedAt:Date.now()}):n));state.docContextId=null;v14Haptic();v14RenderCurrent();}
   else if(a==='context-move'){state.moveSheetOpen=true;v14RenderCurrent();}
   else if(a==='move-context-note'){const id=state.docContextId,folder=b.dataset.folder;data.setNotes(data.notes().map(n=>n.id===id?Object.assign({},n,{folderId:folder==='none'?null:folder,updatedAt:Date.now()}):n));state.docContextId=null;state.moveSheetOpen=false;v14Haptic();v14RenderCurrent();}
@@ -1621,6 +1653,12 @@ window.addEventListener('click',e=>{
   }
   else if(a==='back'){if(state.screen==='trophies'){state.screen='home';history.replaceState(null,'','/');renderHome();}else{state.screen='home';renderHome();}}
   else if(a==='library'){state.screen='library';state.quickCreateOpen=false;state.newMenu=false;v14Haptic();renderLibrary();}
+  else if(a==='editor-back'){
+    const target=state.editorReturn||'library';state.noteInfo=false;state.pagesSheetOpen=false;state.toolMenu=false;state.docSearchOpen=false;
+    if(target==='home'){state.screen='home';v14Transition(()=>renderHome());}
+    else if(target==='noteslist'){state.screen='noteslist';v14Transition(()=>renderNotesList());}
+    else {state.screen='library';v14Transition(()=>renderLibrary());}
+  }
   else if(a==='library-pinned'){state.screen='library';state.libraryTab='pinned';state.libraryFolder='all';renderLibrary();}
   else if(a==='library-new'){state.quickCreateOpen=true;v14Haptic();renderLibrary();}
   else if(a==='new-folder'){state.quickCreateOpen=false;state.newMenu=false;state.folderModal=true;state.folderModalMode='create';state.folderEditId=null;renderLibrary();}
@@ -1632,11 +1670,12 @@ window.addEventListener('click',e=>{
   else if(a==='delete-folder')deleteFolder(state.libraryFolder);
   else if(a==='open-folder'){state.libraryFolder=b.dataset.id||'all';state.libraryTab='notes';state.folderMenu=false;renderLibrary();}
   else if(a==='all-folders'){state.libraryFolder='all';state.folderMenu=false;renderLibrary();}
-  else if(a==='notes'){state.screen='notes';state.noteMode='view';state.selectedImage=null;v14Haptic();renderNotes();}
+  else if(a==='notes'){state.screen='noteslist';state.noteMode='view';state.selectedImage=null;v14Haptic();v14Transition(()=>renderNotesList());}
   else if(a==='reviews'){state.screen='reviews';v14Haptic();renderReviews();}
   else if(a==='trophies'){state.screen='trophies';history.replaceState(null,'','/trophies');renderTrophies();}
-  else if(a==='new-note'){state.quickCreateOpen=false;state.newMenu=false;newNote();}
-  else if(a==='open-note'){v14Transition(()=>{state.noteId=b.dataset.id;state.pageId=data.notes().find(n=>n.id===state.noteId)?.pages?.[0]?.id;state.noteMode='view';state.noteNav='pages';state.screen='notes';renderNotes();});}
+  else if(a==='new-note'){state.quickCreateOpen=false;state.newMenu=false;state.editorReturn=state.screen==='noteslist'?'noteslist':(state.screen==='home'?'home':'library');newNote();}
+  else if(a==='new-note-from-list'){state.editorReturn='noteslist';newNote();}
+  else if(a==='open-note'){v14Transition(()=>{state.editorReturn=state.screen;state.noteId=b.dataset.id;state.pageId=data.notes().find(n=>n.id===state.noteId)?.pages?.[0]?.id;state.noteMode='view';state.noteNav='pages';state.screen='notes';renderNotes();});}
   else if(a==='open-page'){state.pageId=b.dataset.id;state.pagesSheetOpen=false;state.selection=null;state.selectedImage=null;renderNotes();}
   else if(a==='add-page')addPage();
   else if(a==='library-tab'){state.libraryTab=b.dataset.tab;v14Haptic();renderLibrary();}
