@@ -157,7 +157,7 @@ const state = {
   libraryTab:'notes', libraryView:'list', libraryQuery:'', librarySort:'recent', librarySubject:'all', libraryFolder:'all', newMenu:false, folderModal:false, folderModalMode:'create', folderEditId:null, folderMenu:false,
   recentColors:load('ss11:recentColors',['#20242B','#3568D4','#B75850','#26785B','#D39A23']),
   createMode:'photo', createText:'', createFile:null, createPreview:'', challenge:null, q:0, answered:false, score:0, lastCorrect:false, lastExplanation:'', quizMode:'normal',
-  toast:''
+  toast:'', quickCreateOpen:false, pagesSheetOpen:false
 };
 
 function toast(msg){
@@ -898,6 +898,304 @@ function startNoteStudy(){
   const n=getNote(),ch=splitChallenge(n);if(!ch){toast('Das Dokument braucht etwas mehr Text');return;}startChallenge(ch,'normal');
 }
 
+
+
+/* =========================
+   SNAPSTUDY V13 UI OVERRIDES
+   ========================= */
+
+function v13Date(){
+  return new Intl.DateTimeFormat('de-DE',{weekday:'long',day:'numeric',month:'long'}).format(new Date());
+}
+function v13DocumentMeta(n){
+  const pages=(n.pages||[]).length,subject=n.subject&&n.subject!=='Ohne Fach'?n.subject:'Dokument';
+  return subject+' · '+pages+' '+(pages===1?'Seite':'Seiten')+' · '+fmtDate(n.updatedAt||Date.now());
+}
+function v13DocRow(n){
+  return '<article class="v13-docrow">'+
+    '<button data-action="open-note" data-id="'+esc(n.id)+'">'+
+      '<span class="v13-docthumb">'+icon('note',20)+'</span>'+
+      '<span class="v13-doccopy"><strong>'+esc(n.title||'Unbenannt')+'</strong><small>'+esc(v13DocumentMeta(n))+'</small></span>'+
+      (n.pinned?'<span class="v13-pin">'+icon('pin',15)+'</span>':'')+
+      '<span class="v13-chevron">'+icon('arrow',15)+'</span>'+
+    '</button>'+
+  '</article>';
+}
+function v13Empty(title,copy,action,label){
+  return '<div class="v13-empty">'+
+    '<span class="v13-emptyicon">'+icon('note',22)+'</span>'+
+    '<strong>'+esc(title)+'</strong>'+
+    '<p>'+esc(copy)+'</p>'+
+    (action?'<button class="v13-secondary" data-action="'+action+'">'+esc(label||'Neu')+'</button>':'')+
+  '</div>';
+}
+function v13Header(title,subtitle,actions=''){
+  return '<header class="v13-header"><div><h1>'+esc(title)+'</h1>'+(subtitle?'<p>'+esc(subtitle)+'</p>':'')+'</div><div class="v13-header-actions">'+actions+'</div></header>';
+}
+function nav(active){
+  const items=[['home','Heute','home'],['notes','Notizen','note'],['reviews','Wiederholen','repeat'],['library','Sammlung','stack']];
+  return '<nav class="v13-tabbar">'+items.map(x=>
+    '<button data-action="'+x[0]+'" class="'+(active===x[0]?'active':'')+'">'+
+      '<span>'+icon(x[2],22)+'</span><small>'+x[1]+'</small>'+
+    '</button>'
+  ).join('')+'</nav>';
+}
+function shell(content,active='home',opts={}){
+  return '<main class="v13-app '+(opts.wide?'wide':'')+'"><div class="v13-content">'+content+'</div>'+(opts.noNav?'':nav(active))+'</main>';
+}
+
+function renderHome(){
+  const notes=data.notes().slice().sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  const pinned=notes.filter(n=>n.pinned).slice(0,3);
+  const recent=notes.filter(n=>!pinned.some(p=>p.id===n.id)).slice(0,4);
+  const due=data.reviews().filter(r=>(r.dueAt||0)<=Date.now());
+  const rounds=data.rounds().slice().sort((a,b)=>(b.lastPlayedAt||0)-(a.lastPlayedAt||0));
+  const continueRound=rounds[0];
+
+  const plus='<button class="v13-roundicon" data-action="open-create-sheet" aria-label="Neu">'+icon('plus',22)+'</button>';
+  let html=v13Header('Heute',v13Date(),plus);
+
+  if(due.length){
+    html+='<section class="v13-focus">'+
+      '<div><span>Wiederholen</span><strong>'+due.length+' '+(due.length===1?'Karte':'Karten')+' fällig</strong><small>Jetzt kurz festigen</small></div>'+
+      '<button data-action="start-due">'+icon('play',16)+'<span>Jetzt lernen</span></button>'+
+    '</section>';
+  }
+
+  if(continueRound){
+    html+='<section class="v13-section"><div class="v13-sectionhead"><h2>Weiterlernen</h2></div>'+
+      '<button class="v13-continue" data-action="play-round" data-id="'+esc(continueRound.id)+'">'+
+        '<span class="v13-progressring"><i></i></span>'+
+        '<span><strong>'+esc(continueRound.title||'Lernrunde')+'</strong><small>'+((continueRound.questions||[]).length||0)+' Fragen</small></span>'+
+        icon('arrow',17)+
+      '</button></section>';
+  }
+
+  if(pinned.length){
+    html+='<section class="v13-section"><div class="v13-sectionhead"><h2>Angepinnt</h2><button data-action="library-pinned">Alle</button></div><div class="v13-list">'+pinned.map(v13DocRow).join('')+'</div></section>';
+  }
+
+  html+='<section class="v13-section"><div class="v13-sectionhead"><h2>Zuletzt</h2><button data-action="library">Alle</button></div>'+
+    (recent.length?'<div class="v13-list">'+recent.map(v13DocRow).join('')+'</div>':v13Empty('Noch keine Dokumente','Erstelle eine Notiz oder importiere Lernmaterial.','open-create-sheet','Neu erstellen'))+
+  '</section>';
+
+  if(state.quickCreateOpen){
+    html+='<div class="v13-sheetbackdrop" data-action="close-create-sheet"></div>'+
+      '<section class="v13-sheet">'+
+        '<div class="v13-sheethandle"></div><div class="v13-sheettitle"><h2>Neu</h2><button data-action="close-create-sheet">'+icon('close',20)+'</button></div>'+
+        '<button data-action="new-note"><span>'+icon('note',21)+'</span><div><strong>Neue Notiz</strong><small>Leeres Dokument</small></div>'+icon('arrow',16)+'</button>'+
+        '<button data-action="create-photo"><span>'+icon('camera',21)+'</span><div><strong>Dokument scannen</strong><small>Kamera oder Galerie</small></div>'+icon('arrow',16)+'</button>'+
+        '<button data-action="create-text"><span>'+icon('text',21)+'</span><div><strong>Text einfügen</strong><small>Aus Text Lernfragen erstellen</small></div>'+icon('arrow',16)+'</button>'+
+      '</section>';
+  }
+
+  root.innerHTML=shell(html,'home');
+}
+
+function renderLibrary(){
+  const folders=data.folders();
+  let notes=data.notes().slice(),rounds=data.rounds().slice();
+  const q=state.libraryQuery.trim().toLowerCase();
+
+  if(state.libraryFolder!=='all')notes=notes.filter(n=>n.folderId===state.libraryFolder);
+  if(state.libraryTab==='pinned')notes=notes.filter(n=>n.pinned);
+  if(state.libraryTab==='favorites')notes=notes.filter(n=>n.favorite);
+  if(q){
+    notes=notes.filter(n=>{
+      const body=(n.pages||[]).map(p=>p.text||'').join(' ');
+      return (n.title+' '+(n.subject||'')+' '+body+' '+(n.tags||[]).join(' ')).toLowerCase().includes(q);
+    });
+    rounds=rounds.filter(r=>(String(r.title||'')+' '+String(r.topic||'')).toLowerCase().includes(q));
+  }
+  notes.sort((a,b)=>state.librarySort==='title'?String(a.title).localeCompare(String(b.title),'de'):(b.updatedAt||0)-(a.updatedAt||0));
+
+  const plus='<button class="v13-roundicon" data-action="library-new">'+icon('plus',22)+'</button>';
+  let html=v13Header(state.libraryFolder==='all'?'Sammlung':folderName(state.libraryFolder),'',plus)+
+    '<label class="v13-search">'+icon('search',19)+'<input id="librarySearch" placeholder="Suchen" value="'+esc(state.libraryQuery)+'"></label>'+
+    '<div class="v13-segmented">'+
+      '<button data-action="library-tab" data-tab="notes" class="'+(state.libraryTab==='notes'?'active':'')+'">Alle</button>'+
+      '<button data-action="library-tab" data-tab="pinned" class="'+(state.libraryTab==='pinned'?'active':'')+'">Angepinnt</button>'+
+      '<button data-action="library-tab" data-tab="rounds" class="'+(state.libraryTab==='rounds'?'active':'')+'">Lernrunden</button>'+
+    '</div>';
+
+  if(state.libraryTab==='notes'&&state.libraryFolder==='all'&&!q&&folders.length){
+    html+='<section class="v13-section"><div class="v13-sectionhead"><h2>Ordner</h2><button data-action="new-folder">Neu</button></div><div class="v13-folderlist">'+
+      folders.map(f=>'<button data-action="open-folder" data-id="'+esc(f.id)+'"><span>'+icon('folder',22)+'</span><div><strong>'+esc(f.name)+'</strong><small>'+data.notes().filter(n=>n.folderId===f.id).length+' Dokumente</small></div>'+icon('arrow',16)+'</button>').join('')+
+    '</div></section>';
+  }
+
+  if(state.libraryFolder!=='all'){
+    html+='<div class="v13-folderbar"><button data-action="all-folders">'+icon('back',17)+' Alle Ordner</button><button data-action="folder-more">'+icon('more',20)+'</button></div>';
+  }
+
+  html+='<section class="v13-section"><div class="v13-sectionhead"><h2>'+(state.libraryTab==='rounds'?'Lernrunden':'Dokumente')+'</h2>'+
+    (state.libraryTab!=='rounds'?'<select id="sortSelect"><option value="recent">Zuletzt geändert</option><option value="title">Titel</option></select>':'')+
+    '</div>';
+
+  if(state.libraryTab==='rounds'){
+    html+=rounds.length?'<div class="v13-list">'+rounds.map(r=>'<article class="v13-docrow"><button data-action="play-round" data-id="'+esc(r.id)+'"><span class="v13-docthumb blue">'+icon('stack',20)+'</span><span class="v13-doccopy"><strong>'+esc(r.title||'Lernrunde')+'</strong><small>'+esc(r.topic||'')+' · '+((r.questions||[]).length)+' Fragen</small></span><span class="v13-chevron">'+icon('arrow',15)+'</span></button></article>').join('')+'</div>':v13Empty('Noch keine Lernrunden','Erstelle Lernfragen aus einem Dokument oder Text.');
+  } else {
+    html+=notes.length?'<div class="v13-list">'+notes.map(v13DocRow).join('')+'</div>':v13Empty('Keine Dokumente','In diesem Bereich ist noch nichts gespeichert.','open-create-sheet','Dokument erstellen');
+  }
+  html+='</section>';
+
+  if(state.newMenu){
+    html+='<div class="v13-popmenu"><button data-action="new-note">'+icon('note',18)+' Neue Notiz</button><button data-action="new-folder">'+icon('folder',18)+' Neuer Ordner</button></div>';
+  }
+  if(state.folderMenu){
+    html+='<div class="v13-popmenu folder"><button data-action="rename-folder">'+icon('text',17)+' Umbenennen</button><button class="danger" data-action="delete-folder">'+icon('trash',17)+' Ordner löschen</button></div>';
+  }
+  if(state.folderModal){
+    html+='<div class="v13-sheetbackdrop"></div><section class="v13-dialog"><div class="v13-sheettitle"><h2>'+(state.folderModalMode==='rename'?'Ordner umbenennen':'Neuer Ordner')+'</h2><button data-action="close-folder-modal">'+icon('close',19)+'</button></div><input id="folderNameInput" value="'+esc(state.folderModalMode==='rename'?folderName(state.folderEditId):'')+'" placeholder="Name"><button class="v13-primary full" data-action="'+(state.folderModalMode==='rename'?'save-folder-name':'create-folder')+'">'+(state.folderModalMode==='rename'?'Speichern':'Erstellen')+'</button></section>';
+  }
+
+  root.innerHTML=shell(html,'library');
+  const search=$('#librarySearch');if(search)search.oninput=e=>{state.libraryQuery=e.target.value;renderLibrary();};
+  const sort=$('#sortSelect');if(sort){sort.value=state.librarySort;sort.onchange=e=>{state.librarySort=e.target.value;renderLibrary();};}
+  if(state.folderModal)requestAnimationFrame(()=>$('#folderNameInput')?.focus());
+}
+
+function renderReviews(){
+  const all=data.reviews().slice().sort((a,b)=>(a.dueAt||0)-(b.dueAt||0));
+  const due=all.filter(r=>(r.dueAt||0)<=Date.now()),later=all.filter(r=>(r.dueAt||0)>Date.now());
+  const group=list=>{
+    const m={};list.forEach(r=>{const k=r.sourceTitle||'Lernstoff';(m[k]||(m[k]=[])).push(r);});
+    return Object.entries(m);
+  };
+
+  let html=v13Header('Wiederholen','');
+  html+='<section class="v13-reviewhero"><div><span>Heute</span><strong>'+due.length+' '+(due.length===1?'Karte':'Karten')+' fällig</strong></div>'+
+    (due.length?'<button class="v13-primary" data-action="start-due">'+icon('play',17)+' Wiederholung starten</button>':'')+
+  '</section>';
+
+  if(due.length){
+    html+='<section class="v13-section"><div class="v13-sectionhead"><h2>Fällig</h2></div><div class="v13-topiclist">'+
+      group(due).map(([name,items])=>'<div><span class="v13-dot"></span><div><strong>'+esc(name)+'</strong><small>'+items.length+' '+(items.length===1?'Karte':'Karten')+'</small></div></div>').join('')+
+    '</div></section>';
+  } else {
+    html+=v13Empty('Alles erledigt','Für heute ist keine Wiederholung mehr fällig.');
+  }
+
+  if(later.length){
+    html+='<section class="v13-section"><div class="v13-sectionhead"><h2>Demnächst</h2></div><div class="v13-topiclist muted">'+
+      group(later.slice(0,8)).map(([name,items])=>'<div><span class="v13-dot"></span><div><strong>'+esc(name)+'</strong><small>'+fmtDate(Math.min(...items.map(x=>x.dueAt)))+' · '+items.length+' '+(items.length===1?'Karte':'Karten')+'</small></div></div>').join('')+
+    '</div></section>';
+  }
+  root.innerHTML=shell(html,'reviews');
+}
+
+function renderCreate(mode){
+  state.createMode=mode||state.createMode;
+  let html='<header class="v13-navtitle"><button data-action="back">'+icon('back',21)+'</button><h1>Neue Lernrunde</h1><span></span></header>'+
+    '<div class="v13-segmented create"><button data-action="create-photo" class="'+(state.createMode==='photo'?'active':'')+'">Foto</button><button data-action="create-text" class="'+(state.createMode==='text'?'active':'')+'">Text</button></div>'+
+    '<section class="v13-create">';
+  if(state.createMode==='photo'){
+    html+='<label class="v13-upload">'+(state.createPreview?'<img src="'+state.createPreview+'" alt="">':'<span>'+icon('camera',24)+'</span><strong>Dokument auswählen</strong><small>Kamera oder Galerie</small>')+'<input id="photoInput" type="file" accept="image/*" capture="environment"></label>';
+  }
+  html+='<label class="v13-field"><span>'+(state.createMode==='text'?'Text':'Notiz (optional)')+'</span><textarea id="createText" placeholder="'+(state.createMode==='text'?'Text hier einfügen':'Optionaler Kontext')+'">'+esc(state.createText)+'</textarea></label>'+
+    '<button class="v13-primary full" data-action="analyze">Fragen erstellen</button></section>';
+  root.innerHTML=shell(html,'home',{noNav:true});
+  const pi=$('#photoInput');if(pi)pi.onchange=e=>{const file=e.target.files?.[0];if(!file)return;state.createFile=file;if(state.createPreview)URL.revokeObjectURL(state.createPreview);state.createPreview=URL.createObjectURL(file);renderCreate('photo');};
+}
+
+function renderQuestion(){
+  const ch=state.challenge,q=ch.questions[state.q],total=ch.questions.length,pct=((state.q+1)/total)*100;
+  let html='<main class="v13-study">'+
+    '<header><button data-action="home">'+icon('close',20)+'</button><div><span style="width:'+pct+'%"></span></div><small>'+(state.q+1)+' / '+total+'</small></header>'+
+    '<section class="v13-studybody"><span class="v13-studytopic">'+esc(ch.topic||'Lernrunde')+'</span><h1>'+esc(q.prompt)+'</h1>';
+
+  if(!state.answered){
+    if(q.choices?.length){
+      html+='<div class="v13-answers">'+q.choices.map((x,i)=>'<button data-action="answer" data-value="'+esc(x)+'"><span>'+String.fromCharCode(65+i)+'</span><strong>'+esc(x)+'</strong></button>').join('')+'</div>';
+    }else{
+      html+='<div class="v13-freeanswer"><input id="answerInput" placeholder="Deine Antwort"><button class="v13-primary" data-action="submit-answer">Prüfen</button></div>';
+    }
+  }else{
+    html+='<div class="v13-feedback '+(state.lastCorrect?'good':'bad')+'"><strong>'+(state.lastCorrect?'Richtig':'Noch nicht')+'</strong>'+(state.lastExplanation?'<p>'+esc(state.lastExplanation)+'</p>':'')+'</div>';
+    if(state.quizMode==='review'){
+      html+='<div class="v13-rating"><span>Wie sicher warst du?</span><div><button data-action="review-rate" data-rate="again">Nochmal</button><button data-action="review-rate" data-rate="hard">Schwierig</button><button data-action="review-rate" data-rate="good">Gut</button><button data-action="review-rate" data-rate="easy">Einfach</button></div></div>';
+    }else{
+      html+='<button class="v13-primary full" data-action="next-question">'+(state.q===total-1?'Ergebnis':'Weiter')+'</button>';
+    }
+  }
+  html+='</section></main>';
+  root.innerHTML=html;
+}
+
+function finishChallenge(){
+  const total=state.challenge.questions.length,pct=Math.round(state.score/total*100),p=data.profile(),today=dayKey(),y=dayKey(new Date(Date.now()-86400000));
+  if(p.last!==today){p.streak=p.last===y?(p.streak||0)+1:1;p.last=today;}
+  p.xp=(p.xp||0)+Math.max(10,pct);p.sessions=(p.sessions||0)+1;p.perfects=(p.perfects||0)+(pct===100?1:0);if(state.quizMode==='review')p.reviewsDone=(p.reviewsDone||0)+1;data.setProfile(p);
+  recordActivity(state.quizMode==='review'?'reviews':'sessions');
+  if(state.quizMode!=='review'){const r=Object.assign({},state.challenge,{id:state.challenge.id||uid('round'),lastPlayedAt:Date.now()});data.setRounds([r,...data.rounds().filter(x=>x.id!==r.id)].slice(0,50));}
+  evalTrophies();
+  root.innerHTML='<main class="v13-result"><span>'+icon('check',26)+'</span><h1>Fertig</h1><p>'+state.score+' von '+total+' richtig</p><strong>'+pct+'%</strong><button class="v13-primary" data-action="home">Zur Übersicht</button></main>';
+}
+
+function renderNotes(){
+  const n=getNote();if(!n){state.screen='library';renderLibrary();return;}
+  const p=getPage(n);if(!p){addPage();return;}
+  const pages=n.pages||[],pageIndex=pages.findIndex(x=>x.id===p.id),palette=state.recentColors.slice(0,4);
+  const searchTerm=state.docSearchQuery.trim().toLowerCase();
+  const searchResults=searchTerm?pages.flatMap((pg,i)=>{
+    const hay=String(pg.text||'').toLowerCase(),out=[];let at=hay.indexOf(searchTerm),guard=0;
+    while(at>=0&&guard<12){out.push({pageId:pg.id,page:i+1,start:at,snippet:String(pg.text||'').slice(Math.max(0,at-30),at+searchTerm.length+60).replace(/\n+/g,' ')});at=hay.indexOf(searchTerm,at+Math.max(1,searchTerm.length));guard++;}
+    return out;
+  }):[];
+
+  let html='<section class="v13-editor">'+
+    '<header class="v13-editorhead"><button data-action="library">'+icon('back',22)+'</button><div><input id="noteTitle" value="'+esc(n.title)+'"><small id="saveStatus">Gespeichert</small></div><button data-action="toggle-doc-search">'+icon('search',21)+'</button><button data-action="note-more">'+icon('more',21)+'</button></header>';
+
+  if(state.docSearchOpen){
+    html+='<section class="v13-docsearch"><label>'+icon('search',18)+'<input id="docSearchInput" value="'+esc(state.docSearchQuery)+'" placeholder="Im Dokument suchen"></label>'+
+      (searchTerm?'<div>'+ (searchResults.length?searchResults.slice(0,8).map(r=>'<button data-action="doc-search-result" data-page="'+esc(r.pageId)+'" data-start="'+r.start+'"><strong>Seite '+r.page+'</strong><span>'+esc(r.snippet)+'</span></button>').join(''):'<small>Keine Treffer</small>')+'</div>':'')+
+    '</section>';
+  }
+
+  if(state.noteMode==='edit'&&!state.focus){
+    html+='<nav class="v13-toolstrip">'+
+      [['pen','pen'],['marker','marker'],['eraser','eraser'],['select','select'],['text','text']].map(x=>'<button data-action="note-tool" data-tool="'+x[0]+'" class="'+(state.noteTool===x[0]?'active':'')+'">'+icon(x[1],21)+'</button>').join('')+
+      '<button data-action="toggle-tool-menu" class="'+(state.toolMenu?'active':'')+'">'+icon('plus',21)+'</button>'+
+      '<span></span><button data-action="undo">'+icon('undo',20)+'</button><button data-action="redo">'+icon('redo',20)+'</button>'+
+    '</nav>';
+    html+='<div class="v13-tooloptions">'+toolOptions()+'</div>';
+    if(state.toolMenu){
+      html+='<div class="v13-insertmenu"><button data-action="note-tool" data-tool="shape">'+icon('shape',18)+' Form</button><label>'+icon('image',18)+' Bild<input id="imageInput" type="file" accept="image/*"></label></div>';
+    }
+  }
+
+  html+='<div class="v13-paperstage"><div class="paper '+esc(p.paper||'ruled')+'">'+
+    '<textarea id="noteText" '+(state.noteMode==='view'?'readonly':'')+' class="'+(state.noteMode==='edit'&&state.noteTool==='text'?'editing':'')+'" placeholder="Text eingeben...">'+esc(p.text||'')+'</textarea>'+
+    '<canvas id="noteCanvas" width="1000" height="1400"></canvas>'+
+    '<div id="imageLayer">'+(p.images||[]).map(img=>'<img data-image-id="'+esc(img.id)+'" class="'+(state.selectedImage===img.id?'selected':'')+'" src="'+img.src+'" style="left:'+img.x+'%;top:'+img.y+'%;width:'+img.w+'%;">').join('')+'</div>'+
+  '</div></div>';
+
+  html+='<footer class="v13-editorbar"><button data-action="toggle-pages">'+icon('note',18)+'<span>Seiten</span></button><button data-action="template-menu">'+icon('grid',18)+'<span>Vorlage</span></button><span></span><button class="learn" data-action="note-study">'+icon('play',17)+'<span>Lernen</span></button></footer>';
+
+  if(state.pagesSheetOpen){
+    html+='<div class="v13-sheetbackdrop" data-action="toggle-pages"></div><section class="v13-pagesheet"><div class="v13-sheethandle"></div><div class="v13-sheettitle"><h2>Seiten</h2><button data-action="add-page">'+icon('plus',20)+'</button></div><div class="v13-pagegrid">'+
+      pages.map((pg,i)=>'<button data-action="open-page" data-id="'+esc(pg.id)+'" class="'+(pg.id===p.id?'active':'')+'"><span class="mini-sheet '+esc(pg.paper||'ruled')+'"></span><small>Seite '+(i+1)+'</small></button>').join('')+
+    '</div></section>';
+  }
+
+  html+='<div id="noteMenu" class="v13-popmenu note hidden"><button data-action="note-mode" data-mode="'+(state.noteMode==='edit'?'view':'edit')+'">'+icon('note',17)+' '+(state.noteMode==='edit'?'Ansicht':'Bearbeiten')+'</button><button data-action="note-info">'+icon('text',17)+' Details</button><button data-action="mark-note-review">'+icon('repeat',17)+' Wiederholen</button><button data-action="export-note">'+icon('download',17)+' Exportieren</button><button data-action="duplicate-note">'+icon('copy',17)+' Duplizieren</button><button class="danger" data-action="delete-note">'+icon('trash',17)+' Löschen</button></div>';
+
+  html+='<div id="templateMenu" class="v13-sheet hidden"><div class="v13-sheethandle"></div><div class="v13-sheettitle"><h2>Vorlage</h2><button data-action="close-template">'+icon('close',19)+'</button></div><div class="v13-templategrid">'+['plain','ruled','grid','dotted','cornell'].map(kind=>'<button data-action="set-paper" data-paper="'+kind+'"><span class="template '+kind+'"></span><small>'+paperName(kind)+'</small></button>').join('')+'</div></div>';
+
+  if(state.noteInfo){
+    html+='<div class="v13-sheetbackdrop"></div><section class="v13-dialog"><div class="v13-sheettitle"><h2>Dokument</h2><button data-action="close-note-info">'+icon('close',19)+'</button></div><label>Titel<input id="infoTitle" value="'+esc(n.title)+'"></label><label>Fach<input id="infoSubject" value="'+esc(n.subject||'')+'"></label><button class="v13-secondary full" data-action="pin-note">'+(n.pinned?'Loslösen':'Anpinnen')+'</button></section>';
+  }
+
+  html+='</section>';
+  root.innerHTML=html;
+
+  const title=$('#noteTitle');if(title)title.oninput=e=>patchNote({title:e.target.value});
+  const infoTitle=$('#infoTitle');if(infoTitle)infoTitle.oninput=e=>patchNote({title:e.target.value});
+  const infoSubject=$('#infoSubject');if(infoSubject)infoSubject.oninput=e=>patchNote({subject:e.target.value});
+  const ds=$('#docSearchInput');if(ds){ds.oninput=e=>{state.docSearchQuery=e.target.value;renderNotes();};requestAnimationFrame(()=>$('#docSearchInput')?.focus());}
+  bindNote(n,p);
+}
+
 function render(){
   if(state.screen==='home')renderHome();
   else if(state.screen==='library')renderLibrary();
@@ -909,7 +1207,22 @@ function render(){
 
 window.addEventListener('click',e=>{
   const b=e.target.closest('[data-action]');if(!b)return;const a=b.dataset.action;
-  if(a==='home'){state.screen='home';history.replaceState(null,'','/');renderHome();}
+  if(a==='home'){state.screen='home';state.quickCreateOpen=false;history.replaceState(null,'','/');renderHome();}
+  else if(a==='open-create-sheet'){state.quickCreateOpen=true;renderHome();}
+  else if(a==='close-create-sheet'){state.quickCreateOpen=false;renderHome();}
+  else if(a==='toggle-pages'){state.pagesSheetOpen=!state.pagesSheetOpen;renderNotes();}
+  else if(a==='review-rate'){
+    const q=state.challenge.questions[state.q],list=data.reviews(),r=list.find(x=>x.prompt===q.prompt);
+    if(r){
+      const rate=b.dataset.rate;
+      if(rate==='again'){r.stage=0;r.dueAt=Date.now()+10*60000;}
+      else if(rate==='hard'){r.stage=Math.max(1,r.stage||0);r.dueAt=Date.now()+86400000;}
+      else if(rate==='good'){r.stage=(r.stage||0)+1;r.dueAt=Date.now()+[1,3,7,14,30][Math.min(4,r.stage-1)]*86400000;}
+      else {r.stage=(r.stage||0)+2;r.dueAt=Date.now()+[3,7,14,30,60][Math.min(4,r.stage-1)]*86400000;}
+      data.setReviews(list);
+    }
+    if(state.q>=state.challenge.questions.length-1)finishChallenge();else{state.q++;state.answered=false;renderQuestion();}
+  }
   else if(a==='back'){if(state.screen==='trophies'){state.screen='home';history.replaceState(null,'','/');renderHome();}else{state.screen='home';renderHome();}}
   else if(a==='library'){state.screen='library';state.newMenu=false;renderLibrary();}
   else if(a==='library-pinned'){state.screen='library';state.libraryTab='pinned';state.libraryFolder='all';renderLibrary();}
@@ -928,7 +1241,7 @@ window.addEventListener('click',e=>{
   else if(a==='trophies'){state.screen='trophies';history.replaceState(null,'','/trophies');renderTrophies();}
   else if(a==='new-note'){state.newMenu=false;newNote();}
   else if(a==='open-note'){state.noteId=b.dataset.id;state.pageId=data.notes().find(n=>n.id===state.noteId)?.pages?.[0]?.id;state.noteMode='view';state.noteNav='pages';state.screen='notes';renderNotes();}
-  else if(a==='open-page'){state.pageId=b.dataset.id;state.selection=null;state.selectedImage=null;renderNotes();}
+  else if(a==='open-page'){state.pageId=b.dataset.id;state.pagesSheetOpen=false;state.selection=null;state.selectedImage=null;renderNotes();}
   else if(a==='add-page')addPage();
   else if(a==='library-tab'){state.libraryTab=b.dataset.tab;renderLibrary();}
   else if(a==='toggle-library-view'){state.libraryView=state.libraryView==='list'?'grid':'list';renderLibrary();}
