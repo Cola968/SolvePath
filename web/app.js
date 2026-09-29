@@ -55,14 +55,14 @@ const KEYS = {
   trophies:'ss10:trophies', activity:'ss10:activity', deleted:'ss10:deleted', folders:'ss12:folders'
 };
 function defaultNote(){
-  return {id:uid('note'),title:'Gravitation',subject:'Physik',paper:'ruled',favorite:false,pinned:false,createdAt:Date.now(),updatedAt:Date.now(),
-    text:'Gravitationskraft\nF = G · m₁m₂ / r²\n\nWenn sich r verdoppelt, wird die Kraft viermal kleiner.',images:[],shapes:[]};
+  return {id:uid('note'),title:'Unbenannt',subject:'Ohne Fach',paper:'ruled',favorite:false,pinned:false,createdAt:Date.now(),updatedAt:Date.now(),
+    text:'',images:[],shapes:[]};
 }
 function migrate(){
   let notes=load(KEYS.notes,null);
   if(!notes){
     const legacy=load('snapstudy-notes-v4',load('snapstudy-notes',null));
-    notes=Array.isArray(legacy)&&legacy.length?legacy.map(n=>Object.assign({subject:'Physik',paper:'ruled',favorite:false,pinned:false,createdAt:n.updatedAt||Date.now(),updatedAt:Date.now(),images:[],shapes:[]},n)):[defaultNote()];
+    notes=Array.isArray(legacy)&&legacy.length?legacy.map(n=>Object.assign({subject:'Physik',paper:'ruled',favorite:false,pinned:false,createdAt:n.updatedAt||Date.now(),updatedAt:Date.now(),images:[],shapes:[]},n)):[];
     save(KEYS.notes,notes);
   }
   if(!localStorage.getItem(KEYS.rounds)) save(KEYS.rounds,load('snapstudy-library-v4',[]));
@@ -818,7 +818,7 @@ function localChallenge(text,title='Aus Notizen'){
   const chunks=String(text||'').split(/(?<=[.!?])\s+|\n+/).map(x=>x.trim()).filter(x=>x.length>10).slice(0,5);
   const qs=chunks.map((s,i)=>({prompt:'Welche Aussage gehört zum Lernstoff?',choices:[s,'Diese Aussage steht nicht im Lernstoff','Keine der Aussagen'],accepted:[s],explanation:s}));
   while(qs.length<3)qs.push({prompt:'Was ist ein zentraler Begriff aus dem Material?',choices:null,accepted:[String(text).split(/\s+/)[0]||'Lernstoff'],explanation:String(text).slice(0,160)});
-  return {id:uid('round'),title,topic:'Eigener Lernstoff',questions:qs.slice(0,5)};
+  return {id:uid('round'),title,topic:'Lernstoff',questions:qs.slice(0,5)};
 }
 function challengeFromAnalysis(a){
   const q=[];
