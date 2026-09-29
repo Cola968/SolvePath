@@ -1189,3 +1189,13 @@ app.onclick=function(e){
   if(a==='v6-backup'){v6Backup();return}
   if(v6PreviousClick)v6PreviousClick(e)
 };
+
+
+/* V6 flat application chrome */
+function topbar(back){
+  return '<header class="v6-topbar">'+
+    (back?'<button class="v6-top-icon" data-action="home" aria-label="Zurück">'+v4Icon('back',18)+'</button>':'<button class="v6-wordmark" data-action="home">SnapStudy</button>')+
+    '<span class="v6-top-spacer"></span>'+
+    '<button class="v6-top-icon" data-action="library" aria-label="Suchen">'+v4Icon('search',17)+'</button>'+
+  '</header>'
+}
