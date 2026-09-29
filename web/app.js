@@ -480,6 +480,31 @@ function renderNotes(){
     '<img data-image-id="'+esc(img.id)+'" class="'+(state.selectedImage===img.id?'selected':'')+'" src="'+img.src+'" style="left:'+img.x+'%;top:'+img.y+'%;width:'+img.w+'%;">'
   ).join('');
 
+  let canvasContextMenu='';
+  if(state.selection&&state.selection.noteId===n.id&&state.selection.pageId===p.id&&state.selection.ids.length){
+    const selectedStrokes=data.strokes(n.id,p.id).filter(s=>state.selection.ids.includes(s.id));
+    const points=selectedStrokes.flatMap(s=>s.points||[]);
+    if(points.length){
+      const xs=points.map(q=>q.x),ys=points.map(q=>q.y);
+      const left=Math.max(12,Math.min(88,((Math.min(...xs)+Math.max(...xs))/2)/10));
+      const top=Math.max(5,Math.min(92,(Math.min(...ys)/14)-1));
+      canvasContextMenu='<div class="contextbar" style="left:'+left+'%;top:'+top+'%">'+
+        '<span>'+state.selection.ids.length+' ausgewählt</span>'+
+        '<button data-action="copy-selection">'+icon('copy',13)+'</button>'+
+        '<button data-action="recolor-selection"><i style="background:'+state.color+'"></i></button>'+
+        '<button data-action="delete-selection" class="danger">'+icon('trash',13)+'</button>'+
+      '</div>';
+    }
+  }
+  const selectedImg=(p.images||[]).find(img=>img.id===state.selectedImage);
+  if(selectedImg){
+    const left=Math.max(12,Math.min(88,(selectedImg.x||0)+(selectedImg.w||35)/2));
+    const top=Math.max(5,(selectedImg.y||0)-1);
+    canvasContextMenu='<div class="contextbar image-context" style="left:'+left+'%;top:'+top+'%">'+
+      '<span>Bild</span><button data-action="image-smaller">−</button><button data-action="image-larger">+</button><button data-action="image-delete" class="danger">'+icon('trash',13)+'</button>'+
+    '</div>';
+  }
+
   const footer=!state.focus
     ?'<footer class="notefoot">'+
        '<button data-action="note-info">'+esc(n.subject||'Ohne Fach')+'</button>'+
@@ -538,26 +563,7 @@ function renderNotes(){
       '</div></div>';
   }
 
-  const selectionBar=(state.selection&&state.selection.noteId===n.id&&state.selection.pageId===p.id&&state.selection.ids.length)
-    ?'<div class="selectionbar">'+
-       '<span>'+state.selection.ids.length+' ausgewählt</span>'+
-       '<button data-action="copy-selection">'+icon('copy',14)+'</button>'+
-       '<button data-action="recolor-selection"><i style="background:'+state.color+'"></i></button>'+
-       '<button data-action="delete-selection" class="danger">'+icon('trash',14)+'</button>'+
-     '</div>'
-    :'';
 
-  const imageBar=state.selectedImage
-    ?'<div class="imagebar"><span>Bild</span><button data-action="image-smaller">−</button><button data-action="image-larger">+</button><button data-action="image-delete" class="danger">'+icon('trash',14)+'</button></div>'
-    :'';
-
-  const documentSearch=state.docSearchOpen
-    ?'<section class="docsearch"><label>'+icon('search',15)+'<input id="docSearchInput" value="'+esc(state.docSearchQuery)+'" placeholder="Im Dokument suchen"></label>'+
-      (searchTerm
-        ?'<div class="docsearch-results">'+(searchResults.length?searchResults.map(r=>'<button data-action="doc-search-result" data-page="'+esc(r.pageId)+'" data-start="'+r.start+'"><strong>Seite '+r.page+'</strong><span>'+esc(r.snippet)+'</span></button>').join(''):'<small>Keine Treffer</small>')+'</div>'
-        :'')+
-     '</section>'
-    :'';
 
   const html=
     '<section class="noteshell '+(state.focus?'focus ':'')+(state.noteMode==='view'?'view':'edit')+'">'+
@@ -582,10 +588,11 @@ function renderNotes(){
           '<textarea id="noteText" '+(state.noteMode==='view'?'readonly':'')+' class="'+(state.noteMode==='edit'&&state.noteTool==='text'?'editing':'')+'" placeholder="Text eingeben...">'+esc(p.text||'')+'</textarea>'+
           '<canvas id="noteCanvas" width="1000" height="1400"></canvas>'+
           '<div id="imageLayer">'+images+'</div>'+
+          canvasContextMenu+
         '</div></div>'+
         footer+
       '</main>'+
-      noteMenu+pageMenu+templateMenu+infoModal+selectionBar+imageBar+
+      noteMenu+pageMenu+templateMenu+infoModal+
     '</section>';
 
   root.innerHTML=shell(html,'notes',{wide:true,noTop:true,noNav:state.focus});
