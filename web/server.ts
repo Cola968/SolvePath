@@ -31,7 +31,12 @@ async function main() {
 
   async function sendFile(reply: any, name: string) {
     const body = await readFile(join(root, name));
-    reply.header('cache-control', name === 'index.html' ? 'no-cache' : 'public, max-age=3600');
+    const dynamicAsset = name === 'index.html' || name === 'app.js' || name === 'styles.css';
+    reply.header('cache-control', dynamicAsset ? 'no-store, max-age=0, must-revalidate' : 'public, max-age=3600');
+    if (dynamicAsset) {
+      reply.header('pragma', 'no-cache');
+      reply.header('expires', '0');
+    }
     return reply.type(mime[name] || 'application/octet-stream').send(body);
   }
 
