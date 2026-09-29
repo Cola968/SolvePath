@@ -1586,6 +1586,7 @@ try {
     renderTrophies();
   } else if(!handleHash()) {
     renderHome();
+  }
 } catch (error) {
   console.error('SnapStudy boot failed', error);
   app.innerHTML = '<main class="v4-shell"><section class="v7-pagehead"><h1>SnapStudy</h1><p>Die App konnte nicht gestartet werden.</p></section><div class="v7-buttonstack"><button class="v4-btn primary full" onclick="location.reload()">Neu laden</button></div></main>';
