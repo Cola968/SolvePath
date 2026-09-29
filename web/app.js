@@ -153,7 +153,7 @@ const state = {
   noteId:data.notes()[0]?.id,
   pageId:data.notes()[0]?.pages?.[0]?.id,
   noteMode:'view', noteTool:'pen', penSize:5, markerSize:24, eraserSize:55, eraserMode:'precision', color:'#20242B',
-  selection:null, history:{}, redo:{}, focus:false, noteNav:'pages', splitStudy:false, splitReveal:false, splitIndex:0, noteInfo:false, selectedImage:null, jumpStart:null, docSearchOpen:false, docSearchQuery:'',
+  selection:null, history:{}, redo:{}, focus:false, noteNav:'pages', splitStudy:false, splitReveal:false, splitIndex:0, noteInfo:false, selectedImage:null, jumpStart:null, docSearchOpen:false, docSearchQuery:'', toolMenu:false,
   libraryTab:'notes', libraryView:'list', libraryQuery:'', librarySort:'recent', librarySubject:'all', libraryFolder:'all', newMenu:false, folderModal:false, folderModalMode:'create', folderEditId:null, folderMenu:false,
   recentColors:load('ss11:recentColors',['#20242B','#3568D4','#B75850','#26785B','#D39A23']),
   createMode:'photo', createText:'', createFile:null, createPreview:'', challenge:null, q:0, answered:false, score:0, lastCorrect:false, lastExplanation:'', quizMode:'normal',
@@ -440,7 +440,7 @@ function renderNotes(){
 
   let toolbar='';
   if(!state.focus&&state.noteMode==='edit'){
-    const tools=[['pen','pen'],['marker','marker'],['eraser','eraser'],['select','select'],['text','text'],['shape','shape']];
+    const tools=[['pen','pen'],['marker','marker'],['eraser','eraser'],['select','select'],['text','text']];
     toolbar=
       '<div class="notetools">'+
         tools.map(x=>'<button title="'+x[0]+'" data-action="note-tool" data-tool="'+x[0]+'" class="'+(state.noteTool===x[0]?'active':'')+'">'+icon(x[1],17)+'</button>').join('')+
@@ -450,8 +450,9 @@ function renderNotes(){
         '<span></span>'+
         '<button data-action="undo" aria-label="Rückgängig">'+icon('undo',16)+'</button>'+
         '<button data-action="redo" aria-label="Wiederholen">'+icon('redo',16)+'</button>'+
-        '<label class="imagepick" aria-label="Bild einfügen">'+icon('image',16)+'<input id="imageInput" type="file" accept="image/*"></label>'+
+        '<button data-action="toggle-tool-menu" class="'+(state.toolMenu?'active':'')+'" aria-label="Einfügen">'+icon('plus',17)+'</button>'+
       '</div>'+
+      (state.toolMenu?'<div class="toolmenu"><button data-action="note-tool" data-tool="shape">'+icon('shape',16)+'<span>Form</span></button><label>'+icon('image',16)+'<span>Bild</span><input id="imageInput" type="file" accept="image/*"></label></div>':'')+
       toolOptions();
   }
 
@@ -919,9 +920,10 @@ window.addEventListener('click',e=>{
   else if(a==='purge-note')purgeNote(b.dataset.id);
   else if(a==='note-mode'){state.noteMode=b.dataset.mode;state.selection=null;state.selectedImage=null;renderNotes();}
   else if(a==='note-nav'){state.noteNav=b.dataset.nav||'pages';renderNotes();}
+  else if(a==='toggle-tool-menu'){state.toolMenu=!state.toolMenu;renderNotes();}
   else if(a==='toggle-doc-search'){state.docSearchOpen=!state.docSearchOpen;if(!state.docSearchOpen)state.docSearchQuery='';renderNotes();}
   else if(a==='doc-search-result'){state.pageId=b.dataset.page;state.jumpStart=Number(b.dataset.start||0);state.docSearchOpen=false;state.docSearchQuery='';state.noteMode='edit';state.noteTool='text';renderNotes();}
-  else if(a==='note-tool'){state.noteTool=b.dataset.tool;state.selectedImage=null;renderNotes();}
+  else if(a==='note-tool'){state.noteTool=b.dataset.tool;state.toolMenu=false;state.selectedImage=null;renderNotes();}
   else if(a==='note-color'){state.color=b.dataset.color;updateRecentColor(state.color);if(state.selection&&state.selection.noteId===state.noteId)recolorSelection();else renderNotes();}
   else if(a==='pen-size'){state.penSize=+b.dataset.size;renderNotes();}
   else if(a==='marker-size'){state.markerSize=+b.dataset.size;renderNotes();}
