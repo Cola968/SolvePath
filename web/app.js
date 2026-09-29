@@ -75,16 +75,16 @@ function migrate(){
 migrate();
 
 function normalizeDocumentsV12(){
-  const notes=load(KEYS.notes,[]),next=[];
-  notes.forEach(n=>{
-    if(Array.isArray(n.pages)&&n.pages.length){next.push(n);return;}
+  const convert=(n)=>{
+    if(Array.isArray(n.pages)&&n.pages.length)return Object.assign({folderId:null,tags:[],pinned:false,favorite:false},n);
     const pageId=uid('page');
     const page={id:pageId,title:'Seite 1',text:String(n.text||''),paper:n.paper||'ruled',images:Array.isArray(n.images)?n.images:[],shapes:Array.isArray(n.shapes)?n.shapes:[],bookmark:false};
     const oldStrokes=load('ss10:strokes:'+n.id,[]);
     if(oldStrokes.length&&!localStorage.getItem('ss12:strokes:'+n.id+':'+pageId))save('ss12:strokes:'+n.id+':'+pageId,oldStrokes);
-    next.push(Object.assign({},n,{folderId:n.folderId||null,tags:Array.isArray(n.tags)?n.tags:[],pages:[page]}));
-  });
-  save(KEYS.notes,next);
+    return Object.assign({},n,{folderId:n.folderId||null,tags:Array.isArray(n.tags)?n.tags:[],pages:[page]});
+  };
+  save(KEYS.notes,load(KEYS.notes,[]).map(convert));
+  save(KEYS.deleted,load(KEYS.deleted,[]).map(convert));
   if(!localStorage.getItem(KEYS.folders))save(KEYS.folders,[]);
 }
 normalizeDocumentsV12();
@@ -348,8 +348,13 @@ function restoreBackup(file){
   r.onload=()=>{try{
     const x=JSON.parse(r.result);if(!Array.isArray(x.notes))throw 0;
     data.setNotes(x.notes);data.setFolders(x.folders||[]);data.setRounds(x.rounds||[]);data.setReviews(x.reviews||[]);data.setProfile(x.profile||{});data.setDeleted(x.deleted||[]);
-    Object.entries(x.strokes||{}).forEach(([key,v])=>{const [nid,pid]=key.split(':');if(nid&&pid)data.setStrokes(nid,pid,v);});
-    state.noteId=x.notes[0]?.id;state.pageId=x.notes[0]?.pages?.[0]?.id;toast('Backup importiert');renderLibrary();
+    normalizeDocumentsV12();
+    Object.entries(x.strokes||{}).forEach(([key,v])=>{
+      const parts=key.split(':');
+      if(parts.length>=2){data.setStrokes(parts[0],parts[1],v);return;}
+      const note=data.notes().find(n=>n.id===key),page=note?.pages?.[0];if(note&&page)data.setStrokes(note.id,page.id,v);
+    });
+    const first=data.notes()[0];state.noteId=first?.id;state.pageId=first?.pages?.[0]?.id;toast('Backup importiert');renderLibrary();
   }catch{toast('Backup ungültig');}};
   r.readAsText(file);
 }
