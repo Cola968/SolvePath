@@ -731,3 +731,74 @@ button{letter-spacing:0!important}
 .gn4-paper.cornell{background-image:linear-gradient(90deg,transparent 0 28%,#e7e3dc 28% 28.2%,transparent 28.2% 100%),linear-gradient(to bottom,transparent 0 84%,#e7e3dc 84% 84.2%,transparent 84.2% 100%)}
 @media(min-width:720px){.v8-grid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:700px){.gn8-study{position:static;width:auto;box-shadow:none;border-left:0;border-right:0;border-top:1px solid var(--app-border)}}
+
+
+/* V9 — trophy system */
+.v9-top-cup{height:28px;border:1px solid var(--app-border);background:#fff;border-radius:5px;padding:0 7px;display:flex;align-items:center;gap:4px;color:#555c65;font-size:8px;font-weight:600}
+.v9-top-cup:hover{background:#f7f8fa}
+.v9-home-strip{width:100%;min-height:52px;border:0;border-bottom:1px solid var(--app-border);background:transparent;display:grid;grid-template-columns:auto 1fr 76px auto;align-items:center;gap:10px;padding:10px 0;text-align:left;color:inherit}
+.v9-home-strip>span{width:31px;height:31px;border-radius:6px;background:#fff4d8;color:#9a7117;display:grid;place-items:center}
+.v9-home-strip>div{display:grid;gap:1px;min-width:0}
+.v9-home-strip strong{font-size:10px;font-weight:600!important}
+.v9-home-strip small{font-size:8px;color:#7d838c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.v9-home-strip>i{height:4px;border-radius:999px;background:#e6e9ed;overflow:hidden}
+.v9-home-strip>i b{display:block;height:100%;background:#d6a529;border-radius:999px}
+.v9-head{display:flex;align-items:center;gap:10px;padding:18px 0 14px;border-bottom:1px solid var(--app-border)}
+.v9-head>button{width:31px;height:31px;border:0;background:transparent;border-radius:5px;display:grid;place-items:center;color:#646b74}
+.v9-head>div{display:grid;gap:1px;flex:1}
+.v9-head>div span{font-size:8px;color:#858b94}
+.v9-head h1{margin:0;font-size:21px;font-weight:650!important}
+.v9-head>strong{font-size:9px;color:#777e87;font-weight:550!important}
+.v9-league{padding:15px 0;border-bottom:1px solid var(--app-border)}
+.v9-league>div:first-child{display:flex;align-items:center;gap:9px}
+.v9-league-mark{width:38px;height:38px;border-radius:7px;background:#fff4d8;color:#9b721a;display:grid;place-items:center}
+.v9-league>div:first-child>div{display:grid;gap:0}
+.v9-league small{font-size:8px;color:#858b94}
+.v9-league strong{font-size:13px;font-weight:600!important}
+.v9-league-progress{height:5px;background:#e6e9ed;border-radius:999px;overflow:hidden;margin:11px 0 5px}
+.v9-league-progress i{display:block;height:100%;background:#d6a529;border-radius:999px}
+.v9-next,.v9-week,.v9-cabinet{padding-top:18px}
+.v9-sectionline{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.v9-sectionline h2{margin:0;font-size:11px;font-weight:600!important}
+.v9-sectionline span{font-size:8px;color:#858b94}
+.v9-goals{display:grid;gap:8px;border-top:1px solid var(--app-border)}
+.v9-goals>div{min-height:47px;display:grid;grid-template-columns:105px 1fr 35px;align-items:center;gap:9px;border-bottom:1px solid var(--app-border)}
+.v9-goals strong{font-size:9px;font-weight:550!important}
+.v9-goals span{height:4px;background:#e6e9ed;border-radius:999px;overflow:hidden}
+.v9-goals span i{display:block;height:100%;background:#2f65cc;border-radius:999px}
+.v9-goals small{font-size:8px;color:#858b94;text-align:right}
+.v9-trophies{border-top:1px solid var(--app-border)}
+.v9-trophy{min-height:62px;border-bottom:1px solid var(--app-border);display:flex;align-items:center;gap:10px;padding:7px 0}
+.v9-cup{width:35px;height:35px;border-radius:7px;display:grid;place-items:center;flex:0 0 auto}
+.v9-trophy.unlocked .v9-cup{background:#fff4d8;color:#9a7117}
+.v9-trophy.locked .v9-cup{background:#eef0f3;color:#9aa0a8}
+.v9-trophy>div{min-width:0;flex:1;display:grid;gap:2px}
+.v9-trophy-title{display:flex;align-items:center;gap:7px}
+.v9-trophy-title strong{font-size:10px;font-weight:600!important}
+.v9-trophy-title i{font-size:7px;font-style:normal;color:#858b94;font-weight:600}
+.v9-trophy-title i.gold{color:#a77a17}.v9-trophy-title i.silver{color:#717a86}.v9-trophy-title i.platin{color:#58698c}
+.v9-trophy small{font-size:8px;color:#858b94}
+.v9-trophy em{font-size:7.5px;color:#8c6b1c;font-style:normal}
+.v9-mini-progress{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin-top:3px}
+.v9-mini-progress:before{content:"";display:none}
+.v9-mini-progress{position:relative}
+.v9-mini-progress>i{height:3px;background:#2f65cc;border-radius:999px}
+.v9-mini-progress:after{content:"";position:absolute;left:0;right:38px;height:3px;background:#e6e9ed;border-radius:999px;z-index:-1}
+.v9-mini-progress span{font-size:7px;color:#858b94}
+.v9-result-progress{min-height:42px;border-top:1px solid var(--app-border);border-bottom:1px solid var(--app-border);display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+.v9-result-progress span{display:flex;align-items:center;gap:5px;font-size:9px;color:#696f78}
+.v9-result-progress strong{font-size:9px;font-weight:600!important}
+.v9-new-trophy{width:100%;min-height:48px;border:1px solid #ead8a7;background:#fffaf0;border-radius:6px;display:flex;align-items:center;gap:9px;padding:8px 10px;text-align:left;color:#4b4433;margin-bottom:9px}
+.v9-new-trophy>span{display:grid;gap:1px;flex:1}
+.v9-new-trophy strong{font-size:9px;font-weight:600!important}
+.v9-new-trophy small{font-size:7.5px;color:#8b7851}
+.v9-unlock{position:fixed;left:50%;top:18%;transform:translateX(-50%);z-index:150;width:min(280px,calc(100% - 32px));border:1px solid #ead8a7;background:#fffdf8;border-radius:8px;padding:16px;text-align:center;box-shadow:0 10px 30px rgba(35,31,23,.16);animation:v9-pop .35s ease both}
+.v9-unlock>div{width:48px;height:48px;border-radius:50%;background:#fff2cf;color:#9a7117;display:grid;place-items:center;margin:0 auto 8px}
+.v9-unlock>span{display:block;font-size:8px;color:#8c8270}
+.v9-unlock>strong{display:block;margin-top:2px;font-size:14px;font-weight:650!important}
+.v9-unlock>small{display:block;margin-top:4px;font-size:8px;color:#9a7117}
+@keyframes v9-pop{from{opacity:0;transform:translate(-50%,-8px) scale(.96)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+@media(max-width:520px){
+  .v9-home-strip{grid-template-columns:auto 1fr auto}.v9-home-strip>i{display:none}
+  .v9-goals>div{grid-template-columns:95px 1fr 32px}
+}
