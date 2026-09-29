@@ -560,3 +560,18 @@ button{transition:background-color .12s ease,border-color .12s ease,color .12s e
 /* V12 final native-surface cleanup */
 .topbar,.bottomnav{background:#fff!important;backdrop-filter:none!important}
 .bottomnav{border-top-color:#dadce0}
+
+
+/* Contextual object menu: actions live next to the selected content */
+.paper .contextbar{
+  position:absolute;z-index:12;transform:translate(-50%,-110%);
+  display:flex;align-items:center;gap:2px;min-height:34px;padding:3px 4px;
+  border:1px solid #cfd3d8;border-radius:5px;background:#fff;color:#3c4043;
+  box-shadow:0 3px 10px rgba(60,64,67,.16);white-space:nowrap
+}
+.paper .contextbar>span{padding:0 6px;font-size:7.5px;color:#5f6368}
+.paper .contextbar button{width:30px;height:28px;border:0;background:transparent;border-radius:4px;display:grid;place-items:center;color:#4f565f;font-size:13px}
+.paper .contextbar button:hover{background:#f1f3f4}
+.paper .contextbar button.danger{color:var(--red)}
+.paper .contextbar button i{display:block;width:13px;height:13px;border-radius:50%;border:1px solid #dadce0}
+.selectionbar,.imagebar{display:none!important}
