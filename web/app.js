@@ -1,1593 +1,478 @@
-const app=document.getElementById('app');const state={file:null,preview:'',challenge:null,qIndex:0,score:0,answered:false,lastCorrect:false,lastExplanation:'',invite:null,textDraft:'',mode:'normal'};
-const sampleAnalysis={title:'Gravitationsfeld',topic:'Physik',originalText:'Gravitationskraft und Keplers Gesetze',strategySelection:{question:'Was passiert mit der Gravitationskraft, wenn sich der Abstand verdoppelt?',options:['Sie halbiert sich','Sie wird viermal kleiner','Sie bleibt gleich','Sie wird viermal größer'],correctOption:'Sie wird viermal kleiner',explanation:'Nach F = Gm₁m₂/r² führt doppelter Abstand zu einem Viertel der Kraft.'},reasoningSteps:[{question:'Welche Größe steht im Nenner der Gravitationsformel?',answer:'r²',choices:['r','r²','m²'],explanation:'Der Abstand geht quadratisch ein.'},{question:'Was gilt bei Kepler III?',answer:'T²/a³ ist konstant',choices:['T/a ist konstant','T²/a³ ist konstant','T³/a² ist konstant'],explanation:'Für Bahnen um denselben Zentralkörper ist T²/a³ konstant.'},{question:'Welche Einheit hat die Feldstärke g?',answer:'N/kg',choices:['N/kg','kg/N','m/s'],explanation:'g = F/m, also N/kg.'}],correctResult:{display:'1/4 der ursprünglichen Kraft',acceptedAnswers:['1/4','ein viertel','viertel'],explanation:'Verdopplung von r bedeutet Faktor 4 im Nenner.'}};
-const esc=v=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#039;");const norm=v=>String(v||'').toLowerCase().trim().replaceAll(',','.').replace(/\s+/g,'').replace(/[.;:!?]/g,'');const today=()=>new Date().toISOString().slice(0,10);
-function profile(){return JSON.parse(localStorage.getItem('snapstudy-profile')||'{"xp":0,"streak":0,"last":""}')}function mistakes(){return JSON.parse(localStorage.getItem('snapstudy-mistakes')||'[]')}function saveMistakes(v){localStorage.setItem('snapstudy-mistakes',JSON.stringify(v.slice(0,20)))}function usage(){const x=JSON.parse(localStorage.getItem('snapstudy-usage')||'{}');return x.day===today()?x.count||0:0}const remaining=()=>Math.max(0,3-usage());function consume(){localStorage.setItem('snapstudy-usage',JSON.stringify({day:today(),count:usage()+1}))}
-function buddy(small=false){return '<span class="buddy'+(small?' small':'')+'"><i class="fold"></i><i class="smile">⌣</i></span>'}function stats(){const p=profile();return '<div class="stats"><span class="stat">🔥 '+(p.streak||0)+'</span><span class="stat">⚡ '+(p.xp||0)+'</span></div>'}function topbar(back=false,title='SnapStudy'){return '<div class="topbar">'+(back?'<button class="back" data-action="home">←</button>':buddy(true)+'<div class="brand">'+esc(title)+'</div>')+'<div class="top-spacer"></div>'+(back?buddy(true):stats())+'</div>'}function nav(active='path'){return '<nav class="nav"><button data-action="home" class="'+(active==='path'?'active':'')+'"><span>●</span><span>Pfad</span></button><button data-action="revenge" class="'+(active==='revenge'?'active':'')+'"><span>↻</span><span>Revanche</span></button><button data-action="duel" class="'+(active==='duel'?'active':'')+'"><span>⚔</span><span>Duelle</span></button><button data-action="profile"><span>☺</span><span>Ich</span></button></nav>'}const legacyShell=(c,o={})=>'<main class="shell">'+topbar(!!o.back,o.title||'SnapStudy')+c+(o.nav===false?'':nav(o.active||'path'))+'</main>';
-function challengeFromAnalysis(a){const q=[];if(a.strategySelection)q.push({prompt:a.strategySelection.question,choices:a.strategySelection.options||[],accepted:[a.strategySelection.correctOption],explanation:a.strategySelection.explanation||''});(a.reasoningSteps||[]).slice(0,3).forEach(s=>q.push({prompt:s.question,choices:s.choices||[],accepted:[s.answer],explanation:s.explanation||''}));q.push({prompt:'Was ist das Endergebnis?',choices:[],accepted:[a.correctResult?.display,...(a.correctResult?.acceptedAnswers||[])].filter(Boolean),explanation:a.correctResult?.explanation||''});return{title:a.title||'Neue Quest',topic:a.topic||'Lernen',questions:q.slice(0,5)}}
-function renderHome(){const m=mistakes();app.innerHTML=legacyShell('<section class="hero"><span class="eyebrow">Heute · dein Lernpfad</span><h1>Dein Stoff.<br>Dein Spiel.</h1><p class="lead">Heute reichen sechs Minuten. Starte mit deinem eigenen Lernstoff.</p></section><div class="path-wrap"><div class="path-line"></div><button class="quest-node node1" data-action="create">⌁</button><div class="node-label label1"><b>Scan Quest</b><span>Foto rein · 5 Fragen</span></div><button class="quest-node node2 '+(m.length?'coral':'locked')+'" data-action="revenge">↻</button><div class="node-label label2"><b>Revanche</b><span>'+(m.length?m.length+' alte Fehler':'nach deinem ersten Fehler')+'</span></div><button class="quest-node yellow-node node3" data-action="duel">⚔</button><div class="node-label label3"><b>Freundesduell</b><span>gleiche Quest teilen</span></div></div><div class="card hook">'+buddy(true)+'<div><b>SnapStudy merkt sich deine Fehler.</b><span class="small">Was heute falsch war, kommt später als Revanche zurück.</span></div></div>',{active:'path'})}
-function renderCreate(textOnly=false){const prev=state.preview?'<img class="preview" src="'+esc(state.preview)+'">':'';const upload=textOnly?'':'<div class="upload">'+prev+'<input id="photoInput" type="file" accept="image/*" capture="environment">'+(!state.preview?'<div class="upload-copy"><div class="camera-icon">⌁</div><strong>Foto aufnehmen</strong><span class="small">Arbeitsblatt · Buch · Notizen</span></div>':'')+'</div><div class="tip">'+buddy(true)+'<div><b>Kein Karten-Basteln.</b><br>Ein Foto genügt für deine nächste Runde.</div></div>';app.innerHTML=legacyShell('<section class="hero"><span class="eyebrow">Scan Quest</span><h2>Mach daraus eine Quest.</h2><p class="lead">Fotografiere genau das, was du heute können musst.</p></section><div class="stack">'+upload+'<div><label class="field-label">Optionaler Text</label><textarea id="studyText" placeholder="z. B. Keplers Gesetze">'+esc(state.textDraft)+'</textarea></div><button class="tactile primary block" data-action="analyze">Quest erstellen</button><button class="tactile secondary block" data-action="sample">Demo spielen</button></div>',{back:true,nav:false});const inp=document.getElementById('photoInput');if(inp)inp.onchange=e=>{const f=e.target.files?.[0];if(!f)return;state.file=f;if(state.preview)URL.revokeObjectURL(state.preview);state.preview=URL.createObjectURL(f);renderCreate(false)}}
-function renderLoading(){app.innerHTML=legacyShell('<section class="hero center">'+buddy(false)+'<h2>Ich baue deine Quest.</h2><p class="lead">Lernstoff lesen, fünf Fragen bauen, Schwierigkeitsmix prüfen.</p></section><div class="loader"></div>',{nav:false})}
-function renderError(msg){app.innerHTML=legacyShell('<section class="hero"><span class="eyebrow">Kurz hängen geblieben</span><h2>Die Analyse antwortet gerade nicht.</h2><p class="lead">Dein Text bleibt erhalten. Du kannst direkt weitermachen.</p></section><div class="error-box"><b>Was passiert ist</b><p class="small" style="margin-top:6px">'+esc(msg)+'</p></div><div class="stack" style="margin-top:14px"><button class="tactile primary block" data-action="retry-analyze">Erneut versuchen</button><button class="tactile secondary block" data-action="continue-text">Mit Text weitermachen</button><button class="tactile yellow block" data-action="sample">Demo-Quest öffnen</button></div>',{back:true,nav:false})}
-async function analyze(){const el=document.getElementById('studyText');state.textDraft=el?.value.trim()||state.textDraft;if(!state.file&&state.textDraft.length<8)return renderCreate(true);renderLoading();try{let r;if(state.file){const f=new FormData();f.append('image',state.file);f.append('text',state.textDraft);r=await fetch('/api/analyze',{method:'POST',body:f})}else r=await fetch('/api/analyze',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text:state.textDraft})});const p=await r.json().catch(()=>({}));if(!r.ok)throw new Error(p.error||'Analysedienst nicht verfügbar.');consume();startChallenge(challengeFromAnalysis(p),'normal')}catch(e){renderError(e?.message||'Analysedienst nicht verfügbar.')}}
-function startChallenge(c,mode='normal'){state.challenge=c;state.mode=mode;state.qIndex=0;state.score=0;state.answered=false;renderQuestion()}function correct(q,a){const n=norm(a);return(q.accepted||[]).some(x=>{const c=norm(x);return n===c||(n.length>1&&c.length>1&&(n.includes(c)||c.includes(n)))})}
-function addMistake(q){const list=mistakes().filter(x=>x.prompt!==q.prompt);list.unshift({prompt:q.prompt,choices:q.choices||[],accepted:q.accepted||[],explanation:q.explanation||'',at:Date.now()});saveMistakes(list)}
-function clearMistake(q){saveMistakes(mistakes().filter(x=>x.prompt!==q.prompt))}
-function renderQuestion(){const c=state.challenge,q=c.questions[state.qIndex],pct=((state.qIndex+(state.answered?1:0))/c.questions.length)*100;let answers=q.choices?.length?q.choices.map((x,i)=>'<button class="option" data-action="choice" data-value="'+esc(x)+'">'+String.fromCharCode(65+i)+' · '+esc(x)+'</button>').join(''):'<input id="answerInput" class="text-input" placeholder="Deine Antwort"><button class="tactile primary block" data-action="submit-answer">Antwort prüfen</button>';const feedback=state.answered?'<div class="feedback '+(state.lastCorrect?'good':'bad')+'"><b>'+(state.lastCorrect?'Richtig.':'Noch nicht.')+'</b><br>'+esc(state.lastExplanation)+'</div><button class="tactile primary block" data-action="next">'+(state.qIndex===c.questions.length-1?'Ergebnis ansehen':'Weiter')+'</button>':'';app.innerHTML=legacyShell('<div class="progress-row"><div class="progress"><div style="width:'+pct+'%"></div></div>'+buddy(true)+'</div><div class="question">'+esc(q.prompt)+'</div><div class="stack">'+(state.answered?'':answers)+feedback+'</div>',{nav:false})}
-function answer(v){if(state.answered)return;const q=state.challenge.questions[state.qIndex];state.lastCorrect=correct(q,v);state.lastExplanation=q.explanation||'';state.answered=true;if(state.lastCorrect){state.score++;if(state.mode==='revenge')clearMistake(q)}else addMistake(q);renderQuestion()}function next(){if(state.qIndex>=state.challenge.questions.length-1)return renderResult();state.qIndex++;state.answered=false;renderQuestion()}
-function renderResult(){const pct=Math.round(state.score/state.challenge.questions.length*100),p=profile();p.xp=(p.xp||0)+pct;p.streak=p.streak||1;localStorage.setItem('snapstudy-profile',JSON.stringify(p));app.innerHTML=legacyShell('<section class="hero center"><span class="eyebrow">'+(state.mode==='revenge'?'Revanche beendet':'Quest beendet')+'</span><h2>'+(pct>=80?'Stark gespielt.':pct>=60?'Gute Runde.':'Noch eine Runde lohnt sich.')+'</h2></section><div class="score"><strong>'+pct+'%</strong></div><div class="card center"><b>'+state.score+' von '+state.challenge.questions.length+' richtig</b><p class="small" style="margin-top:5px">Falsche Antworten sind automatisch in deiner Revanche gespeichert.</p></div><div class="stack" style="margin-top:14px"><button class="tactile primary block" data-action="duel">Freund herausfordern</button><button class="tactile secondary block" data-action="home">Zurück zum Pfad</button></div>',{nav:false})}
-function renderRevenge(){const m=mistakes();const body=m.length?m.slice(0,4).map(x=>'<div class="card mistake"><b>'+esc(x.prompt)+'</b><span class="small">Aus einer früheren Runde</span></div>').join(''):'<div class="card center"><b>Noch keine offenen Fehler.</b><p class="small" style="margin-top:5px">Spiel eine Quest. Falsche Antworten landen automatisch hier.</p></div>';app.innerHTML=legacyShell('<section class="hero"><span class="eyebrow">Revanche</span><h1>Deine Fehler bekommen ein Rückspiel.</h1><p class="lead">Kein zufälliges Wiederholen. Nur Dinge, die du wirklich falsch hattest.</p></section><div class="revenge-count"><div><strong>'+m.length+'</strong><span>OFFENE FEHLER</span></div></div><div class="stack">'+body+'</div>'+(m.length?'<button class="tactile yellow block" style="margin-top:16px" data-action="start-revenge">Revanche starten · '+Math.min(m.length,5)+' Fragen</button>':''),{active:'revenge',title:'Revanche'})}
-function startRevenge(){const m=mistakes().slice(0,5);if(!m.length)return renderRevenge();startChallenge({title:'Revanche',topic:'Deine Fehler',questions:m},'revenge')}
-function renderDuel(){const last=state.challenge;app.innerHTML=legacyShell('<section class="hero"><span class="eyebrow">Freundesduell</span><h1>Gleicher Stoff.<br>Direkter Vergleich.</h1><p class="lead">Schick exakt dieselbe Quest an einen Freund. Kein Account nötig.</p></section><div class="vs"><div class="vs-box"><span>DU</span><strong>'+(last?Math.round(state.score/last.questions.length*100):'—')+'%</strong></div><div class="vs-text">VS</div><div class="vs-box friend"><span>FREUND</span><strong>?</strong></div></div><div class="card"><b>'+(last?esc(last.title):'Noch keine Quest gespielt')+'</b><p class="small" style="margin-top:5px">'+(last?'5 Fragen · identische Reihenfolge · Scorevergleich':'Spiel zuerst eine Quest, dann kannst du sie teilen.')+'</p></div><button class="tactile primary block" style="margin-top:16px" data-action="share" '+(last?'':'disabled')+'>Freund herausfordern</button>',{active:'duel',title:'Duelle'})}
-function enc(v){return btoa(unescape(encodeURIComponent(JSON.stringify(v))))}function dec(v){return JSON.parse(decodeURIComponent(escape(atob(v))))}async function share(){if(!state.challenge)return;const u=location.origin+location.pathname+'#challenge='+encodeURIComponent(enc(state.challenge));try{if(navigator.share)await navigator.share({title:'SnapStudy Duell',text:'Schaffst du meine SnapStudy-Quest?',url:u});else{await navigator.clipboard.writeText(u);alert('Duell-Link kopiert.')}}catch{}}
-function handleHash(){if(!location.hash.startsWith('#challenge='))return false;try{const c=dec(decodeURIComponent(location.hash.slice(11)));state.invite=c;app.innerHTML=legacyShell('<section class="hero center">'+buddy(false)+'<span class="eyebrow">Duell erhalten</span><h1>Du wurdest herausgefordert.</h1><p class="lead">'+esc(c.title)+'</p></section><button class="tactile primary block" data-action="start-invite">Quest starten</button>',{nav:false});return true}catch{return false}}
-app.onclick=e=>{const b=e.target.closest('[data-action]');if(!b)return;const a=b.dataset.action;if(a==='home')renderHome();if(a==='create'){state.file=null;state.preview='';renderCreate(false)}if(a==='analyze'||a==='retry-analyze')analyze();if(a==='continue-text'){state.file=null;state.preview='';renderCreate(true)}if(a==='sample')startChallenge(challengeFromAnalysis(sampleAnalysis),'normal');if(a==='choice')answer(b.dataset.value||'');if(a==='submit-answer'){const i=document.getElementById('answerInput');if(i?.value.trim())answer(i.value)}if(a==='next')next();if(a==='revenge')renderRevenge();if(a==='start-revenge')startRevenge();if(a==='duel')renderDuel();if(a==='share')share();if(a==='start-invite')startChallenge(state.invite,'invite');if(a==='profile')renderHome()}
+'use strict';
 
+const root = document.getElementById('app');
+const $ = (s, el=document) => el.querySelector(s);
+const $$ = (s, el=document) => Array.from(el.querySelectorAll(s));
+const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+const dayKey = (d=new Date()) => d.toISOString().slice(0,10);
+const uid = (p='id') => p+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7);
+const load = (k, fallback) => { try { const v=localStorage.getItem(k); return v===null ? fallback : JSON.parse(v); } catch { return fallback; } };
+const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+const fmtDate = (ts) => ts ? new Date(ts).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'}) : '';
+const fmtTime = (ts) => ts ? new Date(ts).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}) : '';
 
-/* SnapStudy V4 — product-first UI, no generic AI dashboard patterns */
-state.uncertainMarked = false;
-
-const V4_ICONS = {
-  today:'<path d="M4 10.5 12 4l8 6.5"/><path d="M6.5 9.5V20h11V9.5"/><path d="M9.5 20v-6h5v6"/>',
-  repeat:'<path d="M20 7h-7a7 7 0 1 0 6.2 10.2"/><path d="m17 3 3 4-3 4"/>',
-  stack:'<path d="m12 3 8 4-8 4-8-4 8-4Z"/><path d="m4 12 8 4 8-4"/><path d="m4 17 8 4 8-4"/>',
-  duel:'<path d="m7 4 10 10"/><path d="m17 4-4 4"/><path d="m7 4 4 4"/><path d="m7 20 10-10"/><path d="m4 17 3 3 3-3"/><path d="m14 17 3 3 3-3"/>',
-  camera:'<rect x="3" y="6" width="18" height="14" rx="3"/><path d="M8 6 9.5 3h5L16 6"/><circle cx="12" cy="13" r="3.5"/>',
-  text:'<path d="M5 5h14"/><path d="M12 5v14"/><path d="M8.5 19h7"/>',
-  arrow:'<path d="M5 12h14"/><path d="m14 7 5 5-5 5"/>',
+const ICONS = {
+  home:'<path d="M3 11 12 4l9 7v9h-6v-6H9v6H3z"/>',
+  note:'<path d="M5 3h11l3 3v15H5z"/><path d="M16 3v4h3"/><path d="M8 11h8M8 15h8"/>',
+  repeat:'<path d="M20 7h-8a7 7 0 1 0 6.3 10"/><path d="m17 3 3 4-3 4"/>',
+  stack:'<path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5"/><path d="m3 16 9 5 9-5"/>',
+  trophy:'<path d="M8 4h8v4a4 4 0 0 1-8 0V4Z"/><path d="M8 6H5v1a4 4 0 0 0 4 4M16 6h3v1a4 4 0 0 1-4 4M12 12v5M9 20h6"/>',
+  search:'<circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  camera:'<rect x="3" y="6" width="18" height="14" rx="2"/><path d="m8 6 1.5-2h5L16 6"/><circle cx="12" cy="13" r="4"/>',
+  text:'<path d="M5 5h14M12 5v14M8 19h8"/>',
   back:'<path d="m15 18-6-6 6-6"/>',
+  arrow:'<path d="M5 12h14M14 7l5 5-5 5"/>',
   check:'<path d="m5 12 4 4L19 6"/>',
-  alert:'<circle cx="12" cy="12" r="9"/><path d="M12 7v6"/><path d="M12 17h.01"/>',
-  spark:'<path d="m12 3 1.4 4.3L18 9l-4.6 1.7L12 15l-1.4-4.3L6 9l4.6-1.7L12 3Z"/>',
+  alert:'<circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 17h.01"/>',
+  share:'<circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.2 10.8 7.5-4.5M8.2 13.2l7.5 4.5"/>',
+  star:'<path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z"/>',
+  more:'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
+  pen:'<path d="m4 20 4.5-1 10-10-3.5-3.5-10 10L4 20Z"/><path d="m13.5 6.5 3.5 3.5"/>',
+  marker:'<path d="m6 15 8-8 4 4-8 8H6v-4Z"/><path d="M5 21h14"/>',
+  eraser:'<path d="m7 18-3-3 9-9 5 5-7 7H7Z"/><path d="M11 18h8"/>',
+  select:'<path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4"/><path d="M9 9h6v6H9z"/>',
+  shape:'<rect x="4" y="4" width="7" height="7" rx="1"/><circle cx="16.5" cy="16.5" r="3.5"/>',
+  image:'<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8" cy="9" r="2"/><path d="m21 15-5-5L5 20"/>',
+  undo:'<path d="m9 7-4 4 4 4"/><path d="M5 11h8a6 6 0 0 1 6 6"/>',
+  redo:'<path d="m15 7 4 4-4 4"/><path d="M19 11h-8a6 6 0 0 0-6 6"/>',
+  trash:'<path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13"/>',
+  copy:'<rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>',
+  download:'<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>',
+  upload:'<path d="M12 16V4M7 9l5-5 5 5M5 21h14"/>',
+  fit:'<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/>',
   play:'<path d="m9 7 8 5-8 5V7Z"/>',
-  share:'<circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.2 10.8 7.5-4.5"/><path d="m8.2 13.2 7.5 4.5"/>',
-  trophy:'<path d="M8 4h8v4a4 4 0 0 1-8 0V4Z"/><path d="M8 6H5v1a4 4 0 0 0 4 4"/><path d="M16 6h3v1a4 4 0 0 1-4 4"/><path d="M12 12v5"/><path d="M9 20h6"/>'
+  close:'<path d="m7 7 10 10M17 7 7 17"/>',
+  grid:'<rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><rect x="14" y="14" width="6" height="6"/>',
+  list:'<path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/>'
+};
+function icon(name,size=18){ return '<svg class="icon" width="'+size+'" height="'+size+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(ICONS[name]||'')+'</svg>'; }
+
+const KEYS = {
+  notes:'ss10:notes', rounds:'ss10:rounds', reviews:'ss10:reviews', profile:'ss10:profile',
+  trophies:'ss10:trophies', activity:'ss10:activity', deleted:'ss10:deleted'
+};
+function defaultNote(){
+  return {id:uid('note'),title:'Gravitation',subject:'Physik',paper:'ruled',favorite:false,createdAt:Date.now(),updatedAt:Date.now(),
+    text:'Gravitationskraft\nF = G · m₁m₂ / r²\n\nWenn sich r verdoppelt, wird die Kraft viermal kleiner.',images:[],shapes:[]};
+}
+function migrate(){
+  let notes=load(KEYS.notes,null);
+  if(!notes){
+    const legacy=load('snapstudy-notes-v4',load('snapstudy-notes',null));
+    notes=Array.isArray(legacy)&&legacy.length?legacy.map(n=>Object.assign({subject:'Physik',paper:'ruled',favorite:false,createdAt:n.updatedAt||Date.now(),updatedAt:Date.now(),images:[],shapes:[]},n)):[defaultNote()];
+    save(KEYS.notes,notes);
+  }
+  if(!localStorage.getItem(KEYS.rounds)) save(KEYS.rounds,load('snapstudy-library-v4',[]));
+  if(!localStorage.getItem(KEYS.reviews)) save(KEYS.reviews,load('snapstudy-reviews-v4',[]));
+  if(!localStorage.getItem(KEYS.profile)) save(KEYS.profile,Object.assign({xp:0,streak:0,last:'',sessions:0,perfects:0,reviewsDone:0},load('snapstudy-profile',{})));
+  if(!localStorage.getItem(KEYS.trophies)) save(KEYS.trophies,{unlocked:{}});
+  if(!localStorage.getItem(KEYS.activity)) save(KEYS.activity,[]);
+  if(!localStorage.getItem(KEYS.deleted)) save(KEYS.deleted,[]);
+}
+migrate();
+
+const data = {
+  notes:()=>load(KEYS.notes,[]), setNotes:v=>save(KEYS.notes,v),
+  rounds:()=>load(KEYS.rounds,[]), setRounds:v=>save(KEYS.rounds,v),
+  reviews:()=>load(KEYS.reviews,[]), setReviews:v=>save(KEYS.reviews,v),
+  profile:()=>load(KEYS.profile,{xp:0,streak:0,last:'',sessions:0,perfects:0,reviewsDone:0}), setProfile:v=>save(KEYS.profile,v),
+  deleted:()=>load(KEYS.deleted,[]), setDeleted:v=>save(KEYS.deleted,v),
+  strokes:id=>load('ss10:strokes:'+id,[]), setStrokes:(id,v)=>save('ss10:strokes:'+id,v)
 };
 
-function v4Icon(name,size){
-  return '<svg class="v4-icon" width="'+(size||20)+'" height="'+(size||20)+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(V4_ICONS[name]||'')+'</svg>';
+const TROPHIES = [
+  ['first','Losgelegt','1 Lernrunde abgeschlossen','sessions',1,20],
+  ['s5','Im Rhythmus','5 Lernrunden abgeschlossen','sessions',5,35],
+  ['st3','Drei Tage','3 Tage in Folge gelernt','streak',3,35],
+  ['xp250','250 XP','250 XP gesammelt','xp',250,40],
+  ['perfect','Fehlerfrei','Eine Runde mit 100 %','perfects',1,55],
+  ['notes5','Notizsammler','5 Notizen angelegt','notes',5,45],
+  ['s20','20 Runden','20 Lernrunden abgeschlossen','sessions',20,70],
+  ['st7','Eine Woche','7 Tage in Folge gelernt','streak',7,80],
+  ['reviews10','Drangeblieben','10 Wiederholungen abgeschlossen','reviewsDone',10,65],
+  ['xp1000','1.000 XP','1.000 XP gesammelt','xp',1000,100],
+  ['perfect5','Präzise','5 fehlerfreie Runden','perfects',5,110],
+  ['master5','Gefestigt','5 Inhalte bis Stufe 3 wiederholt','mastered',5,120],
+  ['s50','50 Runden','50 Lernrunden abgeschlossen','sessions',50,130],
+  ['st30','30 Tage','30 Tage in Folge gelernt','streak',30,190],
+  ['xp5000','5.000 XP','5.000 XP gesammelt','xp',5000,220],
+  ['s100','100 Runden','100 Lernrunden abgeschlossen','sessions',100,250]
+].map(x=>({id:x[0],name:x[1],desc:x[2],metric:x[3],target:x[4],points:x[5]}));
+
+function stats(){
+  const p=data.profile(), rev=data.reviews();
+  return {sessions:p.sessions||0,streak:p.streak||0,xp:p.xp||0,perfects:p.perfects||0,notes:data.notes().length,
+    reviewsDone:p.reviewsDone||0,mastered:rev.filter(r=>(r.stage||0)>=3).length};
 }
-function v4Mark(){
-  return '<span class="v4-mark" aria-hidden="true"><i class="v4-fold"></i><i class="v4-line l1"></i><i class="v4-line l2"></i><i class="v4-line l3"></i></span>';
+function evalTrophies(){
+  const s=stats(), t=load(KEYS.trophies,{unlocked:{}}), fresh=[];
+  TROPHIES.forEach(x=>{ if((s[x.metric]||0)>=x.target && !t.unlocked[x.id]){t.unlocked[x.id]=Date.now();fresh.push(x);} });
+  save(KEYS.trophies,t); return fresh;
 }
-function v4Load(key,fallback){try{return JSON.parse(localStorage.getItem(key)||JSON.stringify(fallback))}catch(_){return fallback}}
-function v4Save(key,value){localStorage.setItem(key,JSON.stringify(value))}
-function v4Library(){return v4Load('snapstudy-library-v4',[])}
-function v4Reviews(){
-  let list=v4Load('snapstudy-reviews-v4',[]);
-  if(!list.length){
-    const old=v4Load('snapstudy-mistakes',[]);
-    if(old.length){
-      list=old.map(function(x){return{key:(x.sourceTitle||'')+'|'+x.prompt,prompt:x.prompt,choices:x.choices||[],accepted:x.accepted||[],explanation:x.explanation||'',sourceTitle:x.sourceTitle||'Frühere Runde',stage:0,dueAt:Date.now(),reason:'wrong'}});
-      v4Save('snapstudy-reviews-v4',list);
-    }
-  }
-  return list;
+function trophyScore(){
+  const t=load(KEYS.trophies,{unlocked:{}});
+  return TROPHIES.reduce((a,x)=>a+(t.unlocked[x.id]?x.points:0),0);
 }
-function v4Due(){return v4Reviews().filter(function(x){return (x.dueAt||0)<=Date.now()})}
-function v4RoundKey(c){return String(c.title||'Runde')+'|'+(c.questions||[]).map(function(q){return q.prompt}).join('|')}
-function v4SaveRound(c){
-  const list=v4Library(),key=v4RoundKey(c),old=list.find(function(x){return x.key===key});
-  const item={id:old?old.id:'r_'+Date.now().toString(36),key:key,title:c.title||'Lernrunde',topic:c.topic||'Lernen',source:c.source||'',questions:c.questions||[],createdAt:old?old.createdAt:Date.now(),lastPlayedAt:Date.now()};
-  v4Save('snapstudy-library-v4',[item].concat(list.filter(function(x){return x.key!==key})).slice(0,20));
-  return item;
+function league(score){ return score>=900?'Platin':score>=450?'Gold':score>=180?'Silber':'Bronze'; }
+function weekKey(ts=Date.now()){
+  const d=new Date(ts), u=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()));
+  const day=u.getUTCDay()||7; u.setUTCDate(u.getUTCDate()+4-day);
+  const y=new Date(Date.UTC(u.getUTCFullYear(),0,1)); return u.getUTCFullYear()+'-W'+Math.ceil((((u-y)/86400000)+1)/7);
 }
-function v4ReviewKey(q,c){return String((c&&c.title)||'')+'|'+String(q.prompt||'')}
-function v4PlanReview(q,c,reason){
-  const list=v4Reviews(),key=v4ReviewKey(q,c),old=list.find(function(x){return x.key===key});
-  const item={key:key,prompt:q.prompt,choices:q.choices||[],accepted:q.accepted||[],explanation:q.explanation||'',sourceTitle:(c&&c.title)||'Lernrunde',topic:(c&&c.topic)||'Lernen',stage:old?old.stage||0:0,dueAt:reason==='uncertain'?Date.now()+86400000:Date.now(),reason:reason||'wrong'};
-  v4Save('snapstudy-reviews-v4',[item].concat(list.filter(function(x){return x.key!==key})).slice(0,50));
+function recordActivity(kind){
+  const rows=load(KEYS.activity,[]), day=dayKey(), w=weekKey(), row=rows.find(x=>x.day===day)||{day,week:w,sessions:0,reviews:0};
+  if(!rows.includes(row)) rows.push(row);
+  row[kind]=(row[kind]||0)+1; save(KEYS.activity,rows.slice(-180));
 }
-function v4ResolveReview(q,c,ok){
-  const list=v4Reviews(),key=v4ReviewKey(q,c),item=list.find(function(x){return x.key===key})||list.find(function(x){return x.prompt===q.prompt});
-  if(!item)return;
-  if(ok){const days=[1,3,7,14,30];item.stage=Math.min((item.stage||0)+1,days.length-1);item.dueAt=Date.now()+days[item.stage]*86400000;item.reason='reviewed'}
-  else{item.stage=0;item.dueAt=Date.now()+1800000;item.reason='wrong'}
-  v4Save('snapstudy-reviews-v4',[item].concat(list.filter(function(x){return x.key!==key})));
+function weekStats(){
+  const w=weekKey(); return load(KEYS.activity,[]).filter(x=>x.week===w).reduce((a,x)=>({sessions:a.sessions+(x.sessions||0),reviews:a.reviews+(x.reviews||0)}),{sessions:0,reviews:0});
 }
-function v4LocalTextChallenge(text){
-  const clean=String(text||'').replace(/\s+/g,' ').trim();
-  let sentences=clean.split(/(?<=[.!?])\s+/).filter(function(s){return s.length>=18});
-  if(!sentences.length)sentences=clean.split(/[,;]\s*/).filter(function(s){return s.length>=12});
-  const stop=['dieser','diese','dieses','einer','einem','einen','sowie','werden','wurde','wird','sind','oder','aber','auch','durch','dass','weil','wenn','dann','über','unter','zwischen','gegen','ohne','nach','vor','eine','der','die','das','den','dem','des','und','mit','für','von','ist','im','in','am','an','zu','auf'];
-  const qs=[];
-  sentences.slice(0,10).forEach(function(sentence){
-    if(qs.length>=5)return;
-    const words=sentence.match(/[A-Za-zÄÖÜäöüß0-9²³%-]{4,}/g)||[];
-    const candidates=words.filter(function(w){return stop.indexOf(w.toLowerCase())===-1}).sort(function(a,b){return b.length-a.length});
-    const answer=candidates[0];if(!answer)return;
-    qs.push({prompt:'Ergänze: '+sentence.replace(answer,'_____'),choices:[],accepted:[answer],explanation:sentence});
-  });
-  if(!qs.length)qs.push({prompt:'Nenne den wichtigsten Begriff aus deinem Text.',choices:[],accepted:[clean.split(' ')[0]||clean],explanation:clean});
-  while(qs.length<5){const src=qs[qs.length%Math.max(1,qs.length)];qs.push({prompt:'Wiederholung: '+src.prompt,choices:src.choices,accepted:src.accepted,explanation:src.explanation})}
-  return{title:'Aus deinem Text',topic:'Eigener Lernstoff',source:clean.slice(0,280),localFallback:true,questions:qs.slice(0,5)};
+
+const state = {
+  screen:location.pathname==='/trophies'?'trophies':'home',
+  noteId:data.notes()[0]?.id,
+  noteMode:'view', noteTool:'pen', penSize:5, markerSize:24, eraserSize:55, color:'#20242B',
+  selection:null, history:{}, redo:{}, focus:false, libraryTab:'notes', libraryView:'list', libraryQuery:'', librarySort:'recent',
+  createMode:'photo', createText:'', createFile:null, createPreview:'', challenge:null, q:0, answered:false, score:0, lastCorrect:false, lastExplanation:'', quizMode:'normal',
+  toast:''
+};
+
+function toast(msg){
+  state.toast=msg; const old=$('.toast'); if(old) old.remove();
+  const el=document.createElement('div'); el.className='toast'; el.textContent=msg; document.body.appendChild(el);
+  setTimeout(()=>el.remove(),2200);
 }
-function topbar(back){
-  const p=profile();
-  return '<header class="v4-header">'+(back?'<button class="v4-icon-btn" data-action="home">'+v4Icon('back',21)+'</button>':'<button class="v4-brand" data-action="home">'+v4Mark()+'<span>SnapStudy</span></button>')+'<div class="v4-headstats"><span>'+v4Icon('trophy',16)+(p.xp||0)+'</span><i></i><span>'+(p.streak||0)+' Tage</span></div></header>';
+function topbar(back=false){
+  return '<header class="topbar">'+(back?'<button class="iconbtn" data-action="back">'+icon('back')+'</button>':'<button class="wordmark" data-action="home">SnapStudy</button>')+
+    '<div class="spacer"></div><button class="trophy-pill" data-action="trophies">'+icon('trophy',15)+'<span>'+trophyScore()+'</span></button>'+
+    '<button class="iconbtn" data-action="library">'+icon('search',17)+'</button></header>';
 }
 function nav(active){
-  const items=[['today','Heute','today'],['reviews','Fehler','repeat'],['library','Sammlung','stack'],['duel','Duelle','duel']];
-  return '<nav class="v4-nav">'+items.map(function(x){return'<button data-action="'+x[0]+'" class="'+(active===x[0]?'active':'')+'">'+v4Icon(x[2],21)+'<span>'+x[1]+'</span></button>'}).join('')+'</nav>';
+  const items=[['home','Heute','home'],['notes','Notizen','note'],['reviews','Wiederholen','repeat'],['library','Sammlung','stack']];
+  return '<nav class="bottomnav">'+items.map(x=>'<button data-action="'+x[0]+'" class="'+(active===x[0]?'active':'')+'">'+icon(x[2],18)+'<span>'+x[1]+'</span></button>').join('')+'</nav>';
 }
-function shell(content,back,active,noNav){
-  return '<main class="v4-shell">'+topbar(!!back)+'<div class="v4-content">'+content+'</div>'+(noNav?'':nav(active||'today'))+'</main>';
+function shell(content,active='home',opts={}){
+  return '<main class="app '+(opts.wide?'wide':'')+'">'+(opts.noTop?'':topbar(!!opts.back))+'<div class="content">'+content+'</div>'+(opts.noNav?'':nav(active))+'</main>';
 }
+
+function noteRow(n){
+  return '<article class="row"><button data-action="open-note" data-id="'+esc(n.id)+'"><span class="fileicon">'+icon('note',17)+'</span><span class="rowcopy"><strong>'+esc(n.title||'Unbenannt')+'</strong><small>'+esc(n.subject||'Ohne Fach')+' · '+(n.updatedAt?fmtDate(n.updatedAt):'')+'</small></span></button>'+(n.favorite?'<i class="fav">★</i>':'')+'</article>';
+}
+function roundRow(r){
+  return '<article class="row"><button data-action="play-round" data-id="'+esc(r.id)+'"><span class="fileicon blue">'+icon('stack',17)+'</span><span class="rowcopy"><strong>'+esc(r.title||'Lernrunde')+'</strong><small>'+esc(r.topic||'')+' · '+(r.questions?.length||0)+' Fragen</small></span></button></article>';
+}
+
 function renderHome(){
-  const due=v4Due(),lib=v4Library(),p=profile(),recent=lib[0];
-  const title=due.length?(due.length+(due.length===1?' Frage ist fällig':' Fragen sind fällig')):(lib.length?'Heute ist nichts offen':'Starte mit deinem Stoff');
-  const copy=due.length?'Kurze Wiederholung aus deinen eigenen Fehlern. Danach bist du durch.':(lib.length?'Wiederhole eine alte Runde oder füge neuen Stoff hinzu.':'Fotografiere ein Blatt oder füge Text ein. Daraus werden fünf Fragen.');
-  const action=due.length?'<button class="v4-btn primary" data-action="start-due">'+v4Icon('play',18)+'Fehlertraining starten</button>':'<button class="v4-btn primary" data-action="create">'+v4Icon('camera',18)+'Neue Runde erstellen</button>';
-  app.innerHTML=shell(
-    '<section class="v4-home-intro"><span class="v4-kicker">Für heute</span><h1>'+title+'</h1><p>'+copy+'</p></section>'+
-    '<section class="v4-today"><div class="v4-today-top"><span class="v4-today-icon">'+v4Icon(due.length?'repeat':'spark',24)+'</span><div><strong>'+(due.length?'Fehler zuerst':'5-Minuten-Runde')+'</strong><span>'+(due.length?(due.length+' fällig · ca. '+Math.max(2,due.length)+' Min.'):'Dein Stoff, keine fertigen Kurse')+'</span></div></div>'+action+'</section>'+
-    '<div class="v4-quick"><button data-action="create">'+v4Icon('camera',21)+'<span><b>Foto</b><small>Blatt scannen</small></span></button><button data-action="create-text">'+v4Icon('text',21)+'<span><b>Text</b><small>Notizen einfügen</small></span></button></div>'+
-    (recent?'<section class="v4-section"><div class="v4-section-head"><h2>Zuletzt</h2><button data-action="library">Alle</button></div><article class="v4-recent"><span class="v4-small-icon">'+v4Icon('stack',20)+'</span><div><strong>'+esc(recent.title)+'</strong><span>'+esc(recent.topic)+'</span></div><button data-action="play-library" data-id="'+esc(recent.id)+'">'+v4Icon('play',17)+'</button></article></section>':'')+
-    '<section class="v4-difference">'+v4Mark()+'<p><strong>Der Unterschied:</strong> Falsche oder unsichere Antworten verschwinden nicht. Sie werden automatisch für später eingeplant.</p></section>'+
-    '<div class="v4-meta"><span>'+remaining()+' neue Erstellungen heute</span><span>'+((p.sessions||0))+' Runden gespielt</span><a href="/privacy/snapstudy" target="_blank" rel="noopener">Datenschutz</a></div>',
-    false,'today',false
+  evalTrophies();
+  const notes=data.notes().slice().sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0)), due=data.reviews().filter(r=>(r.dueAt||0)<=Date.now()), ws=weekStats();
+  const score=trophyScore(), next=TROPHIES.find(t=>!load(KEYS.trophies,{unlocked:{}}).unlocked[t.id]);
+  root.innerHTML=shell(
+    '<section class="pagehead"><h1>Heute</h1></section>'+
+    '<button class="progress-strip" data-action="trophies"><span class="cupbox">'+icon('trophy',18)+'</span><div><strong>'+league(score)+' · '+score+' Punkte</strong><small>'+(next?'Nächster Pokal: '+esc(next.name):'Alle Pokale freigeschaltet')+'</small></div>'+icon('arrow',14)+'</button>'+
+    '<section class="review-strip"><div><strong>Wiederholen</strong><span>'+(due.length?due.length+' fällig':'Nichts fällig')+'</span></div>'+(due.length?'<button data-action="start-due">Starten</button>':'')+'</section>'+
+    '<section class="section"><h2>Neu</h2><div class="quick"><button data-action="new-note">'+icon('note',18)+'<span>Notiz</span></button><button data-action="create-photo">'+icon('camera',18)+'<span>Foto</span></button><button data-action="create-text">'+icon('text',18)+'<span>Text</span></button></div></section>'+
+    '<section class="section"><div class="sectionhead"><h2>Zuletzt</h2><button data-action="library">Alle</button></div><div class="rows">'+(notes.length?notes.slice(0,4).map(noteRow).join(''):'<div class="emptyline">Keine Notizen</div>')+'</div></section>'+
+    '<section class="weekline"><span>Diese Woche</span><strong>'+ws.sessions+' Runden · '+ws.reviews+' Wiederholungen</strong></section>',
+    'home'
   );
 }
-function renderCreate(textOnly){
-  const only=!!textOnly,preview=state.preview?'<img class="v4-preview" src="'+esc(state.preview)+'" alt="Ausgewähltes Bild">':'';
-  const photo=only?'':'<label class="v4-upload">'+preview+'<input id="photoInput" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment">'+(!state.preview?'<span class="v4-upload-icon">'+v4Icon('camera',29)+'</span><strong>Foto aufnehmen oder auswählen</strong><small>Arbeitsblatt, Buchseite oder handschriftliche Notizen</small>':'<span class="v4-replace">Bild ändern</span>')+'</label>';
-  app.innerHTML=shell(
-    '<section class="v4-page-title"><span class="v4-kicker">Neue Runde</span><h1>'+(only?'Notizen einfügen':'Lernstoff fotografieren')+'</h1><p>'+(only?'Füge genau den Abschnitt ein, den du können musst.':'Nimm nur den relevanten Abschnitt auf. Das macht die Fragen besser.')+'</p></section>'+
-    '<div class="v4-switch"><button data-action="create" class="'+(!only?'active':'')+'">'+v4Icon('camera',17)+'Foto</button><button data-action="create-text" class="'+(only?'active':'')+'">'+v4Icon('text',17)+'Text</button></div>'+
-    '<div class="v4-create">'+photo+'<label class="v4-textfield"><span>'+(only?'Deine Notizen':'Optional: Kontext oder Korrektur')+'</span><textarea id="studyText" placeholder="z. B. Keplers Gesetze, Gravitationskraft und Kreisbahnen">'+esc(state.textDraft)+'</textarea></label>'+
-    '<div class="v4-principle">'+v4Icon('check',18)+'<p><strong>Erst antworten, dann erklären.</strong> SnapStudy zeigt nicht sofort die Lösung. Du musst zuerst selbst abrufen.</p></div>'+
-    '<button class="v4-btn primary full" data-action="analyze">'+v4Icon('arrow',18)+'5 Fragen erstellen</button><p class="v4-limit">'+remaining()+' neue Erstellungen heute übrig</p></div>',
-    true,'today',true
+function renderLibrary(){
+  let notes=data.notes(), rounds=data.rounds(), deleted=data.deleted(), q=state.libraryQuery.trim().toLowerCase();
+  if(q){ notes=notes.filter(n=>(n.title+' '+n.text+' '+n.subject).toLowerCase().includes(q)); rounds=rounds.filter(r=>(r.title+' '+r.topic).toLowerCase().includes(q)); }
+  if(state.libraryTab==='favorites') notes=notes.filter(n=>n.favorite);
+  notes=notes.slice().sort((a,b)=>state.librarySort==='title'?String(a.title).localeCompare(String(b.title)):(b.updatedAt||0)-(a.updatedAt||0));
+  let body='';
+  if(state.libraryTab==='rounds') body=rounds.length?'<div class="rows">'+rounds.map(roundRow).join('')+'</div>':'<div class="empty">Keine Lernrunden</div>';
+  else if(state.libraryTab==='deleted') body=deleted.length?'<div class="rows">'+deleted.map(n=>'<article class="row deleted"><div><span class="fileicon">'+icon('trash',16)+'</span><span class="rowcopy"><strong>'+esc(n.title)+'</strong><small>Gelöscht '+fmtDate(n.deletedAt)+'</small></span></div><footer><button data-action="restore-note" data-id="'+n.id+'">Wiederherstellen</button><button data-action="purge-note" data-id="'+n.id+'">Löschen</button></footer></article>').join('')+'</div>':'<div class="empty">Papierkorb ist leer</div>';
+  else if(state.libraryView==='grid') body=notes.length?'<div class="docgrid">'+notes.map(n=>'<button data-action="open-note" data-id="'+n.id+'"><span class="sheet '+esc(n.paper||'ruled')+'"></span><strong>'+esc(n.title)+'</strong><small>'+esc(n.subject||'')+'</small></button>').join('')+'</div>':'<div class="empty">Keine Notizen</div>';
+  else body=notes.length?'<div class="rows">'+notes.map(noteRow).join('')+'</div>':'<div class="empty">Keine Notizen</div>';
+
+  root.innerHTML=shell(
+    '<section class="libraryhead"><h1>Sammlung</h1><button data-action="new-note">'+icon('plus',14)+' Neu</button></section>'+
+    '<label class="searchbar">'+icon('search',15)+'<input id="librarySearch" placeholder="Suchen" value="'+esc(state.libraryQuery)+'"></label>'+
+    '<div class="tabs">'+[['notes','Notizen'],['favorites','Favoriten'],['rounds','Lernrunden'],['deleted','Gelöscht']].map(x=>'<button data-action="library-tab" data-tab="'+x[0]+'" class="'+(state.libraryTab===x[0]?'active':'')+'">'+x[1]+'</button>').join('')+'</div>'+
+    ((state.libraryTab==='notes'||state.libraryTab==='favorites')?'<div class="toolbarline"><select id="sortSelect"><option value="recent">Zuletzt geändert</option><option value="title">Titel</option></select><button data-action="toggle-library-view">'+icon(state.libraryView==='list'?'grid':'list',15)+'</button><span></span><button data-action="backup">'+icon('download',13)+' Sichern</button><label>'+icon('upload',13)+' Import<input id="backupInput" type="file" accept="application/json"></label></div>':'')+body,
+    'library'
   );
-  const input=document.getElementById('photoInput');
-  if(input)input.onchange=function(e){const f=e.target.files&&e.target.files[0];if(!f)return;if(f.size>8*1024*1024){renderError('Das Bild ist größer als 8 MB.',true);return}state.file=f;if(state.preview)URL.revokeObjectURL(state.preview);state.preview=URL.createObjectURL(f);renderCreate(false)};
+  const s=$('#librarySearch'); if(s) s.oninput=e=>{state.libraryQuery=e.target.value;renderLibrary();};
+  const sort=$('#sortSelect'); if(sort){sort.value=state.librarySort;sort.onchange=e=>{state.librarySort=e.target.value;renderLibrary();};}
+  const bi=$('#backupInput'); if(bi) bi.onchange=e=>restoreBackup(e.target.files?.[0]);
 }
-function renderLoading(){
-  app.innerHTML=shell('<section class="v4-loading"><div>'+v4Mark()+'</div><span class="v4-loader"></span><h2>Runde wird vorbereitet</h2><p>Inhalt lesen · Fragen mischen · Antworten prüfen</p></section>',false,'today',true);
+function backup(){
+  const payload={version:10,notes:data.notes(),rounds:data.rounds(),reviews:data.reviews(),profile:data.profile(),deleted:data.deleted(),strokes:{}};
+  data.notes().forEach(n=>payload.strokes[n.id]=data.strokes(n.id));
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}), a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download='snapstudy-backup-'+dayKey()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),800);
 }
-function renderError(message,localOnly){
-  const canText=String(state.textDraft||'').trim().length>=20;
-  app.innerHTML=shell('<section class="v4-page-title"><span class="v4-error-icon">'+v4Icon('alert',23)+'</span><h1>Das hat nicht geklappt</h1><p>'+(localOnly?esc(message):'Die automatische Erstellung ist gerade nicht erreichbar. Dein Text bleibt erhalten.')+'</p></section>'+
-    '<div class="v4-error-card"><strong>Du kannst trotzdem weiterlernen.</strong><p>'+(canText?'Aus deinem Text kann SnapStudy direkt eine einfache Lücken-Runde bauen.':'Füge Text ein oder probiere die Erstellung später erneut.')+'</p></div>'+
-    '<div class="v4-buttons"><button class="v4-btn primary full" data-action="retry-analyze">Erneut versuchen</button>'+(canText?'<button class="v4-btn secondary full" data-action="local-text">Aus Text ohne Cloud erstellen</button>':'<button class="v4-btn secondary full" data-action="continue-text">Text einfügen</button>')+'</div>',
-    true,'today',true
+function restoreBackup(file){
+  if(!file)return; const r=new FileReader();
+  r.onload=()=>{try{const x=JSON.parse(r.result);if(!Array.isArray(x.notes))throw 0;data.setNotes(x.notes);data.setRounds(x.rounds||[]);data.setReviews(x.reviews||[]);data.setProfile(x.profile||{});data.setDeleted(x.deleted||[]);Object.entries(x.strokes||{}).forEach(([id,v])=>data.setStrokes(id,v));state.noteId=x.notes[0]?.id;toast('Backup importiert');renderLibrary();}catch{toast('Backup ungültig');}};
+  r.readAsText(file);
+}
+
+function newNote(){
+  const n={id:uid('note'),title:'Unbenannte Notiz',subject:'Physik',paper:'ruled',favorite:false,createdAt:Date.now(),updatedAt:Date.now(),text:'',images:[],shapes:[]};
+  data.setNotes([n,...data.notes()]); state.noteId=n.id;state.noteMode='edit';state.screen='notes';renderNotes();
+}
+function getNote(){ return data.notes().find(n=>n.id===state.noteId)||data.notes()[0]; }
+function patchNote(patch){
+  const notes=data.notes().map(n=>n.id===state.noteId?Object.assign({},n,patch,{updatedAt:Date.now()}):n);data.setNotes(notes);
+  const s=$('#saveStatus'); if(s){s.textContent='Gespeichert';}
+}
+function softDelete(id){
+  const notes=data.notes(), i=notes.findIndex(n=>n.id===id); if(i<0||notes.length<=1){toast('Mindestens eine Notiz muss bleiben');return;}
+  const [n]=notes.splice(i,1); n.deletedAt=Date.now();data.setNotes(notes);data.setDeleted([n,...data.deleted()].slice(0,50));state.noteId=notes[Math.max(0,i-1)].id;renderNotes();
+}
+function restoreNote(id){const del=data.deleted(),i=del.findIndex(n=>n.id===id);if(i<0)return;const [n]=del.splice(i,1);delete n.deletedAt;n.updatedAt=Date.now();data.setDeleted(del);data.setNotes([n,...data.notes()]);renderLibrary();}
+function purgeNote(id){data.setDeleted(data.deleted().filter(n=>n.id!==id));localStorage.removeItem('ss10:strokes:'+id);renderLibrary();}
+function duplicateNote(){
+  const n=getNote(); if(!n)return; const copy=JSON.parse(JSON.stringify(n));copy.id=uid('note');copy.title=n.title+' Kopie';copy.favorite=false;copy.createdAt=copy.updatedAt=Date.now();
+  data.setNotes([copy,...data.notes()]);data.setStrokes(copy.id,JSON.parse(JSON.stringify(data.strokes(n.id))));state.noteId=copy.id;renderNotes();
+}
+
+function renderNotes(){
+  const n=getNote(); if(!n){newNote();return;} const notes=data.notes(), idx=notes.findIndex(x=>x.id===n.id);
+  root.innerHTML=shell(
+    '<section class="noteshell '+(state.focus?'focus ':'')+(state.noteMode==='view'?'view':'edit')+'">'+
+      '<header class="notehead"><button class="iconbtn" data-action="home">'+icon('back',17)+'</button><div class="notetitle"><span>Notizen · <i id="saveStatus">Gespeichert</i></span><input id="noteTitle" '+(state.noteMode==='view'?'readonly':'')+' value="'+esc(n.title)+'"></div>'+
+      '<div class="modes"><button data-action="note-mode" data-mode="edit" class="'+(state.noteMode==='edit'?'active':'')+'">Bearbeiten</button><button data-action="note-mode" data-mode="view" class="'+(state.noteMode==='view'?'active':'')+'">Ansicht</button></div>'+
+      '<button class="iconbtn '+(n.favorite?'gold':'')+'" data-action="favorite-note">'+icon('star',16)+'</button><button class="iconbtn" data-action="focus-note">'+icon('fit',16)+'</button></header>'+
+      (!state.focus?'<aside class="pagestrip">'+notes.map((p,i)=>'<button data-action="open-note" data-id="'+p.id+'" class="'+(p.id===n.id?'active':'')+'"><span class="mini-sheet '+esc(p.paper||'ruled')+'"></span><small>'+esc(p.title)+'</small></button>').join('')+(state.noteMode==='edit'?'<button class="addpage" data-action="new-note">'+icon('plus',16)+'<small>Neu</small></button>':'')+'</aside>':'')+
+      '<main class="noteeditor">'+
+        (!state.focus&&state.noteMode==='edit'?'<div class="notetools">'+[['pen','pen'],['marker','marker'],['eraser','eraser'],['select','select'],['text','text'],['shape','shape']].map(x=>'<button title="'+x[0]+'" data-action="note-tool" data-tool="'+x[0]+'" class="'+(state.noteTool===x[0]?'active':'')+'">'+icon(x[1],17)+'</button>').join('')+
+          '<i></i>'+['#20242B','#3568D4','#B75850','#26785B','#D39A23'].map(c=>'<button data-action="note-color" data-color="'+c+'" class="color '+(state.color===c?'active':'')+'" style="--c:'+c+'"></button>').join('')+
+          '<span></span><button data-action="undo">'+icon('undo',16)+'</button><button data-action="redo">'+icon('redo',16)+'</button><label class="imagepick">'+icon('image',16)+'<input id="imageInput" type="file" accept="image/*"></label></div>':'')+
+        (!state.focus&&state.noteMode==='edit'?toolOptions():'')+
+        (state.noteMode==='view'?'<div class="viewbar"><button data-action="prev-note" '+(idx<=0?'disabled':'')+'>'+icon('back',14)+' Vorherige</button><span>Seite '+(idx+1)+' / '+notes.length+'</span><button data-action="next-note" '+(idx>=notes.length-1?'disabled':'')+'>Nächste '+icon('arrow',14)+'</button></div>':'')+
+        '<div class="paperstage"><div class="paper '+esc(n.paper||'ruled')+'"><textarea id="noteText" '+(state.noteMode==='view'?'readonly':'')+' class="'+(state.noteMode==='edit'&&state.noteTool==='text'?'editing':'')+'" placeholder="Text eingeben...">'+esc(n.text||'')+'</textarea><canvas id="noteCanvas" width="1000" height="1400"></canvas><div id="imageLayer">'+(n.images||[]).map(img=>'<img data-image-id="'+img.id+'" src="'+img.src+'" style="left:'+img.x+'%;top:'+img.y+'%;width:'+img.w+'%;">').join('')+'</div></div></div>'+
+        (!state.focus?'<footer class="notefoot"><span>'+esc(n.subject||'Physik')+'</span><button data-action="template-menu">Vorlage: '+paperName(n.paper)+'</button><span class="grow"></span><button data-action="export-note">'+icon('download',13)+' Export</button><button data-action="note-study">'+icon('play',13)+' Lernen</button><button data-action="note-more">'+icon('more',14)+'</button></footer>':'')+
+      '</main>'+
+      '<div id="noteMenu" class="popover hidden"><button data-action="duplicate-note">'+icon('copy',14)+' Duplizieren</button><button data-action="delete-note" class="danger">'+icon('trash',14)+' Löschen</button></div>'+
+      '<div id="templateMenu" class="template-modal hidden"><div><header><strong>Seitenvorlage</strong><button data-action="close-template">'+icon('close',15)+'</button></header><section>'+['plain','ruled','grid','dotted','cornell'].map(p=>'<button data-action="set-paper" data-paper="'+p+'" class="'+(n.paper===p?'active':'')+'"><span class="template '+p+'"></span><small>'+paperName(p)+'</small></button>').join('')+'</section></div></div>'+
+    '</section>', 'notes',{wide:true,noTop:true, noNav:state.focus}
   );
+  bindNote(n);
+}
+function paperName(p){return ({plain:'Blanko',ruled:'Liniert',grid:'Kariert',dotted:'Punktiert',cornell:'Cornell'})[p]||'Liniert';}
+function toolOptions(){
+  if(state.noteTool==='pen') return '<div class="toolopts"><span>Stift</span><input id="penSize" type="range" min="2" max="16" value="'+state.penSize+'"><b>'+state.penSize+'</b></div>';
+  if(state.noteTool==='marker') return '<div class="toolopts"><span>Marker</span><input id="markerSize" type="range" min="12" max="60" value="'+state.markerSize+'"><b>'+state.markerSize+'</b></div>';
+  if(state.noteTool==='eraser') return '<div class="toolopts"><span>Radierer</span>'+[30,55,90].map(v=>'<button data-action="eraser-size" data-size="'+v+'" class="'+(state.eraserSize===v?'active':'')+'">'+(v===30?'S':v===55?'M':'L')+'</button>').join('')+'</div>';
+  if(state.noteTool==='shape') return '<div class="toolopts"><span>Form</span><button data-action="shape-kind" data-kind="line" class="active">Linie</button><button data-action="shape-kind" data-kind="rect">Rechteck</button><button data-action="shape-kind" data-kind="ellipse">Ellipse</button></div>';
+  if(state.noteTool==='select') return '<div class="toolopts"><span>Lasso</span><small>Bereich ziehen, dann verschieben oder löschen.</small></div>';
+  return '<div class="toolopts"><span>'+state.noteTool.charAt(0).toUpperCase()+state.noteTool.slice(1)+'</span></div>';
+}
+function bindNote(n){
+  const title=$('#noteTitle'), text=$('#noteText'), canvas=$('#noteCanvas'), ctx=canvas?.getContext('2d'), images=$$('#imageLayer img');
+  if(title&&!title.readOnly) title.oninput=e=>patchNote({title:e.target.value});
+  if(text&&!text.readOnly) text.oninput=e=>patchNote({text:e.target.value});
+  const ps=$('#penSize'); if(ps) ps.oninput=e=>{state.penSize=+e.target.value;$('.toolopts b').textContent=e.target.value;};
+  const ms=$('#markerSize'); if(ms) ms.oninput=e=>{state.markerSize=+e.target.value;$('.toolopts b').textContent=e.target.value;};
+  const imgInput=$('#imageInput'); if(imgInput) imgInput.onchange=e=>addImageToNote(e.target.files?.[0]);
+  if(!canvas||!ctx)return;
+  let strokes=data.strokes(n.id), drawing=false,current=null,start=null,lasso=null,moveBase=null,moveOrigin=null;
+  const renderCanvas=()=>{
+    ctx.clearRect(0,0,1000,1400);
+    (n.shapes||[]).forEach(s=>{ctx.save();ctx.strokeStyle=s.color;ctx.lineWidth=s.width||5;ctx.beginPath();if(s.kind==='line'){ctx.moveTo(s.x1,s.y1);ctx.lineTo(s.x2,s.y2);}else if(s.kind==='rect'){ctx.rect(Math.min(s.x1,s.x2),Math.min(s.y1,s.y2),Math.abs(s.x2-s.x1),Math.abs(s.y2-s.y1));}else{ctx.ellipse((s.x1+s.x2)/2,(s.y1+s.y2)/2,Math.abs(s.x2-s.x1)/2,Math.abs(s.y2-s.y1)/2,0,0,Math.PI*2);}ctx.stroke();ctx.restore();});
+    strokes.forEach(s=>{if(!s.points?.length)return;ctx.save();ctx.beginPath();ctx.moveTo(s.points[0].x,s.points[0].y);for(let i=1;i<s.points.length;i++)ctx.lineTo(s.points[i].x,s.points[i].y);ctx.strokeStyle=s.color;ctx.lineWidth=s.width;ctx.lineCap='round';ctx.lineJoin='round';ctx.globalAlpha=s.tool==='marker'?.32:1;ctx.stroke();ctx.restore();});
+    if(lasso){ctx.save();ctx.strokeStyle='#3568D4';ctx.setLineDash([10,8]);ctx.strokeRect(lasso.x,lasso.y,lasso.w,lasso.h);ctx.restore();}
+  };
+  const pos=e=>{const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*1000,y:(e.clientY-r.top)/r.height*1400};};
+  const segDist=(p,a,b)=>{const dx=b.x-a.x,dy=b.y-a.y,l=dx*dx+dy*dy;if(!l)return Math.hypot(p.x-a.x,p.y-a.y);let t=((p.x-a.x)*dx+(p.y-a.y)*dy)/l;t=Math.max(0,Math.min(1,t));return Math.hypot(p.x-(a.x+t*dx),p.y-(a.y+t*dy));};
+  const hit=(s,p,r)=>{for(let i=1;i<s.points.length;i++)if(segDist(p,s.points[i-1],s.points[i])<=r+(s.width||0)/2)return true;return false;};
+  const snapshot=()=>{(state.history[n.id]||(state.history[n.id]=[])).push(JSON.stringify(strokes));state.history[n.id]=state.history[n.id].slice(-30);state.redo[n.id]=[];};
+  const events=e=>{const raw=e;if(raw.getCoalescedEvents){const a=raw.getCoalescedEvents();if(a.length)return a.map(pos);}return[pos(e)];};
+  renderCanvas();
+  if(state.noteMode==='view'){canvas.style.pointerEvents='none';return;}
+  canvas.onpointerdown=e=>{
+    e.preventDefault();canvas.setPointerCapture(e.pointerId);drawing=true;const p=pos(e);start=p;
+    if(state.noteTool==='eraser'){snapshot();strokes=strokes.filter(s=>!hit(s,p,state.eraserSize));data.setStrokes(n.id,strokes);renderCanvas();return;}
+    if(state.noteTool==='select'){lasso={x:p.x,y:p.y,w:0,h:0};renderCanvas();return;}
+    if(state.noteTool==='shape'){state.shapeStart=p;return;}
+    if(state.noteTool==='text')return;
+    snapshot();current={id:uid('s'),tool:state.noteTool==='marker'?'marker':'pen',color:state.noteTool==='marker'?'#E3B53C':state.color,width:state.noteTool==='marker'?state.markerSize:state.penSize,points:[p]};strokes.push(current);renderCanvas();
+  };
+  canvas.onpointermove=e=>{
+    if(!drawing)return;const pts=events(e),p=pts[pts.length-1];
+    if(state.noteTool==='eraser'){let changed=false;pts.forEach(q=>{const before=strokes.length;strokes=strokes.filter(s=>!hit(s,q,state.eraserSize));changed=changed||before!==strokes.length;});if(changed){data.setStrokes(n.id,strokes);renderCanvas();}return;}
+    if(state.noteTool==='select'&&start){lasso={x:Math.min(start.x,p.x),y:Math.min(start.y,p.y),w:Math.abs(p.x-start.x),h:Math.abs(p.y-start.y)};renderCanvas();return;}
+    if(current){current.points.push(...pts);renderCanvas();}
+  };
+  canvas.onpointerup=e=>{
+    const p=pos(e);drawing=false;
+    if(state.noteTool==='shape'&&state.shapeStart){const a=state.shapeStart,s={id:uid('shape'),kind:state.shapeKind||'line',x1:a.x,y1:a.y,x2:p.x,y2:p.y,color:state.color,width:state.penSize};patchNote({shapes:[...(n.shapes||[]),s]});state.shapeStart=null;renderNotes();return;}
+    if(state.noteTool==='select'&&lasso){const ids=strokes.filter(s=>{const xs=s.points.map(x=>x.x),ys=s.points.map(x=>x.y),b={x:Math.min(...xs),y:Math.min(...ys),r:Math.max(...xs),b:Math.max(...ys)};return !(b.x>lasso.x+lasso.w||b.r<lasso.x||b.y>lasso.y+lasso.h||b.b<lasso.y);}).map(s=>s.id);state.selection={noteId:n.id,ids};toast(ids.length+' ausgewählt');return;}
+    if(current){data.setStrokes(n.id,strokes);current=null;patchNote({});}
+  };
+  images.forEach(img=>{
+    if(state.noteMode==='view')return;
+    let drag=null;
+    img.onpointerdown=e=>{e.preventDefault();drag={x:e.clientX,y:e.clientY,left:parseFloat(img.style.left),top:parseFloat(img.style.top)};img.setPointerCapture(e.pointerId);};
+    img.onpointermove=e=>{if(!drag)return;const paper=img.closest('.paper').getBoundingClientRect(),dx=(e.clientX-drag.x)/paper.width*100,dy=(e.clientY-drag.y)/paper.height*100;img.style.left=(drag.left+dx)+'%';img.style.top=(drag.top+dy)+'%';};
+    img.onpointerup=()=>{if(!drag)return;const id=img.dataset.imageId,arr=(n.images||[]).map(x=>x.id===id?Object.assign({},x,{x:parseFloat(img.style.left),y:parseFloat(img.style.top)}):x);patchNote({images:arr});drag=null;};
+  });
+}
+function addImageToNote(file){
+  if(!file)return;const r=new FileReader();r.onload=()=>{const n=getNote(),arr=[...(n.images||[]),{id:uid('img'),src:String(r.result),x:20,y:30,w:35}];patchNote({images:arr});renderNotes();};r.readAsDataURL(file);
+}
+function undo(){
+  const id=state.noteId,st=data.strokes(id),h=state.history[id]||[];if(!h.length)return;const prev=h.pop();(state.redo[id]||(state.redo[id]=[])).push(JSON.stringify(st));data.setStrokes(id,JSON.parse(prev));renderNotes();
+}
+function redo(){
+  const id=state.noteId,r=state.redo[id]||[];if(!r.length)return;const next=r.pop();(state.history[id]||(state.history[id]=[])).push(JSON.stringify(data.strokes(id)));data.setStrokes(id,JSON.parse(next));renderNotes();
+}
+function exportNote(){
+  const n=getNote(),canvas=document.createElement('canvas');canvas.width=1000;canvas.height=1400;const ctx=canvas.getContext('2d');ctx.fillStyle='#fffefb';ctx.fillRect(0,0,1000,1400);ctx.fillStyle='#242830';ctx.font='26px Roboto,Arial';String(n.text||'').split('\n').forEach((line,i)=>ctx.fillText(line,70,70+i*42,850));const strokes=data.strokes(n.id);strokes.forEach(s=>{if(!s.points.length)return;ctx.beginPath();ctx.moveTo(s.points[0].x,s.points[0].y);for(let i=1;i<s.points.length;i++)ctx.lineTo(s.points[i].x,s.points[i].y);ctx.strokeStyle=s.color;ctx.lineWidth=s.width;ctx.globalAlpha=s.tool==='marker'?.32:1;ctx.lineCap='round';ctx.stroke();ctx.globalAlpha=1;});const a=document.createElement('a');a.download=(n.title||'Notiz')+'.png';a.href=canvas.toDataURL('image/png');a.click();
+}
+
+function renderReviews(){
+  const all=data.reviews().slice().sort((a,b)=>(a.dueAt||0)-(b.dueAt||0)),due=all.filter(r=>(r.dueAt||0)<=Date.now()),later=all.filter(r=>(r.dueAt||0)>Date.now());
+  root.innerHTML=shell('<section class="pagehead"><h1>Wiederholen</h1></section>'+
+    (due.length?'<section class="section"><div class="sectionhead"><h2>Heute</h2><span>'+due.length+'</span></div><div class="reviewrows">'+due.map(reviewRow).join('')+'</div><button class="primary full" data-action="start-due">Starten</button></section>':'<div class="empty compact">Nichts fällig</div>')+
+    (later.length?'<section class="section"><div class="sectionhead"><h2>Später</h2><span>'+later.length+'</span></div><div class="reviewrows">'+later.map(reviewRow).join('')+'</div></section>':''),
+    'reviews');
+}
+function reviewRow(r){return '<article><span class="dot"></span><div><strong>'+esc(r.prompt)+'</strong><small>'+esc(r.sourceTitle||'Lernrunde')+' · Stufe '+(r.stage||0)+'</small></div><time>'+fmtDate(r.dueAt)+'</time></article>';}
+function addReview(q,challenge,reason='wrong'){
+  const list=data.reviews(),key=(challenge.title||'')+'|'+q.prompt,old=list.find(x=>x.key===key);
+  const item={key,prompt:q.prompt,choices:q.choices||[],accepted:q.accepted||[],explanation:q.explanation||'',sourceTitle:challenge.title||'Lernrunde',stage:old?.stage||0,dueAt:Date.now(),reason};
+  data.setReviews([item,...list.filter(x=>x.key!==key)].slice(0,100));
+}
+function updateReview(q,correct){
+  const list=data.reviews(),key=state.challenge.title+'|'+q.prompt,r=list.find(x=>x.key===key);if(!r)return;
+  if(correct){r.stage=(r.stage||0)+1;const days=[1,3,7,14,30][Math.min(4,r.stage-1)];r.dueAt=Date.now()+days*86400000;}else{r.stage=0;r.dueAt=Date.now()+86400000;}
+  data.setReviews(list);
+}
+
+function renderTrophies(){
+  evalTrophies();const s=stats(), t=load(KEYS.trophies,{unlocked:{}}),score=trophyScore(),ws=weekStats();
+  const locked=TROPHIES.filter(x=>!t.unlocked[x.id]).sort((a,b)=>(s[b.metric]/b.target)-(s[a.metric]/a.target)),next=locked[0],pct=next?Math.min(100,Math.round((s[next.metric]||0)/next.target*100)):100;
+  root.innerHTML=shell('<section class="trophyhead"><button class="iconbtn" data-action="back">'+icon('back',17)+'</button><div><span>Pokale</span><h1>'+score+' Punkte</h1></div><strong>'+Object.keys(t.unlocked).length+' / '+TROPHIES.length+'</strong></section>'+
+    '<section class="league"><span class="bigcup">'+icon('trophy',25)+'</span><div><small>Stufe</small><strong>'+league(score)+'</strong></div></section>'+
+    (next?'<section class="section"><div class="sectionhead"><h2>Nächster Pokal</h2><span>'+pct+'%</span></div>'+trophyCard(next,t,s)+'</section>':'')+
+    '<section class="section"><div class="sectionhead"><h2>Diese Woche</h2><span>'+ws.sessions+' Runden</span></div><div class="goals"><div><strong>5 Runden</strong><span><i style="width:'+Math.min(100,ws.sessions/5*100)+'%"></i></span><small>'+Math.min(5,ws.sessions)+' / 5</small></div><div><strong>2 Wiederholungen</strong><span><i style="width:'+Math.min(100,ws.reviews/2*100)+'%"></i></span><small>'+Math.min(2,ws.reviews)+' / 2</small></div></div></section>'+
+    '<section class="section"><div class="sectionhead"><h2>Sammlung</h2><span>'+Object.keys(t.unlocked).length+' freigeschaltet</span></div><div class="trophylist">'+TROPHIES.map(x=>trophyCard(x,t,s)).join('')+'</div></section>',
+    'home',{noNav:true,noTop:true});
+}
+function trophyCard(x,t,s){
+  const on=!!t.unlocked[x.id],cur=Math.min(x.target,s[x.metric]||0),pct=Math.round(cur/x.target*100);
+  return '<article class="trophycard '+(on?'on':'')+'"><span>'+icon('trophy',19)+'</span><div><strong>'+esc(x.name)+'</strong><small>'+esc(x.desc)+'</small>'+(on?'<em>+'+x.points+' Punkte</em>':'<div class="miniprogress"><i style="width:'+pct+'%"></i><b>'+cur+' / '+x.target+'</b></div>')+'</div></article>';
+}
+
+function renderCreate(mode){
+  state.createMode=mode||state.createMode;root.innerHTML=shell('<section class="pagehead"><h1>Neue Lernrunde</h1></section><div class="tabs create-tabs"><button data-action="create-photo" class="'+(state.createMode==='photo'?'active':'')+'">Foto</button><button data-action="create-text" class="'+(state.createMode==='text'?'active':'')+'">Text</button></div>'+
+    '<section class="createbox">'+(state.createMode==='photo'?'<label class="uploadbox">'+(state.createPreview?'<img src="'+state.createPreview+'" alt="">':'<span>'+icon('camera',23)+'</span><strong>Foto auswählen</strong><small>Kamera oder Galerie</small>')+'<input id="photoInput" type="file" accept="image/*" capture="environment"></label>':'')+
+    '<label class="field"><span>'+(state.createMode==='text'?'Text':'Notiz (optional)')+'</span><textarea id="createText" placeholder="'+(state.createMode==='text'?'Text einfügen':'Optional')+'">'+esc(state.createText)+'</textarea></label><button class="primary full" data-action="analyze">Fragen erstellen</button></section>',
+    'home',{back:true,noNav:true});
+  const pi=$('#photoInput');if(pi)pi.onchange=e=>{const f=e.target.files?.[0];if(!f)return;state.createFile=f;if(state.createPreview)URL.revokeObjectURL(state.createPreview);state.createPreview=URL.createObjectURL(f);renderCreate('photo');};
+}
+function localChallenge(text,title='Aus Notizen'){
+  const chunks=String(text||'').split(/(?<=[.!?])\s+|\n+/).map(x=>x.trim()).filter(x=>x.length>10).slice(0,5);
+  const qs=chunks.map((s,i)=>({prompt:'Welche Aussage gehört zum Lernstoff?',choices:[s,'Diese Aussage steht nicht im Lernstoff','Keine der Aussagen'],accepted:[s],explanation:s}));
+  while(qs.length<3)qs.push({prompt:'Was ist ein zentraler Begriff aus dem Material?',choices:null,accepted:[String(text).split(/\s+/)[0]||'Lernstoff'],explanation:String(text).slice(0,160)});
+  return {id:uid('round'),title,topic:'Eigener Lernstoff',questions:qs.slice(0,5)};
+}
+function challengeFromAnalysis(a){
+  const q=[];
+  if(a?.strategySelection?.question){q.push({prompt:a.strategySelection.question,choices:a.strategySelection.options||[],accepted:[a.strategySelection.correctOption],explanation:a.strategySelection.explanation||''});}
+  (a?.reasoningSteps||[]).forEach(x=>q.push({prompt:x.question,choices:x.options||null,accepted:[x.answer].filter(Boolean),explanation:x.explanation||''}));
+  if(a?.correctResult?.display)q.push({prompt:'Was ist das Ergebnis?',choices:null,accepted:a.correctResult.acceptedAnswers||[a.correctResult.display],explanation:a.correctResult.explanation||''});
+  return {id:uid('round'),title:a?.title||'Lernrunde',topic:a?.topic||'Lernen',questions:q.filter(x=>x.prompt).slice(0,5)};
 }
 async function analyze(){
-  const el=document.getElementById('studyText');if(el)state.textDraft=el.value.trim();
-  if(!state.file&&String(state.textDraft||'').length<8){renderCreate(true);return}
-  renderLoading();
+  const text=$('#createText')?.value.trim()||'';state.createText=text;
+  if(state.createMode==='text'&&text.length<20){toast('Bitte etwas mehr Text einfügen');return;}
+  root.innerHTML=shell('<div class="loading"><span></span><strong>Fragen werden erstellt…</strong></div>','home',{back:true,noNav:true});
   try{
-    let r;
-    if(state.file){const f=new FormData();f.append('image',state.file,state.file.name||'scan.jpg');f.append('text',state.textDraft||'');r=await fetch('/api/analyze',{method:'POST',body:f})}
-    else r=await fetch('/api/analyze',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text:state.textDraft})});
-    const payload=await r.json().catch(function(){return{}});
-    if(!r.ok)throw new Error(payload.error||'Erstellung nicht verfügbar.');
-    const c=challengeFromAnalysis(payload);if(!c.questions||c.questions.length<3)throw new Error('Die Fragen waren unvollständig.');
-    consume();v4SaveRound(c);startChallenge(c,'normal');
-  }catch(err){
-    if(!state.file&&String(state.textDraft||'').length>=20){const local=v4LocalTextChallenge(state.textDraft);consume();v4SaveRound(local);startChallenge(local,'normal');return}
-    renderError(err&&err.message?err.message:'Erstellung nicht verfügbar.');
-  }
+    let res;
+    if(state.createFile){const fd=new FormData();fd.append('file',state.createFile);if(text)fd.append('text',text);res=await fetch('/api/analyze',{method:'POST',body:fd});}
+    else res=await fetch('/api/analyze',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text})});
+    if(!res.ok)throw new Error('HTTP '+res.status);const a=await res.json();state.challenge=challengeFromAnalysis(a);if(!state.challenge.questions.length)state.challenge=localChallenge(text);startChallenge(state.challenge,'normal');
+  }catch{ if(text.length>=20)startChallenge(localChallenge(text),'normal');else{toast('Analyse nicht erreichbar');renderCreate(state.createMode);} }
 }
-function startChallenge(c,mode){
-  state.challenge=c;state.mode=mode||'normal';state.qIndex=0;state.score=0;state.answered=false;state.lastCorrect=false;state.lastExplanation='';state.uncertainMarked=false;renderQuestion();
+function startChallenge(ch,mode='normal'){
+  state.challenge=ch;state.quizMode=mode;state.q=0;state.score=0;state.answered=false;renderQuestion();
 }
 function renderQuestion(){
-  const c=state.challenge,q=c.questions[state.qIndex],total=c.questions.length,pct=((state.qIndex+(state.answered?1:0))/total)*100;
-  let input='';
-  if(q.choices&&q.choices.length)input='<div class="v4-answers">'+q.choices.map(function(x,i){return'<button class="v4-answer" data-action="choice" data-value="'+esc(x)+'"><span>'+String.fromCharCode(65+i)+'</span><b>'+esc(x)+'</b></button>'}).join('')+'</div>';
-  else input='<div class="v4-free"><input id="answerInput" placeholder="Deine Antwort"><button class="v4-btn primary" data-action="submit-answer">Prüfen</button></div>';
-  let after='';
-  if(state.answered)after='<div class="v4-feedback '+(state.lastCorrect?'good':'bad')+'"><div>'+v4Icon(state.lastCorrect?'check':'alert',19)+'<strong>'+(state.lastCorrect?'Richtig':'Noch nicht')+'</strong></div><p>'+esc(state.lastExplanation||'')+'</p></div>'+
-    (state.lastCorrect&&state.mode==='normal'?'<button class="v4-uncertain '+(state.uncertainMarked?'marked':'')+'" data-action="mark-uncertain">'+v4Icon('repeat',16)+(state.uncertainMarked?'Für später eingeplant':'War unsicher – später nochmal')+'</button>':'')+
-    '<button class="v4-btn primary full" data-action="next">'+(state.qIndex===total-1?'Ergebnis ansehen':'Weiter')+v4Icon('arrow',17)+'</button>';
-  app.innerHTML=shell('<div class="v4-lesson-top"><button class="v4-icon-btn quiet" data-action="home">'+v4Icon('back',20)+'</button><div class="v4-progress"><i style="width:'+pct+'%"></i></div><span>'+(state.qIndex+1)+'/'+total+'</span></div>'+
-    '<section class="v4-question"><div><span>'+esc(c.topic||'Lernen')+'</span><span>'+(state.mode==='review'?'Fehlertraining':'Aus deinem Stoff')+'</span></div><h1>'+esc(q.prompt)+'</h1></section>'+
-    (state.answered?'':input)+after,false,'today',true);
+  const ch=state.challenge,q=ch.questions[state.q],total=ch.questions.length,pct=(state.q/total)*100;
+  let input=q.choices?.length?'<div class="answers">'+q.choices.map((x,i)=>'<button data-action="answer" data-value="'+esc(x)+'"><span>'+String.fromCharCode(65+i)+'</span><b>'+esc(x)+'</b></button>').join('')+'</div>':'<div class="freeanswer"><input id="answerInput" placeholder="Antwort"><button class="primary" data-action="submit-answer">Prüfen</button></div>';
+  let feedback=state.answered?'<div class="feedback '+(state.lastCorrect?'good':'bad')+'">'+icon(state.lastCorrect?'check':'alert',17)+'<div><strong>'+(state.lastCorrect?'Richtig':'Falsch')+'</strong><p>'+esc(state.lastExplanation||'')+'</p></div></div><button class="primary full" data-action="next-question">'+(state.q===total-1?'Ergebnis':'Weiter')+'</button>':'';
+  root.innerHTML=shell('<div class="quiztop"><button class="iconbtn" data-action="home">'+icon('close',16)+'</button><div><i style="width:'+pct+'%"></i></div><span>'+(state.q+1)+' / '+total+'</span></div><section class="question"><small>'+esc(ch.topic||'Lernrunde')+'</small><h1>'+esc(q.prompt)+'</h1></section>'+(state.answered?'':input)+feedback,'home',{noTop:true,noNav:true});
 }
-function answer(value){
-  if(state.answered)return;const q=state.challenge.questions[state.qIndex],ok=correct(q,value);
-  state.lastCorrect=ok;state.lastExplanation=q.explanation||(ok?'Das passt.':'Schau dir den Zusammenhang noch einmal an.');state.answered=true;state.uncertainMarked=false;if(ok)state.score++;
-  if(state.mode==='review')v4ResolveReview(q,state.challenge,ok);else if(!ok)v4PlanReview(q,state.challenge,'wrong');
-  if(navigator.vibrate)navigator.vibrate(ok?15:[15,35,15]);renderQuestion();
+function checkAnswer(value){
+  const q=state.challenge.questions[state.q],norm=x=>String(x||'').toLowerCase().trim().replace(/\s+/g,' ').replace(',', '.');
+  const ok=(q.accepted||[]).some(a=>norm(value)===norm(a)) || (q.choices?.length&&norm(value)===norm(q.accepted?.[0]));
+  state.lastCorrect=ok;state.lastExplanation=q.explanation||'';state.answered=true;if(ok)state.score++;else if(state.quizMode!=='review')addReview(q,state.challenge,'wrong');if(state.quizMode==='review')updateReview(q,ok);renderQuestion();
 }
-function next(){
-  if(state.qIndex>=state.challenge.questions.length-1){renderResult();return}
-  state.qIndex++;state.answered=false;state.lastCorrect=false;state.lastExplanation='';state.uncertainMarked=false;renderQuestion();
+function finishChallenge(){
+  const total=state.challenge.questions.length,pct=Math.round(state.score/total*100),p=data.profile(),today=dayKey(),y=dayKey(new Date(Date.now()-86400000));
+  if(p.last!==today){p.streak=p.last===y?(p.streak||0)+1:1;p.last=today;}p.xp=(p.xp||0)+Math.max(10,pct);p.sessions=(p.sessions||0)+1;p.perfects=(p.perfects||0)+(pct===100?1:0);if(state.quizMode==='review')p.reviewsDone=(p.reviewsDone||0)+1;data.setProfile(p);
+  recordActivity(state.quizMode==='review'?'reviews':'sessions');
+  if(state.quizMode!=='review'){const r=Object.assign({},state.challenge,{id:state.challenge.id||uid('round'),lastPlayedAt:Date.now()});data.setRounds([r,...data.rounds().filter(x=>x.id!==r.id)].slice(0,50));}
+  const fresh=evalTrophies();
+  root.innerHTML=shell('<section class="result"><span>Ergebnis</span><strong>'+state.score+' / '+total+'</strong><small>'+pct+'%</small></section><div class="resultmeta">'+icon('trophy',15)+'<span>'+league(trophyScore())+'</span><strong>'+trophyScore()+' Pokalpunkte</strong></div>'+(fresh.length?'<button class="unlockrow" data-action="trophies">'+icon('trophy',18)+'<span><strong>'+esc(fresh[0].name)+'</strong><small>Neuer Pokal · +'+fresh[0].points+'</small></span>'+icon('arrow',14)+'</button>':'')+'<button class="primary full" data-action="home">Fertig</button>','home',{noTop:true,noNav:true});
 }
-function renderResult(){
-  const total=state.challenge.questions.length,pct=Math.round(state.score/total*100),p=profile(),today=new Date().toISOString().slice(0,10),y=new Date(Date.now()-86400000).toISOString().slice(0,10);
-  if(p.last!==today){p.streak=p.last===y?(p.streak||0)+1:1;p.last=today}p.xp=(p.xp||0)+Math.max(10,pct);p.sessions=(p.sessions||0)+1;localStorage.setItem('snapstudy-profile',JSON.stringify(p));
-  if(state.mode!=='review')v4SaveRound(state.challenge);
-  const due=v4Due().length;
-  app.innerHTML=shell('<section class="v4-result"><span>'+v4Icon(pct>=80?'trophy':'check',30)+'</span><span class="v4-kicker">'+(state.mode==='review'?'Fehlertraining beendet':'Runde beendet')+'</span><h1>'+(pct>=80?'Sitzt ziemlich gut.':pct>=60?'Gute Basis.':'Noch nicht fest genug.')+'</h1><p>'+state.score+' von '+total+' richtig</p></section>'+
-    '<div class="v4-scoreline"><strong>'+pct+'%</strong><div><span>Aktuell fällig</span><b>'+due+' Frage'+(due===1?'':'n')+'</b></div></div>'+
-    '<div class="v4-result-note"><strong>Kein Fehler geht verloren.</strong><p>Falsche und als unsicher markierte Antworten erscheinen automatisch wieder im Fehlertraining.</p></div>'+
-    '<div class="v4-buttons"><button class="v4-btn primary full" data-action="duel">'+v4Icon('share',17)+'Als Duell teilen</button><button class="v4-btn secondary full" data-action="today">Zurück zu Heute</button></div>',
-    false,'today',true
-  );
+function startDue(){
+  const due=data.reviews().filter(r=>(r.dueAt||0)<=Date.now()).slice(0,5);if(!due.length){toast('Nichts fällig');return;}
+  const ch={id:uid('review'),title:'Wiederholen',topic:'Wiederholen',questions:due.map(r=>({prompt:r.prompt,choices:r.choices,accepted:r.accepted,explanation:r.explanation}))};startChallenge(ch,'review');
 }
-function v4ReviewRow(x){
-  const due=(x.dueAt||0)<=Date.now(),diff=Math.max(0,(x.dueAt||0)-Date.now()),hours=Math.round(diff/3600000),when=due?'jetzt':(hours<24?'in '+Math.max(1,hours)+' Std.':'in '+Math.round(hours/24)+' Tagen');
-  return'<article class="v4-review-row"><i class="'+(due?'due':'')+'"></i><div><strong>'+esc(x.prompt)+'</strong><span>'+esc(x.sourceTitle||x.topic||'Lernrunde')+' · '+when+'</span></div></article>';
+function startNoteStudy(){
+  const n=getNote();const text=(n.text||'').trim();if(text.length<20){toast('Die Notiz braucht etwas mehr Text');return;}startChallenge(localChallenge(text,n.title),'normal');
 }
-function renderReviewsV4(){
-  const all=v4Reviews().slice().sort(function(a,b){return(a.dueAt||0)-(b.dueAt||0)}),due=all.filter(function(x){return(x.dueAt||0)<=Date.now()}),later=all.filter(function(x){return(x.dueAt||0)>Date.now()});
-  let body='';
-  if(!all.length)body='<div class="v4-empty"><span>'+v4Icon('repeat',27)+'</span><h2>Noch nichts offen</h2><p>Falsche oder unsichere Antworten landen automatisch hier. Du musst keine Lernkarten selbst anlegen.</p><button class="v4-btn primary" data-action="create">Neue Runde</button></div>';
-  else body=(due.length?'<section class="v4-section"><div class="v4-section-head"><h2>Jetzt fällig</h2><span>'+due.length+'</span></div><div class="v4-review-list">'+due.slice(0,8).map(v4ReviewRow).join('')+'</div><button class="v4-btn primary full v4-section-action" data-action="start-due">'+v4Icon('play',17)+'Fehlertraining starten</button></section>':'')+
-    (later.length?'<section class="v4-section"><div class="v4-section-head"><h2>Später</h2><span>'+later.length+'</span></div><div class="v4-review-list muted">'+later.slice(0,6).map(v4ReviewRow).join('')+'</div></section>':'');
-  app.innerHTML=shell('<section class="v4-page-title"><span class="v4-kicker">Fehler</span><h1>Nur das wiederholen, was noch wackelt.</h1><p>Falsch beantwortet oder selbst als unsicher markiert – sonst nichts.</p></section>'+body,false,'reviews',false);
+
+function render(){
+  if(state.screen==='home')renderHome();
+  else if(state.screen==='library')renderLibrary();
+  else if(state.screen==='notes')renderNotes();
+  else if(state.screen==='reviews')renderReviews();
+  else if(state.screen==='trophies')renderTrophies();
+  else if(state.screen==='create')renderCreate(state.createMode);
 }
-function v4StartDue(){
-  const due=v4Due().slice(0,5);if(!due.length){renderReviewsV4();return}
-  startChallenge({title:'Fehlertraining',topic:'Wiederholung',questions:due.map(function(x){return{prompt:x.prompt,choices:x.choices,accepted:x.accepted,explanation:x.explanation}})},'review');
-}
-function renderLibraryV4(){
-  const list=v4Library();
-  const body=list.length?'<div class="v4-library">'+list.map(function(x){return'<article><div><span class="v4-small-icon">'+v4Icon('stack',20)+'</span><div><strong>'+esc(x.title)+'</strong><span>'+esc(x.topic)+' · '+x.questions.length+' Fragen</span></div></div><footer><button data-action="play-library" data-id="'+esc(x.id)+'">'+v4Icon('play',16)+'Spielen</button><button data-action="share-library" data-id="'+esc(x.id)+'">'+v4Icon('share',16)+'Duell</button></footer></article>'}).join('')+'</div>':
-    '<div class="v4-empty"><span>'+v4Icon('stack',27)+'</span><h2>Noch keine Runden</h2><p>Jede erstellte Runde wird hier gespeichert, damit du sie später wiederholen oder teilen kannst.</p><button class="v4-btn primary" data-action="create">Erste Runde erstellen</button></div>';
-  app.innerHTML=shell('<section class="v4-page-title"><span class="v4-kicker">Sammlung</span><h1>Dein eigener Lernstoff.</h1><p>Keine öffentlichen Sets, keine Suche. Nur das, was du selbst lernen musst.</p></section>'+body,false,'library',false);
-}
-function renderDuel(){
-  const list=v4Library(),current=state.challenge&&state.challenge.questions?state.challenge:list[0];
-  app.innerHTML=shell('<section class="v4-page-title"><span class="v4-kicker">Duelle</span><h1>Gleicher Stoff. Gleiche Fragen.</h1><p>Ein Freund bekommt exakt dieselbe Runde. So vergleicht ihr denselben Lernstoff.</p></section>'+
-    (current?'<div class="v4-duel"><span>'+v4Icon('duel',27)+'</span><div><small>Bereit zum Teilen</small><strong>'+esc(current.title)+'</strong><p>'+current.questions.length+' Fragen · kein Konto nötig</p></div><button class="v4-btn primary full" data-action="share-current">'+v4Icon('share',17)+'Duell-Link teilen</button></div>':
-    '<div class="v4-empty"><span>'+v4Icon('duel',27)+'</span><h2>Erst eine Runde erstellen</h2><p>Danach kannst du genau diese Fragen als Duell teilen.</p><button class="v4-btn primary" data-action="create">Neue Runde</button></div>'),
-    false,'duel',false
-  );
-}
-function v4PlayLibrary(id){const x=v4Library().find(function(r){return r.id===id});if(x)startChallenge(x,'normal')}
-async function v4ShareChallenge(c){
-  if(!c)return;const compact={title:c.title,topic:c.topic,source:c.source||'',questions:c.questions},url=location.origin+location.pathname+'#challenge='+encodeURIComponent(encodeChallenge(compact));
-  try{if(navigator.share)await navigator.share({title:'SnapStudy Duell',text:'Gleicher Stoff, gleiche Fragen. Wie viele schaffst du?',url:url});else{await navigator.clipboard.writeText(url);v4Toast('Duell-Link kopiert')}}catch(_){}
-}
-function v4Toast(t){const old=document.querySelector('.v4-toast');if(old)old.remove();const el=document.createElement('div');el.className='v4-toast';el.textContent=t;document.body.appendChild(el);setTimeout(function(){el.classList.add('show')},10);setTimeout(function(){el.remove()},1900)}
-function handleHash(){
-  if(!location.hash.startsWith('#challenge='))return false;
-  try{const c=decodeChallenge(decodeURIComponent(location.hash.slice('#challenge='.length)));state.invite=c;app.innerHTML=shell('<section class="v4-invite"><div>'+v4Mark()+'</div><span class="v4-kicker">Duell erhalten</span><h1>'+esc(c.title)+'</h1><p>'+esc(c.topic||'Lernrunde')+' · '+c.questions.length+' identische Fragen</p><div>'+v4Icon('check',17)+'<p>Beide spielen exakt dieselbe Runde. Dein Ergebnis bleibt auf deinem Gerät.</p></div><button class="v4-btn primary full" data-action="start-invite">'+v4Icon('play',17)+'Duell starten</button></section>',false,'today',true);return true}catch(_){history.replaceState(null,'',location.pathname);return false}
-}
-app.onclick=function(e){
+
+window.addEventListener('click',e=>{
   const b=e.target.closest('[data-action]');if(!b)return;const a=b.dataset.action;
-  if(a==='home'||a==='today')renderHome();
-  if(a==='create'){state.file=null;state.preview='';renderCreate(false)}
-  if(a==='create-text'){state.file=null;state.preview='';renderCreate(true)}
-  if(a==='analyze'||a==='retry-analyze')analyze();
-  if(a==='continue-text'){state.file=null;state.preview='';renderCreate(true)}
-  if(a==='local-text'){const c=v4LocalTextChallenge(state.textDraft);consume();v4SaveRound(c);startChallenge(c,'normal')}
-  if(a==='choice')answer(b.dataset.value||'');
-  if(a==='submit-answer'){const i=document.getElementById('answerInput');if(i&&i.value.trim())answer(i.value)}
-  if(a==='mark-uncertain'){if(state.answered&&state.lastCorrect&&!state.uncertainMarked){v4PlanReview(state.challenge.questions[state.qIndex],state.challenge,'uncertain');state.uncertainMarked=true;renderQuestion()}}
-  if(a==='next')next();
-  if(a==='reviews')renderReviewsV4();
-  if(a==='start-due')v4StartDue();
-  if(a==='library')renderLibraryV4();
-  if(a==='play-library')v4PlayLibrary(b.dataset.id);
-  if(a==='share-library'){const x=v4Library().find(function(r){return r.id===b.dataset.id});if(x)v4ShareChallenge(x)}
-  if(a==='duel')renderDuel();
-  if(a==='share-current')v4ShareChallenge(state.challenge&&state.challenge.questions?state.challenge:v4Library()[0]);
-  if(a==='start-invite')startChallenge(state.invite,'invite');
-};
+  if(a==='home'){state.screen='home';history.replaceState(null,'','/');renderHome();}
+  else if(a==='back'){if(state.screen==='trophies'){state.screen='home';history.replaceState(null,'','/');renderHome();}else{state.screen='home';renderHome();}}
+  else if(a==='library'){state.screen='library';renderLibrary();}
+  else if(a==='notes'){state.screen='notes';state.noteMode='view';renderNotes();}
+  else if(a==='reviews'){state.screen='reviews';renderReviews();}
+  else if(a==='trophies'){state.screen='trophies';history.replaceState(null,'','/trophies');renderTrophies();}
+  else if(a==='new-note')newNote();
+  else if(a==='open-note'){state.noteId=b.dataset.id;state.noteMode='view';state.screen='notes';renderNotes();}
+  else if(a==='library-tab'){state.libraryTab=b.dataset.tab;renderLibrary();}
+  else if(a==='toggle-library-view'){state.libraryView=state.libraryView==='list'?'grid':'list';renderLibrary();}
+  else if(a==='backup')backup();
+  else if(a==='restore-note')restoreNote(b.dataset.id);
+  else if(a==='purge-note')purgeNote(b.dataset.id);
+  else if(a==='note-mode'){state.noteMode=b.dataset.mode;state.selection=null;renderNotes();}
+  else if(a==='note-tool'){state.noteTool=b.dataset.tool;renderNotes();}
+  else if(a==='note-color'){state.color=b.dataset.color;renderNotes();}
+  else if(a==='eraser-size'){state.eraserSize=+b.dataset.size;renderNotes();}
+  else if(a==='shape-kind'){state.shapeKind=b.dataset.kind;renderNotes();}
+  else if(a==='undo')undo();
+  else if(a==='redo')redo();
+  else if(a==='favorite-note'){const n=getNote();patchNote({favorite:!n.favorite});renderNotes();}
+  else if(a==='focus-note'){state.focus=!state.focus;renderNotes();}
+  else if(a==='prev-note'||a==='next-note'){const notes=data.notes(),i=notes.findIndex(n=>n.id===state.noteId),j=i+(a==='next-note'?1:-1);if(notes[j]){state.noteId=notes[j].id;renderNotes();}}
+  else if(a==='template-menu')$('#templateMenu')?.classList.remove('hidden');
+  else if(a==='close-template')$('#templateMenu')?.classList.add('hidden');
+  else if(a==='set-paper'){patchNote({paper:b.dataset.paper});renderNotes();}
+  else if(a==='note-more')$('#noteMenu')?.classList.toggle('hidden');
+  else if(a==='duplicate-note')duplicateNote();
+  else if(a==='delete-note')softDelete(state.noteId);
+  else if(a==='export-note')exportNote();
+  else if(a==='note-study')startNoteStudy();
+  else if(a==='create-photo'){state.screen='create';state.createMode='photo';renderCreate('photo');}
+  else if(a==='create-text'){state.screen='create';state.createMode='text';renderCreate('text');}
+  else if(a==='analyze')analyze();
+  else if(a==='answer')checkAnswer(b.dataset.value);
+  else if(a==='submit-answer')checkAnswer($('#answerInput')?.value||'');
+  else if(a==='next-question'){if(state.q>=state.challenge.questions.length-1)finishChallenge();else{state.q++;state.answered=false;renderQuestion();}}
+  else if(a==='start-due')startDue();
+  else if(a==='play-round'){const r=data.rounds().find(x=>x.id===b.dataset.id);if(r)startChallenge(r,'normal');}
+});
+window.addEventListener('keydown',e=>{if(e.key==='Enter'&&$('#answerInput')&&state.challenge&&!state.answered)checkAnswer($('#answerInput').value);});
+window.addEventListener('popstate',()=>{state.screen=location.pathname==='/trophies'?'trophies':'home';render();});
 
-
-/* SnapStudy Notes V1 */
-function nav(active){
-  const items=[['today','Heute','today'],['notes','Notizen','text'],['reviews','Fehler','repeat'],['library','Sammlung','stack']];
-  return '<nav class="v4-nav">'+items.map(function(x){return'<button data-action="'+x[0]+'" class="'+(active===x[0]?'active':'')+'">'+v4Icon(x[2],21)+'<span>'+x[1]+'</span></button>'}).join('')+'</nav>';
-}
-
-function notesStore(){
-  return v4Load('snapstudy-notes-v1',[
-    {id:'n1',title:'Gravitation',text:'Gravitationskraft: F = G · m₁m₂ / r². Wenn sich der Abstand verdoppelt, wird die Kraft viermal kleiner.',paper:'ruled',updatedAt:Date.now()},
-    {id:'n2',title:'Kepler III',text:'Drittes Keplersches Gesetz: T² / a³ ist für Bahnen um denselben Zentralkörper konstant.',paper:'ruled',updatedAt:Date.now()}
-  ]);
-}
-function saveNotesStore(list){v4Save('snapstudy-notes-v1',list)}
-function noteStrokes(id){return v4Load('snapstudy-note-strokes-'+id,[])}
-function saveNoteStrokes(id,s){v4Save('snapstudy-note-strokes-'+id,s)}
-if(!state.noteId) state.noteId='n1';
-if(!state.noteTool) state.noteTool='pen';
-if(!state.noteColor) state.noteColor='#1C2433';
-if(!state.noteWidth) state.noteWidth=3;
-if(!state.noteSelection) state.noteSelection=null;
-
-function renderNotes(){
-  const list=notesStore();
-  let note=list.find(function(n){return n.id===state.noteId})||list[0];
-  if(!note){note={id:'n'+Date.now().toString(36),title:'Neue Seite',text:'',paper:'ruled',updatedAt:Date.now()};list.push(note);saveNotesStore(list);state.noteId=note.id}
-  const pages=list.map(function(n){
-    return '<button class="notes-page '+(n.id===note.id?'active':'')+'" data-action="open-note" data-id="'+esc(n.id)+'"><span class="notes-thumb"></span><span><b>'+esc(n.title)+'</b><small>'+esc((n.text||'').slice(0,45)||'Leere Seite')+'</small></span></button>'
-  }).join('');
-  app.innerHTML=shell(
-    '<section class="notes-shell">'+
-      '<div class="notes-top"><div><span class="v4-kicker">Notizen</span><h1>'+esc(note.title)+'</h1></div><button class="v4-btn primary notes-study" data-action="note-study">'+v4Icon('play',17)+'Als Lernrunde nutzen</button></div>'+
-      '<div class="notes-workspace">'+
-        '<aside class="notes-sidebar"><div class="notes-side-head"><strong>Seiten</strong><button data-action="add-note">'+v4Icon('plus',17)+'</button></div>'+pages+'</aside>'+
-        '<main class="notes-editor">'+
-          '<div class="notes-toolbar">'+
-            '<button data-action="note-tool" data-tool="pen" class="'+(state.noteTool==='pen'?'active':'')+'">'+v4Icon('text',18)+'<span>Stift</span></button>'+
-            '<button data-action="note-tool" data-tool="marker" class="'+(state.noteTool==='marker'?'active':'')+'">'+v4Icon('spark',18)+'<span>Marker</span></button>'+
-            '<button data-action="note-tool" data-tool="eraser" class="'+(state.noteTool==='eraser'?'active':'')+'">'+v4Icon('alert',18)+'<span>Radierer</span></button>'+
-            '<button data-action="note-tool" data-tool="select" class="'+(state.noteTool==='select'?'active':'')+'">'+v4Icon('stack',18)+'<span>Auswahl</span></button>'+
-            '<span class="notes-sep"></span>'+
-            '<button class="color-dot dark" data-action="note-color" data-color="#1C2433" aria-label="Dunkel"></button>'+
-            '<button class="color-dot violet" data-action="note-color" data-color="#6558D8" aria-label="Violett"></button>'+
-            '<button class="color-dot red" data-action="note-color" data-color="#B8574E" aria-label="Rot"></button>'+
-            '<button class="notes-undo" data-action="note-undo" title="Rückgängig">'+v4Icon('back',18)+'</button>'+
-          '</div>'+
-          '<div class="note-page-wrap">'+
-            '<div class="note-page '+esc(note.paper||'ruled')+'">'+
-              '<textarea id="noteText" class="note-text" placeholder="Tippe hier oder schreibe mit dem Stift...">'+esc(note.text||'')+'</textarea>'+
-              '<canvas id="noteCanvas" width="1000" height="1400"></canvas>'+
-              (state.noteTool==='select'?'<div class="note-select-hint">Ziehe einen Bereich auf und nutze ihn direkt zum Lernen.</div>':'')+
-            '</div>'+
-          '</div>'+
-          '<div class="notes-actions"><button class="v4-btn secondary" data-action="mark-note-review">'+v4Icon('repeat',17)+'Für später markieren</button><button class="v4-btn primary" data-action="note-study">'+v4Icon('play',17)+'Als Lernrunde nutzen</button></div>'+
-        '</main>'+
-      '</div>'+
-    '</section>',
-    false,'notes',false
-  );
-  bindNotesCanvas(note);
-  const ta=document.getElementById('noteText');
-  if(ta)ta.addEventListener('input',function(){
-    const next=notesStore();const i=next.findIndex(function(n){return n.id===note.id});if(i>=0){next[i].text=ta.value;next[i].updatedAt=Date.now();saveNotesStore(next)}
-  });
-}
-
-function bindNotesCanvas(note){
-  const c=document.getElementById('noteCanvas');if(!c)return;
-  const ctx=c.getContext('2d');let strokes=noteStrokes(note.id);
-  function redraw(){
-    ctx.clearRect(0,0,c.width,c.height);
-    strokes.forEach(function(s){
-      if(!s.points||s.points.length<2)return;
-      ctx.beginPath();ctx.moveTo(s.points[0].x,s.points[0].y);
-      for(let i=1;i<s.points.length;i++)ctx.lineTo(s.points[i].x,s.points[i].y);
-      ctx.strokeStyle=s.color;ctx.lineWidth=s.width;ctx.globalAlpha=s.tool==='marker'?0.28:1;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();
-    });
-    ctx.globalAlpha=1;
-  }
-  redraw();
-  let drawing=false,current=null,start=null;
-  function pos(e){const r=c.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*c.width,y:(e.clientY-r.top)/r.height*c.height}}
-  c.onpointerdown=function(e){
-    c.setPointerCapture(e.pointerId);const p=pos(e);
-    if(state.noteTool==='eraser'){
-      strokes=strokes.filter(function(s){const q=s.points&&s.points[s.points.length-1];return !q||Math.hypot(q.x-p.x,q.y-p.y)>90});saveNoteStrokes(note.id,strokes);redraw();return;
-    }
-    if(state.noteTool==='select'){start=p;state.noteSelection={x:p.x,y:p.y,w:0,h:0};drawing=true;return}
-    drawing=true;current={tool:state.noteTool,color:state.noteTool==='marker'?'#F2C14E':state.noteColor,width:state.noteTool==='marker'?28:state.noteWidth,points:[p]};strokes.push(current);
-  };
-  c.onpointermove=function(e){
-    if(!drawing)return;const p=pos(e);
-    if(state.noteTool==='select'&&start){state.noteSelection={x:Math.min(start.x,p.x),y:Math.min(start.y,p.y),w:Math.abs(p.x-start.x),h:Math.abs(p.y-start.y)};redraw();const s=state.noteSelection;ctx.save();ctx.strokeStyle='#6558D8';ctx.setLineDash([14,10]);ctx.lineWidth=3;ctx.strokeRect(s.x,s.y,s.w,s.h);ctx.restore();return}
-    if(current){current.points.push(p);redraw()}
-  };
-  c.onpointerup=function(){if(drawing){drawing=false;current=null;start=null;saveNoteStrokes(note.id,strokes)}};
-  c.onpointercancel=c.onpointerup;
-}
-
-function addNote(){
-  const list=notesStore(),n={id:'n'+Date.now().toString(36),title:'Neue Seite '+(list.length+1),text:'',paper:'ruled',updatedAt:Date.now()};list.push(n);saveNotesStore(list);state.noteId=n.id;renderNotes();
-}
-function noteStudy(){
-  const note=notesStore().find(function(n){return n.id===state.noteId});if(!note)return;
-  const text=String(note.text||'').trim();
-  const canvas=document.getElementById('noteCanvas');
-  if(canvas&&noteStrokes(note.id).length){
-    canvas.toBlob(function(blob){
-      if(blob){state.file=new File([blob],'notiz.png',{type:'image/png'});state.textDraft=text;analyze()}
-      else if(text.length>=20){const ch=v4LocalTextChallenge(text);v4SaveRound(ch);startChallenge(ch,'normal')}
-    },'image/png');
-  }else if(text.length>=20){
-    state.textDraft=text;analyze();
-  }else{
-    v4Toast('Füge erst etwas Inhalt hinzu');
-  }
-}
-function markNoteReview(){
-  const note=notesStore().find(function(n){return n.id===state.noteId});if(!note)return;
-  const txt=String(note.text||'').trim();if(!txt){v4Toast('Noch kein Text zum Wiederholen');return}
-  const q={prompt:'Erkläre diesen Abschnitt aus '+note.title+': '+txt.slice(0,110),choices:[],accepted:[txt.slice(0,80)],explanation:txt};
-  v4PlanReview(q,{title:note.title,topic:'Notiz'},'uncertain');v4Toast('Für später eingeplant');
-}
-const previousClickHandler=app.onclick;
-app.onclick=function(e){
-  const b=e.target.closest('[data-action]');
-  if(!b){if(previousClickHandler)previousClickHandler(e);return}
-  const a=b.dataset.action;
-  if(a==='notes'){renderNotes();return}
-  if(a==='open-note'){state.noteId=b.dataset.id;renderNotes();return}
-  if(a==='add-note'){addNote();return}
-  if(a==='note-tool'){state.noteTool=b.dataset.tool||'pen';renderNotes();return}
-  if(a==='note-color'){state.noteColor=b.dataset.color||'#1C2433';return}
-  if(a==='note-undo'){const s=noteStrokes(state.noteId);s.pop();saveNoteStrokes(state.noteId,s);renderNotes();return}
-  if(a==='note-study'){noteStudy();return}
-  if(a==='mark-note-review'){markNoteReview();return}
-  if(previousClickHandler)previousClickHandler(e);
-};
-
-
-/* SnapStudy Notes polish */
-V4_ICONS.focus='<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/>';
-V4_ICONS.save='<path d="m5 12 4 4L19 6"/>';
-V4_ICONS.paper='<path d="M6 4h12v16H6z"/><path d="M9 8h6M9 12h6M9 16h4"/>';
-
-if(!state.notesFocus) state.notesFocus=false;
-if(!state.noteSaved) state.noteSaved=true;
-
-function saveNotePatch(id, patch){
-  const list=notesStore();
-  const i=list.findIndex(function(n){return n.id===id});
-  if(i<0)return;
-  list[i]=Object.assign({},list[i],patch,{updatedAt:Date.now()});
-  saveNotesStore(list);
-  state.noteSaved=true;
-}
-function renderNotes(){
-  const list=notesStore();
-  let note=list.find(function(n){return n.id===state.noteId})||list[0];
-  if(!note){note={id:'n'+Date.now().toString(36),title:'Neue Seite',text:'',paper:'ruled',updatedAt:Date.now()};list.push(note);saveNotesStore(list);state.noteId=note.id}
-  const pages=list.map(function(n){
-    return '<button class="notes-page '+(n.id===note.id?'active':'')+'" data-action="open-note" data-id="'+esc(n.id)+'"><span class="notes-thumb '+esc(n.paper||'ruled')+'"></span><span><b>'+esc(n.title)+'</b><small>'+esc((n.text||'').slice(0,45)||'Leere Seite')+'</small></span></button>'
-  }).join('');
-  const focus=!!state.notesFocus;
-  app.innerHTML=shell(
-    '<section class="notes-shell '+(focus?'is-focus':'')+'">'+
-      (focus?'<button class="notes-exit-focus" data-action="notes-focus">'+v4Icon('focus',18)+'</button>':'')+
-      (!focus?'<div class="notes-top"><div><span class="v4-kicker">Notizen</span><div class="notes-title-row"><input id="noteTitle" class="notes-title-input" value="'+esc(note.title)+'" aria-label="Seitentitel"><span class="notes-saved">'+v4Icon('save',13)+(state.noteSaved?'Gespeichert':'Speichert…')+'</span></div></div><div class="notes-top-actions"><select id="paperSelect" class="notes-paper-select" aria-label="Papierart"><option value="ruled" '+((note.paper||'ruled')==='ruled'?'selected':'')+'>Liniert</option><option value="grid" '+(note.paper==='grid'?'selected':'')+'>Kariert</option><option value="plain" '+(note.paper==='plain'?'selected':'')+'>Blanko</option></select><button class="notes-focus-btn" data-action="notes-focus" aria-label="Fokusmodus">'+v4Icon('focus',18)+'</button><button class="v4-btn primary notes-study" data-action="note-study">'+v4Icon('play',17)+'Als Lernrunde nutzen</button></div></div>':'')+
-      '<div class="notes-workspace">'+
-        (!focus?'<aside class="notes-sidebar"><div class="notes-side-head"><strong>Seiten</strong><button data-action="add-note" aria-label="Neue Seite">'+v4Icon('plus',17)+'</button></div>'+pages+'</aside>':'')+
-        '<main class="notes-editor">'+
-          (!focus?'<div class="notes-toolbar">'+
-            '<button data-action="note-tool" data-tool="pen" class="'+(state.noteTool==='pen'?'active':'')+'">'+v4Icon('text',18)+'<span>Stift</span></button>'+
-            '<button data-action="note-tool" data-tool="marker" class="'+(state.noteTool==='marker'?'active':'')+'">'+v4Icon('spark',18)+'<span>Marker</span></button>'+
-            '<button data-action="note-tool" data-tool="eraser" class="'+(state.noteTool==='eraser'?'active':'')+'">'+v4Icon('alert',18)+'<span>Radierer</span></button>'+
-            '<button data-action="note-tool" data-tool="select" class="'+(state.noteTool==='select'?'active':'')+'">'+v4Icon('stack',18)+'<span>Auswahl</span></button>'+
-            '<button data-action="note-tool" data-tool="text" class="'+(state.noteTool==='text'?'active':'')+'">'+v4Icon('text',18)+'<span>Text</span></button>'+
-            '<span class="notes-sep"></span>'+
-            '<button class="color-dot dark" data-action="note-color" data-color="#1C2433" aria-label="Dunkel"></button>'+
-            '<button class="color-dot violet" data-action="note-color" data-color="#6558D8" aria-label="Violett"></button>'+
-            '<button class="color-dot red" data-action="note-color" data-color="#B8574E" aria-label="Rot"></button>'+
-            '<button class="notes-undo" data-action="note-undo" title="Rückgängig">'+v4Icon('back',18)+'</button>'+
-          '</div>':'')+
-          '<div class="note-page-wrap">'+
-            '<div class="note-page '+esc(note.paper||'ruled')+'">'+
-              '<textarea id="noteText" class="note-text '+(state.noteTool==='text'?'editing':'')+'" placeholder="Tippe hier oder schreibe mit dem Stift...">'+esc(note.text||'')+'</textarea>'+
-              '<canvas id="noteCanvas" class="'+(state.noteTool==='text'?'text-mode':'')+'" width="1000" height="1400"></canvas>'+
-              (state.noteTool==='select'?'<div class="note-select-hint">Bereich markieren → nur diesen Teil lernen</div>':'')+
-            '</div>'+
-          '</div>'+
-          (!focus?'<div class="notes-actions"><button class="v4-btn secondary" data-action="mark-note-review">'+v4Icon('repeat',17)+'Für später markieren</button><button class="v4-btn primary" data-action="note-study">'+v4Icon('play',17)+(state.noteSelection&&state.noteSelection.w>40?'Aus Auswahl lernen':'Als Lernrunde nutzen')+'</button></div>':'')+
-        '</main>'+
-      '</div>'+
-    '</section>',
-    false,'notes',focus
-  );
-  bindNotesCanvas(note);
-  const ta=document.getElementById('noteText');
-  if(ta)ta.addEventListener('input',function(){state.noteSaved=false;saveNotePatch(note.id,{text:ta.value})});
-  const title=document.getElementById('noteTitle');
-  if(title)title.addEventListener('input',function(){state.noteSaved=false;saveNotePatch(note.id,{title:title.value||'Unbenannte Seite'})});
-  const paper=document.getElementById('paperSelect');
-  if(paper)paper.addEventListener('change',function(){saveNotePatch(note.id,{paper:paper.value});renderNotes()});
-  if(!state.noteKeyBound){
-    state.noteKeyBound=true;
-    window.addEventListener('keydown',function(e){
-      if(!document.querySelector('.notes-shell'))return;
-      if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();const s=noteStrokes(state.noteId);s.pop();saveNoteStrokes(state.noteId,s);renderNotes();return}
-      if(e.target&&['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName))return;
-      if(e.key.toLowerCase()==='p'){state.noteTool='pen';renderNotes()}
-      if(e.key.toLowerCase()==='e'){state.noteTool='eraser';renderNotes()}
-      if(e.key.toLowerCase()==='f'){state.notesFocus=!state.notesFocus;renderNotes()}
-    });
-  }
-}
-function cropNoteCanvas(canvas, sel){
-  if(!sel||sel.w<20||sel.h<20)return canvas;
-  const out=document.createElement('canvas');
-  out.width=Math.max(1,Math.round(sel.w));out.height=Math.max(1,Math.round(sel.h));
-  const ctx=out.getContext('2d');if(ctx)ctx.drawImage(canvas,sel.x,sel.y,sel.w,sel.h,0,0,out.width,out.height);
-  return out;
-}
-function noteStudy(){
-  const note=notesStore().find(function(n){return n.id===state.noteId});if(!note)return;
-  const text=String(note.text||'').trim();
-  if(text.length>=20){
-    state.file=null;state.textDraft=text;analyze();return;
-  }
-  const canvas=document.getElementById('noteCanvas');
-  if(canvas&&noteStrokes(note.id).length){
-    const source=cropNoteCanvas(canvas,state.noteSelection);
-    source.toBlob(function(blob){
-      if(!blob){v4Toast('Notiz konnte nicht gelesen werden');return}
-      state.file=new File([blob],'notiz.png',{type:'image/png'});
-      state.textDraft='Notiz: '+note.title;
-      analyze();
-    },'image/png');
-    return;
-  }
-  v4Toast('Füge erst Text oder Handschrift hinzu');
-}
-const notesPolishPrevious=app.onclick;
-app.onclick=function(e){
-  const b=e.target.closest('[data-action]');
-  if(!b){if(notesPolishPrevious)notesPolishPrevious(e);return}
-  const a=b.dataset.action;
-  if(a==='notes'){renderNotes();return}
-  if(a==='notes-focus'){state.notesFocus=!state.notesFocus;renderNotes();return}
-  if(a==='note-study'){noteStudy();return}
-  if(notesPolishPrevious)notesPolishPrevious(e);
-};
-
-// App boot is intentionally deferred to the end of this file so all feature modules are initialized first.
-
-
-/* SnapStudy Notes V2 — reliable Goodnotes-style editor core */
-V4_ICONS.search='<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>';
-V4_ICONS.trash='<path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="m7 7 1 13h8l1-13"/>';
-V4_ICONS.copy='<rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>';
-V4_ICONS.download='<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/>';
-V4_ICONS.zoom='<circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/><path d="M10 7v6M7 10h6"/>';
-V4_ICONS.shape='<rect x="4" y="4" width="7" height="7" rx="1"/><circle cx="16.5" cy="16.5" r="3.5"/>';
-V4_ICONS.more='<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>';
-V4_ICONS.up='<path d="m6 14 6-6 6 6"/>';
-V4_ICONS.down='<path d="m6 10 6 6 6-6"/>';
-
-if(!state.gnTool) state.gnTool='pen';
-if(!state.gnColor) state.gnColor='#1C2433';
-if(!state.gnPenSize) state.gnPenSize=6;
-if(!state.gnMarkerSize) state.gnMarkerSize=28;
-if(!state.gnEraserSize) state.gnEraserSize=55;
-if(!state.gnZoom) state.gnZoom=100;
-if(!state.gnSelection) state.gnSelection=null;
-if(!state.gnSearchOpen) state.gnSearchOpen=false;
-if(!state.gnSearchQuery) state.gnSearchQuery='';
-if(!state.gnPageMenu) state.gnPageMenu=false;
-if(!state.gnHistory) state.gnHistory={};
-if(!state.gnRedo) state.gnRedo={};
-
-function gnIcon(name,size){return v4Icon(name,size)}
-function gnCurrentNote(){const list=notesStore();return list.find(function(n){return n.id===state.noteId})||list[0]}
-function gnSaveNote(id,patch){
-  const list=notesStore(),i=list.findIndex(function(n){return n.id===id});
-  if(i<0)return;
-  list[i]=Object.assign({},list[i],patch,{updatedAt:Date.now()});
-  saveNotesStore(list);
-}
-function gnSnapshot(id){
-  const stack=state.gnHistory[id]||(state.gnHistory[id]=[]);
-  stack.push(JSON.stringify(noteStrokes(id)));
-  if(stack.length>40)stack.shift();
-  state.gnRedo[id]=[];
-}
-function gnUndo(){
-  const id=state.noteId,stack=state.gnHistory[id]||[];
-  if(!stack.length){const s=noteStrokes(id);if(s.length){state.gnRedo[id]=[JSON.stringify(s)].concat(state.gnRedo[id]||[]);s.pop();saveNoteStrokes(id,s);renderNotes()}return}
-  const current=JSON.stringify(noteStrokes(id));
-  const prev=stack.pop();
-  state.gnRedo[id]=(state.gnRedo[id]||[]).concat([current]);
-  saveNoteStrokes(id,JSON.parse(prev));
-  renderNotes();
-}
-function gnRedo(){
-  const id=state.noteId,redo=state.gnRedo[id]||[];
-  if(!redo.length)return;
-  const current=JSON.stringify(noteStrokes(id));
-  const next=redo.pop();
-  (state.gnHistory[id]||(state.gnHistory[id]=[])).push(current);
-  saveNoteStrokes(id,JSON.parse(next));
-  renderNotes();
-}
-function gnStrokeBounds(stroke){
-  const pts=stroke.points||[];
-  if(!pts.length)return{x:0,y:0,w:0,h:0};
-  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
-  pts.forEach(function(p){minX=Math.min(minX,p.x);minY=Math.min(minY,p.y);maxX=Math.max(maxX,p.x);maxY=Math.max(maxY,p.y)});
-  return{x:minX,y:minY,w:maxX-minX,h:maxY-minY};
-}
-function gnPointSegDistance(p,a,b){
-  const dx=b.x-a.x,dy=b.y-a.y,l2=dx*dx+dy*dy;
-  if(!l2)return Math.hypot(p.x-a.x,p.y-a.y);
-  let t=((p.x-a.x)*dx+(p.y-a.y)*dy)/l2;t=Math.max(0,Math.min(1,t));
-  return Math.hypot(p.x-(a.x+t*dx),p.y-(a.y+t*dy));
-}
-function gnStrokeHit(stroke,p,r){
-  const pts=stroke.points||[];
-  if(pts.length===1)return Math.hypot(pts[0].x-p.x,pts[0].y-p.y)<=r;
-  for(let i=1;i<pts.length;i++)if(gnPointSegDistance(p,pts[i-1],pts[i])<=r)return true;
-  return false;
-}
-function gnSelectionBounds(strokes,ids){
-  const chosen=strokes.filter(function(s){return ids.includes(s.id)});
-  if(!chosen.length)return null;
-  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
-  chosen.forEach(function(s){const b=gnStrokeBounds(s);minX=Math.min(minX,b.x);minY=Math.min(minY,b.y);maxX=Math.max(maxX,b.x+b.w);maxY=Math.max(maxY,b.y+b.h)});
-  return{x:minX,y:minY,w:maxX-minX,h:maxY-minY,ids:ids};
-}
-function gnIntersects(rect,b){
-  return !(b.x>b.x+b.w || rect.x+rect.w<b.x || rect.y>b.y+b.h || rect.y+rect.h<b.y);
-}
-function gnInsideSelection(p,sel){return sel&&p.x>=sel.x&&p.x<=sel.x+sel.w&&p.y>=sel.y&&p.y<=sel.y+sel.h}
-function gnDeleteSelection(){
-  const sel=state.gnSelection;if(!sel)return;
-  gnSnapshot(state.noteId);
-  saveNoteStrokes(state.noteId,noteStrokes(state.noteId).filter(function(s){return!sel.ids.includes(s.id)}));
-  state.gnSelection=null;renderNotes();
-}
-function gnCopySelection(){
-  const sel=state.gnSelection;if(!sel)return;
-  gnSnapshot(state.noteId);
-  const strokes=noteStrokes(state.noteId),maxId=strokes.reduce(function(m,s){return Math.max(m,s.id||0)},0);
-  let next=maxId+1;
-  const copies=strokes.filter(function(s){return sel.ids.includes(s.id)}).map(function(s){return Object.assign({},s,{id:next++,points:(s.points||[]).map(function(p){return{x:p.x+45,y:p.y+45}})})});
-  saveNoteStrokes(state.noteId,strokes.concat(copies));
-  state.gnSelection=gnSelectionBounds(strokes.concat(copies),copies.map(function(s){return s.id}));
-  renderNotes();
-}
-function gnColorSelection(color){
-  const sel=state.gnSelection;if(!sel)return;
-  gnSnapshot(state.noteId);
-  const strokes=noteStrokes(state.noteId).map(function(s){return sel.ids.includes(s.id)?Object.assign({},s,{color:color}):s});
-  saveNoteStrokes(state.noteId,strokes);renderNotes();
-}
-function gnDuplicatePage(){
-  const list=notesStore(),note=gnCurrentNote();if(!note)return;
-  const id='n'+Date.now().toString(36),copy=Object.assign({},note,{id:id,title:(note.title||'Seite')+' Kopie',updatedAt:Date.now()});
-  list.splice(list.findIndex(function(n){return n.id===note.id})+1,0,copy);saveNotesStore(list);
-  saveNoteStrokes(id,JSON.parse(JSON.stringify(noteStrokes(note.id))));
-  state.noteId=id;state.gnPageMenu=false;state.gnSelection=null;renderNotes();
-}
-function gnDeletePage(){
-  const list=notesStore();if(list.length<=1){v4Toast('Mindestens eine Seite muss bleiben');return}
-  const i=list.findIndex(function(n){return n.id===state.noteId});if(i<0)return;
-  list.splice(i,1);saveNotesStore(list);localStorage.removeItem('snapstudy-note-strokes-'+state.noteId);
-  state.noteId=list[Math.max(0,i-1)].id;state.gnPageMenu=false;state.gnSelection=null;renderNotes();
-}
-function gnMovePage(dir){
-  const list=notesStore(),i=list.findIndex(function(n){return n.id===state.noteId}),j=i+dir;
-  if(i<0||j<0||j>=list.length)return;
-  const tmp=list[i];list[i]=list[j];list[j]=tmp;saveNotesStore(list);renderNotes();
-}
-function gnExportPNG(){
-  const note=gnCurrentNote();if(!note)return;
-  const out=document.createElement('canvas');out.width=1000;out.height=1400;const ctx=out.getContext('2d');if(!ctx)return;
-  ctx.fillStyle='#FFFDF8';ctx.fillRect(0,0,out.width,out.height);
-  ctx.strokeStyle='#ECE6DC';ctx.lineWidth=1;
-  if((note.paper||'ruled')==='ruled'){for(let y=80;y<1400;y+=48){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(1000,y);ctx.stroke()}}
-  if(note.paper==='grid'){for(let y=0;y<1400;y+=48){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(1000,y);ctx.stroke()}for(let x=0;x<1000;x+=48){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,1400);ctx.stroke()}}
-  ctx.fillStyle='#273044';ctx.font='30px Georgia';ctx.textBaseline='top';
-  String(note.text||'').split('\n').forEach(function(line,i){ctx.fillText(line,70,80+i*45,850)});
-  noteStrokes(note.id).forEach(function(s){
-    const pts=s.points||[];if(pts.length<2)return;ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);for(let i=1;i<pts.length;i++)ctx.lineTo(pts[i].x,pts[i].y);
-    ctx.strokeStyle=s.color||'#1C2433';ctx.lineWidth=s.width||6;ctx.globalAlpha=s.tool==='marker'?.3:1;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();ctx.globalAlpha=1;
-  });
-  const a=document.createElement('a');a.download=(note.title||'SnapStudy-Notiz').replace(/[^a-z0-9äöüß_-]+/gi,'-')+'.png';a.href=out.toDataURL('image/png');a.click();
-}
-function gnSearchResults(){
-  const q=String(state.gnSearchQuery||'').trim().toLowerCase();if(!q)return[];
-  return notesStore().filter(function(n){return String(n.title||'').toLowerCase().includes(q)||String(n.text||'').toLowerCase().includes(q)});
-}
-function gnToolOptions(){
-  if(state.gnTool==='eraser')return '<div class="gn-tool-options"><span>Radierer</span><div class="gn-segment">'+[30,55,90].map(function(v){return'<button data-action="gn-eraser-size" data-size="'+v+'" class="'+(state.gnEraserSize===v?'active':'')+'">'+(v===30?'S':v===55?'M':'L')+'</button>'}).join('')+'</div><small>Berührt eine Linie irgendwo – nicht nur am Endpunkt.</small></div>';
-  if(state.gnTool==='pen')return '<div class="gn-tool-options"><span>Stiftstärke</span><input data-action="gn-pen-size" id="gnPenSize" type="range" min="2" max="16" value="'+state.gnPenSize+'"><b>'+state.gnPenSize+'</b></div>';
-  if(state.gnTool==='marker')return '<div class="gn-tool-options"><span>Marker</span><input id="gnMarkerSize" type="range" min="16" max="60" value="'+state.gnMarkerSize+'"><b>'+state.gnMarkerSize+'</b></div>';
-  if(state.gnTool==='select')return '<div class="gn-tool-options"><span>Lasso</span><small>Rahmen ziehen. Danach Auswahl verschieben, kopieren, färben oder löschen.</small></div>';
-  if(state.gnTool==='text')return '<div class="gn-tool-options"><span>Text</span><small>Tippe direkt auf der Seite.</small></div>';
-  return '';
-}
-function renderNotes(){
-  const list=notesStore();let note=gnCurrentNote();
-  if(!note){addNote();return}
-  const pages=list.map(function(n,i){
-    return '<button class="gn-page-thumb '+(n.id===note.id?'active':'')+'" data-action="gn-open-page" data-id="'+esc(n.id)+'"><span class="gn-thumb-paper '+esc(n.paper||'ruled')+'"><i>'+String(i+1)+'</i></span><span><b>'+esc(n.title||'Unbenannt')+'</b><small>'+esc((n.text||'').replace(/\n/g,' ').slice(0,44)||'Leere Seite')+'</small></span></button>';
-  }).join('');
-  const sel=state.gnSelection;
-  const searchResults=gnSearchResults();
-  app.innerHTML=shell(
-    '<section class="gn-shell">'+
-      '<header class="gn-head"><button class="gn-back" data-action="today" aria-label="Zurück">'+gnIcon('back',20)+'</button><div class="gn-title"><input id="gnTitle" value="'+esc(note.title||'')+'" aria-label="Seitentitel"><span>'+gnIcon('save',12)+' lokal gespeichert</span></div><button class="gn-head-btn" data-action="gn-search">'+gnIcon('search',19)+'</button><button class="gn-head-btn" data-action="gn-page-menu">'+gnIcon('more',19)+'</button></header>'+
-      '<div class="gn-body">'+
-        '<aside class="gn-sidebar"><div class="gn-side-top"><strong>Seiten</strong><button data-action="gn-add-page">'+gnIcon('plus',17)+'</button></div><div class="gn-pages">'+pages+'</div></aside>'+
-        '<main class="gn-editor">'+
-          '<div class="gn-toolbar">'+
-            [['pen','text','Stift'],['marker','spark','Marker'],['eraser','trash','Radierer'],['select','stack','Lasso'],['text','text','Text']].map(function(x){return'<button data-action="gn-tool" data-tool="'+x[0]+'" class="'+(state.gnTool===x[0]?'active':'')+'">'+gnIcon(x[1],19)+'<span>'+x[2]+'</span></button>'}).join('')+
-            '<span class="gn-divider"></span>'+
-            ['#1C2433','#6558D8','#B8574E','#2E7D5C','#E0A62E'].map(function(col){return'<button data-action="gn-color" data-color="'+col+'" class="gn-color '+(state.gnColor===col?'active':'')+'" style="--c:'+col+'" aria-label="Farbe"></button>'}).join('')+
-            '<span class="gn-flex"></span>'+
-            '<button data-action="gn-undo" class="gn-icon-only">'+gnIcon('undo',18)+'</button><button data-action="gn-redo" class="gn-icon-only">'+gnIcon('redo',18)+'</button>'+
-          '</div>'+
-          gnToolOptions()+
-          '<div class="gn-page-stage"><div class="gn-page-scale" style="width:'+state.gnZoom+'%"><div class="gn-page '+esc(note.paper||'ruled')+'"><textarea id="gnText" class="'+(state.gnTool==='text'?'editing':'')+'" placeholder="Text eingeben...">'+esc(note.text||'')+'</textarea><canvas id="gnCanvas" width="1000" height="1400"></canvas></div></div></div>'+
-          '<footer class="gn-bottom">'+
-            '<div class="gn-zoom">'+gnIcon('zoom',16)+'<input id="gnZoom" type="range" min="70" max="180" value="'+state.gnZoom+'"><span>'+state.gnZoom+'%</span></div>'+
-            '<button data-action="gn-export">'+gnIcon('download',16)+' Export</button><button class="primary" data-action="note-study">'+gnIcon('play',16)+(sel&&sel.ids&&sel.ids.length?'Aus Auswahl lernen':'Lernrunde')+'</button>'+
-          '</footer>'+
-        '</main>'+
-      '</div>'+
-      (sel&&sel.ids&&sel.ids.length?'<div class="gn-selection-menu"><span>'+sel.ids.length+' Element'+(sel.ids.length===1?'':'e')+'</span><button data-action="gn-copy-selection">'+gnIcon('copy',17)+'</button><button data-action="gn-color-selection" data-color="#6558D8"><i class="gn-mini-color"></i></button><button data-action="gn-learn-selection">'+gnIcon('play',17)+'</button><button data-action="gn-delete-selection" class="danger">'+gnIcon('trash',17)+'</button></div>':'')+
-      (state.gnPageMenu?'<div class="gn-popover"><button data-action="gn-duplicate-page">'+gnIcon('copy',17)+'Seite duplizieren</button><button data-action="gn-move-up">'+gnIcon('up',17)+'Nach oben</button><button data-action="gn-move-down">'+gnIcon('down',17)+'Nach unten</button><button data-action="gn-export">'+gnIcon('download',17)+'Als PNG exportieren</button><button data-action="gn-delete-page" class="danger">'+gnIcon('trash',17)+'Seite löschen</button></div>':'')+
-      (state.gnSearchOpen?'<div class="gn-search-modal"><div class="gn-search-card"><header><strong>Notizen durchsuchen</strong><button data-action="gn-search-close">'+gnIcon('close',18)+'</button></header><input id="gnSearchInput" autofocus placeholder="Titel oder getippten Text suchen" value="'+esc(state.gnSearchQuery||'')+'"><div class="gn-search-results">'+(state.gnSearchQuery?(searchResults.length?searchResults.map(function(n){return'<button data-action="gn-search-result" data-id="'+esc(n.id)+'"><b>'+esc(n.title)+'</b><span>'+esc((n.text||'').replace(/\n/g,' ').slice(0,90))+'</span></button>'}).join(''):'<p>Keine Treffer.</p>'):'<p>Suche aktuell in Titeln und getipptem Text. Handschriftsuche folgt mit OCR.</p>')+'</div></div></div>':'')+
-    '</section>',
-    false,'notes',true
-  );
-  gnBindCanvas(note);
-  const title=document.getElementById('gnTitle');if(title)title.oninput=function(){gnSaveNote(note.id,{title:title.value||'Unbenannte Seite'})};
-  const text=document.getElementById('gnText');if(text)text.oninput=function(){gnSaveNote(note.id,{text:text.value})};
-  const zoom=document.getElementById('gnZoom');if(zoom)zoom.oninput=function(){state.gnZoom=Number(zoom.value);document.querySelector('.gn-page-scale').style.width=state.gnZoom+'%';document.querySelector('.gn-zoom span').textContent=state.gnZoom+'%'};
-  const pen=document.getElementById('gnPenSize');if(pen)pen.oninput=function(){state.gnPenSize=Number(pen.value);document.querySelector('.gn-tool-options b').textContent=pen.value};
-  const marker=document.getElementById('gnMarkerSize');if(marker)marker.oninput=function(){state.gnMarkerSize=Number(marker.value);document.querySelector('.gn-tool-options b').textContent=marker.value};
-  const search=document.getElementById('gnSearchInput');if(search){search.focus();search.oninput=function(){state.gnSearchQuery=search.value;renderNotes()}};
-}
-function gnBindCanvas(note){
-  const canvas=document.getElementById('gnCanvas');if(!canvas)return;
-  const ctx=canvas.getContext('2d');let strokes=noteStrokes(note.id),drawing=false,current=null,start=null,last=null,moving=false,moveOrigin=null,moveSnapshot=null;
-  function drawShape(s){
-    const pts=s.points||[];if(!pts.length)return;
-    ctx.strokeStyle=s.color||'#1C2433';ctx.lineWidth=s.width||6;ctx.globalAlpha=s.tool==='marker'?.3:1;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);for(let i=1;i<pts.length;i++)ctx.lineTo(pts[i].x,pts[i].y);ctx.stroke();ctx.globalAlpha=1;
-  }
-  function redraw(){
-    ctx.clearRect(0,0,canvas.width,canvas.height);strokes.forEach(drawShape);
-    const sel=state.gnSelection;if(sel&&sel.ids&&sel.ids.length){ctx.save();ctx.strokeStyle='#6558D8';ctx.fillStyle='rgba(101,88,216,.05)';ctx.lineWidth=3;ctx.setLineDash([14,10]);ctx.fillRect(sel.x,sel.y,sel.w,sel.h);ctx.strokeRect(sel.x,sel.y,sel.w,sel.h);ctx.restore()}
-  }
-  function pos(e){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*canvas.width,y:(e.clientY-r.top)/r.height*canvas.height}}
-  function eraseAt(p){
-    const before=strokes.length;strokes=strokes.filter(function(s){return!gnStrokeHit(s,p,state.gnEraserSize)});
-    if(strokes.length!==before){saveNoteStrokes(note.id,strokes);redraw()}
-  }
-  redraw();
-  canvas.onpointerdown=function(e){
-    if(state.gnTool==='text')return;
-    canvas.setPointerCapture(e.pointerId);const p=pos(e);drawing=true;last=p;
-    if(state.gnTool==='eraser'){gnSnapshot(note.id);eraseAt(p);return}
-    if(state.gnTool==='select'){
-      const sel=state.gnSelection;
-      if(gnInsideSelection(p,sel)){moving=true;moveOrigin=p;moveSnapshot=JSON.parse(JSON.stringify(strokes));return}
-      state.gnSelection=null;start=p;redraw();return
-    }
-    gnSnapshot(note.id);current={id:Date.now()+Math.floor(Math.random()*10000),tool:state.gnTool==='marker'?'marker':'pen',color:state.gnTool==='marker'?'#F2C14E':state.gnColor,width:state.gnTool==='marker'?state.gnMarkerSize:state.gnPenSize,points:[p]};strokes.push(current);redraw();
-  };
-  canvas.onpointermove=function(e){
-    if(!drawing)return;const p=pos(e);
-    if(state.gnTool==='eraser'){eraseAt(p);last=p;return}
-    if(state.gnTool==='select'){
-      if(moving&&state.gnSelection&&moveOrigin&&moveSnapshot){
-        const dx=p.x-moveOrigin.x,dy=p.y-moveOrigin.y,ids=state.gnSelection.ids;
-        strokes=moveSnapshot.map(function(s){return ids.includes(s.id)?Object.assign({},s,{points:(s.points||[]).map(function(q){return{x:q.x+dx,y:q.y+dy}})}):s});
-        const base=gnSelectionBounds(moveSnapshot,ids);if(base)state.gnSelection=Object.assign({},base,{x:base.x+dx,y:base.y+dy});
-        redraw();return
-      }
-      if(start){
-        const rect={x:Math.min(start.x,p.x),y:Math.min(start.y,p.y),w:Math.abs(p.x-start.x),h:Math.abs(p.y-start.y)};
-        ctx.clearRect(0,0,canvas.width,canvas.height);strokes.forEach(drawShape);ctx.save();ctx.strokeStyle='#6558D8';ctx.fillStyle='rgba(101,88,216,.05)';ctx.setLineDash([14,10]);ctx.lineWidth=3;ctx.fillRect(rect.x,rect.y,rect.w,rect.h);ctx.strokeRect(rect.x,rect.y,rect.w,rect.h);ctx.restore();return
-      }
-    }
-    if(current){current.points.push(p);redraw()}
-    last=p;
-  };
-  canvas.onpointerup=function(e){
-    const p=pos(e);
-    if(state.gnTool==='select'){
-      if(moving){saveNoteStrokes(note.id,strokes);moving=false;moveOrigin=null;moveSnapshot=null;drawing=false;renderNotes();return}
-      if(start){
-        const rect={x:Math.min(start.x,p.x),y:Math.min(start.y,p.y),w:Math.abs(p.x-start.x),h:Math.abs(p.y-start.y)};
-        const ids=strokes.filter(function(s){const b=gnStrokeBounds(s);return !(b.x>rect.x+rect.w||b.x+b.w<rect.x||b.y>rect.y+rect.h||b.y+b.h<rect.y)}).map(function(s){return s.id});
-        state.gnSelection=gnSelectionBounds(strokes,ids);start=null;drawing=false;renderNotes();return
-      }
-    }
-    if(current){saveNoteStrokes(note.id,strokes);current=null}
-    drawing=false;last=null;
-  };
-  canvas.onpointercancel=canvas.onpointerup;
-}
-function gnAddPage(){
-  const list=notesStore(),id='n'+Date.now().toString(36),n={id:id,title:'Neue Seite',text:'',paper:'ruled',updatedAt:Date.now()};list.push(n);saveNotesStore(list);state.noteId=id;state.gnSelection=null;renderNotes();
-}
-function gnLearnSelection(){
-  const note=gnCurrentNote(),sel=state.gnSelection;if(!note||!sel||!sel.ids.length){noteStudy();return}
-  const canvas=document.getElementById('gnCanvas');if(!canvas)return;
-  const crop=document.createElement('canvas');crop.width=Math.max(1,Math.ceil(sel.w));crop.height=Math.max(1,Math.ceil(sel.h));const ctx=crop.getContext('2d');if(!ctx)return;
-  ctx.fillStyle='#FFFDF8';ctx.fillRect(0,0,crop.width,crop.height);ctx.drawImage(canvas,sel.x,sel.y,sel.w,sel.h,0,0,crop.width,crop.height);
-  crop.toBlob(function(blob){if(!blob)return;state.file=new File([blob],'auswahl.png',{type:'image/png'});state.textDraft=String(note.text||'').trim();analyze()},'image/png');
-}
-
-const gnPreviousClick=app.onclick;
-app.onclick=function(e){
-  const b=e.target.closest('[data-action]');if(!b){if(gnPreviousClick)gnPreviousClick(e);return}
-  const a=b.dataset.action;
-  if(a==='notes'){state.gnSelection=null;renderNotes();return}
-  if(a==='gn-open-page'){state.noteId=b.dataset.id;state.gnSelection=null;renderNotes();return}
-  if(a==='gn-add-page'){gnAddPage();return}
-  if(a==='gn-tool'){state.gnTool=b.dataset.tool;state.gnSelection=null;renderNotes();return}
-  if(a==='gn-color'){state.gnColor=b.dataset.color;if(state.gnSelection)gnColorSelection(state.gnColor);else renderNotes();return}
-  if(a==='gn-eraser-size'){state.gnEraserSize=Number(b.dataset.size);renderNotes();return}
-  if(a==='gn-undo'){gnUndo();return}
-  if(a==='gn-redo'){gnRedo();return}
-  if(a==='gn-delete-selection'){gnDeleteSelection();return}
-  if(a==='gn-copy-selection'){gnCopySelection();return}
-  if(a==='gn-color-selection'){gnColorSelection(b.dataset.color||'#6558D8');return}
-  if(a==='gn-learn-selection'){gnLearnSelection();return}
-  if(a==='gn-search'){state.gnSearchOpen=true;renderNotes();return}
-  if(a==='gn-search-close'){state.gnSearchOpen=false;state.gnSearchQuery='';renderNotes();return}
-  if(a==='gn-search-result'){state.noteId=b.dataset.id;state.gnSearchOpen=false;state.gnSearchQuery='';renderNotes();return}
-  if(a==='gn-page-menu'){state.gnPageMenu=!state.gnPageMenu;renderNotes();return}
-  if(a==='gn-duplicate-page'){gnDuplicatePage();return}
-  if(a==='gn-delete-page'){gnDeletePage();return}
-  if(a==='gn-move-up'){gnMovePage(-1);return}
-  if(a==='gn-move-down'){gnMovePage(1);return}
-  if(a==='gn-export'){gnExportPNG();state.gnPageMenu=false;return}
-  if(a==='note-study'&&state.gnSelection&&state.gnSelection.ids&&state.gnSelection.ids.length){gnLearnSelection();return}
-  if(gnPreviousClick)gnPreviousClick(e);
-};
-
-
-
-/* SnapStudy Notes V3 — real editor mechanics */
-V4_ICONS.eraser='<path d="m7 18-3-3 9-9 5 5-7 7H7Z"/><path d="M11 18h8"/>';
-V4_ICONS.shape='<rect x="4" y="4" width="7" height="7" rx="1"/><circle cx="16.5" cy="16.5" r="3.5"/>';
-V4_ICONS.image='<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8" cy="9" r="2"/><path d="m21 15-5-5L5 20"/>';
-V4_ICONS.star='<path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z"/>';
-V4_ICONS.fit='<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/>';
-V4_ICONS.pdf='<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h4"/><path d="M8 15h8"/><path d="M8 18h5"/>';
-V4_ICONS.bookmark='<path d="M7 4h10v17l-5-3-5 3V4Z"/>';
-
-if(!state.gnEraserMode) state.gnEraserMode='stroke';
-if(!state.gnMode) state.gnMode='edit';
-if(!state.gnShapeKind) state.gnShapeKind='line';
-if(!state.gnFocus) state.gnFocus=false;
-if(!state.gnPointer) state.gnPointer=null;
-if(!state.gnSelectedImage) state.gnSelectedImage=null;
-
-function gn3Shapes(id){return v4Load('snapstudy-note-shapes-'+id,[])}
-function gn3SaveShapes(id,v){v4Save('snapstudy-note-shapes-'+id,v)}
-function gn3Images(id){return v4Load('snapstudy-note-images-'+id,[])}
-function gn3SaveImages(id,v){v4Save('snapstudy-note-images-'+id,v)}
-function gn3HitStroke(s,p,r){
-  const pts=s.points||[];if(!pts.length)return false;
-  if(pts.length===1)return Math.hypot(pts[0].x-p.x,pts[0].y-p.y)<=r+(s.width||0)/2;
-  for(let i=1;i<pts.length;i++)if(gnPointSegDistance(p,pts[i-1],pts[i])<=r+(s.width||0)/2)return true;
-  return false;
-}
-function gn3PrecisionErase(strokes,p,r){
-  const out=[];
-  strokes.forEach(function(s){
-    const pts=s.points||[];if(pts.length<2){if(!gn3HitStroke(s,p,r))out.push(s);return}
-    let group=[];
-    function flush(){if(group.length>1){out.push(Object.assign({},s,{id:Date.now()+Math.floor(Math.random()*1e6),points:group}))}group=[]}
-    for(let i=0;i<pts.length;i++){
-      const hit=i===0?Math.hypot(pts[i].x-p.x,pts[i].y-p.y)<=r:gnPointSegDistance(p,pts[i-1],pts[i])<=r;
-      if(hit)flush();else group.push(pts[i]);
-    }
-    flush();
-  });
-  return out;
-}
-function gn3ShapeList(noteId){return gn3Shapes(noteId)}
-function gn3ImageList(noteId){return gn3Images(noteId)}
-function gn3PaperThumb(paper){
-  return '<span class="gn3-thumb '+esc(paper||'ruled')+'"></span>';
-}
-function gn3SetPaper(paper){gnSaveNotePatch(state.noteId,{paper:paper});renderNotes()}
-function gn4GoPage(delta){
-  const list=notesStore(),idx=list.findIndex(function(n){return n.id===state.noteId}),next=idx+delta;
-  if(next<0||next>=list.length)return;
-  state.noteId=list[next].id;state.gnSelection=null;state.gnSelectedImage=null;renderNotes()
-}
-function gn3ToggleFavorite(){
-  const n=gnCurrentNote();if(!n)return;gnSaveNotePatch(n.id,{favorite:!n.favorite});renderNotes()
-}
-function gn3AddShape(kind,a,b){
-  const list=gn3ShapeList(state.noteId);
-  list.push({id:'s'+Date.now()+Math.random(),kind:kind,x1:a.x,y1:a.y,x2:b.x,y2:b.y,color:state.gnColor,width:state.gnPenSize});
-  gn3SaveShapes(state.noteId,list)
-}
-function gn3ResizeImage(id,factor){
-  const list=gn3ImageList(state.noteId).map(function(im){return im.id===id?Object.assign({},im,{w:Math.max(80,im.w*factor),h:Math.max(60,im.h*factor)}):im});
-  gn3SaveImages(state.noteId,list);renderNotes()
-}
-function gn3DeleteImage(id){gn3SaveImages(state.noteId,gn3ImageList(state.noteId).filter(function(im){return im.id!==id}));state.gnSelectedImage=null;renderNotes()}
-function gn3InsertImage(file){
-  if(!file)return;
-  const reader=new FileReader();
-  reader.onload=function(){
-    const img=new Image();
-    img.onload=function(){
-      const max=900,scale=Math.min(1,max/Math.max(img.width,img.height)),w=Math.max(120,img.width*scale),h=Math.max(90,img.height*scale);
-      const tmp=document.createElement('canvas');tmp.width=Math.round(w);tmp.height=Math.round(h);
-      const t=tmp.getContext('2d');if(!t)return;t.drawImage(img,0,0,tmp.width,tmp.height);
-      const src=tmp.toDataURL('image/jpeg',.8),list=gn3ImageList(state.noteId),id='i'+Date.now();
-      list.push({id:id,src:src,x:500-w/2,y:500-h/2,w:w,h:h});gn3SaveImages(state.noteId,list);state.gnSelectedImage=id;state.gnTool='select';renderNotes()
-    };
-    img.src=reader.result;
-  };
-  reader.readAsDataURL(file)
-}
-function gn3DuplicateNote(){
-  const list=notesStore(),n=gnCurrentNote();if(!n)return;
-  const id='n'+Date.now().toString(36),copy=Object.assign({},n,{id:id,title:(n.title||'Seite')+' Kopie',favorite:false,updatedAt:Date.now()});
-  const idx=list.findIndex(function(x){return x.id===n.id});list.splice(idx+1,0,copy);saveNotesStore(list);
-  saveNoteStrokes(id,JSON.parse(JSON.stringify(noteStrokes(n.id))));
-  gn3SaveShapes(id,JSON.parse(JSON.stringify(gn3Shapes(n.id))));
-  gn3SaveImages(id,JSON.parse(JSON.stringify(gn3Images(n.id))));
-  state.noteId=id;state.gnSelection=null;renderNotes()
-}
-function gn3ExportPage(){
-  const note=gnCurrentNote();if(!note)return;
-  const out=document.createElement('canvas');out.width=1000;out.height=1400;const ctx=out.getContext('2d');if(!ctx)return;
-  ctx.fillStyle='#fffefb';ctx.fillRect(0,0,1000,1400);ctx.strokeStyle='#e7e3da';ctx.lineWidth=1;
-  if(note.paper==='ruled')for(let y=64;y<1400;y+=48){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(1000,y);ctx.stroke()}
-  if(note.paper==='grid')for(let a=0;a<1400;a+=48){ctx.beginPath();ctx.moveTo(0,a);ctx.lineTo(1000,a);ctx.stroke()} 
-  if(note.paper==='grid')for(let a=0;a<1000;a+=48){ctx.beginPath();ctx.moveTo(a,0);ctx.lineTo(a,1400);ctx.stroke()}
-  if(note.paper==='dotted'){ctx.fillStyle='#d8d4cc';for(let y=24;y<1400;y+=36)for(let x=24;x<1000;x+=36){ctx.beginPath();ctx.arc(x,y,1.5,0,Math.PI*2);ctx.fill()}}
-  ctx.fillStyle='#30343a';ctx.font='28px Georgia';ctx.textBaseline='top';String(note.text||'').split('\n').forEach(function(line,i){ctx.fillText(line,70,75+i*44,850)});
-  gn3Shapes(note.id).forEach(function(s){ctx.strokeStyle=s.color;ctx.lineWidth=s.width||5;ctx.beginPath();if(s.kind==='line'){ctx.moveTo(s.x1,s.y1);ctx.lineTo(s.x2,s.y2)}else if(s.kind==='rect'){ctx.rect(Math.min(s.x1,s.x2),Math.min(s.y1,s.y2),Math.abs(s.x2-s.x1),Math.abs(s.y2-s.y1))}else{ctx.ellipse((s.x1+s.x2)/2,(s.y1+s.y2)/2,Math.abs(s.x2-s.x1)/2,Math.abs(s.y2-s.y1)/2,0,0,Math.PI*2)}ctx.stroke()});
-  noteStrokes(note.id).forEach(function(s){const pts=s.points||[];if(pts.length<2)return;ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);for(let i=1;i<pts.length;i++)ctx.lineTo(pts[i].x,pts[i].y);ctx.strokeStyle=s.color;ctx.lineWidth=s.width;ctx.globalAlpha=s.tool==='marker'?.3:1;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();ctx.globalAlpha=1});
-  const a=document.createElement('a');a.href=out.toDataURL('image/png');a.download=(note.title||'Notiz').replace(/[^a-z0-9äöüß_-]+/gi,'-')+'.png';a.click()
-}
-function gn3ToolOptions(){
-  if(state.gnTool==='pen')return '<div class="gn3-options"><span>Stift</span><input id="gnPenSize" type="range" min="2" max="16" value="'+state.gnPenSize+'"><b>'+state.gnPenSize+'</b></div>';
-  if(state.gnTool==='marker')return '<div class="gn3-options"><span>Marker</span><input id="gnMarkerSize" type="range" min="14" max="64" value="'+state.gnMarkerSize+'"><b>'+state.gnMarkerSize+'</b></div>';
-  if(state.gnTool==='eraser')return '<div class="gn3-options"><span>Radierer</span><div class="gn3-segment"><button data-action="gn3-erase-mode" data-mode="stroke" class="'+(state.gnEraserMode==='stroke'?'active':'')+'">Strich</button><button data-action="gn3-erase-mode" data-mode="precision" class="'+(state.gnEraserMode==='precision'?'active':'')+'">Präzise</button></div><div class="gn3-segment">'+[34,58,92].map(function(v){return'<button data-action="gn-eraser-size" data-size="'+v+'" class="'+(state.gnEraserSize===v?'active':'')+'">'+(v===34?'S':v===58?'M':'L')+'</button>'}).join('')+'</div><small>Wische durchgehend über Linien.</small></div>';
-  if(state.gnTool==='shape')return '<div class="gn3-options"><span>Form</span><div class="gn3-segment"><button data-action="gn3-shape-kind" data-kind="line" class="'+(state.gnShapeKind==='line'?'active':'')+'">Linie</button><button data-action="gn3-shape-kind" data-kind="rect" class="'+(state.gnShapeKind==='rect'?'active':'')+'">Rechteck</button><button data-action="gn3-shape-kind" data-kind="ellipse" class="'+(state.gnShapeKind==='ellipse'?'active':'')+'">Ellipse</button></div></div>';
-  if(state.gnTool==='select')return '<div class="gn3-options"><span>Lasso</span><small>Auswählen, verschieben, kopieren, färben oder löschen.</small></div>';
-  if(state.gnTool==='text')return '<div class="gn3-options"><span>Text</span><small>Tippe direkt auf der Seite.</small></div>';
-  return ''
-}
-function renderNotes(){
-  if(!state.gnSidebarTab)state.gnSidebarTab='pages';
-  if(!state.gnTemplateOpen)state.gnTemplateOpen=false;
-  if(!state.gnMode)state.gnMode='edit';
-  const list=notesStore(),note=gnCurrentNote();if(!note){gnAddPage();return}
-  const view=state.gnMode==='view';
-  const shapes=gn3ShapeList(note.id),images=gn3ImageList(note.id),sel=state.gnSelection,selectedImage=images.find(function(x){return x.id===state.gnSelectedImage});
-  const visible=state.gnSidebarTab==='favorites'?list.filter(function(n){return n.favorite}):list;
-  const pages=visible.map(function(n){
-    const realIndex=list.findIndex(function(x){return x.id===n.id});
-    return '<button class="gn4-page '+(n.id===note.id?'active':'')+'" data-action="gn-open-page" data-id="'+esc(n.id)+'">'+gn3PaperThumb(n.paper)+'<span><b>'+(n.favorite?'★ ':'')+esc(n.title)+'</b><small>Seite '+(realIndex+1)+'</small></span></button>'
-  }).join('');
-  const outline=String(note.text||'').split('\n').map(function(x){return x.trim()}).filter(Boolean).slice(0,8).map(function(x){return'<button class="gn4-outline-item">'+esc(x)+'</button>'}).join('');
-  app.innerHTML=shell(
-    '<section class="gn4-shell '+(state.gnFocus?'focus ':'')+(view?'view ':'edit ')+'">'+
-      (!state.gnFocus?'<header class="gn4-head">'+
-        '<button data-action="today" class="gn4-icon" aria-label="Zurück">'+v4Icon('back',18)+'</button>'+
-        '<div class="gn4-title"><span>Physik / Notizen <i></i> lokal gespeichert</span><input id="gnTitle" '+(view?'readonly':'')+' value="'+esc(note.title)+'"></div>'+
-        '<div class="gn4-mode"><button data-action="gn4-mode" data-mode="edit" class="'+(!view?'active':'')+'">Bearbeiten</button><button data-action="gn4-mode" data-mode="view" class="'+(view?'active':'')+'">Ansicht</button></div>'+
-        '<button data-action="gn3-favorite" class="gn4-icon '+(note.favorite?'fav':'')+'" aria-label="Favorit">'+v4Icon('star',17)+'</button>'+
-        '<button data-action="gn-search" class="gn4-icon" aria-label="Suchen">'+v4Icon('search',17)+'</button>'+
-        '<button data-action="gn3-focus" class="gn4-icon" aria-label="Fokus">'+v4Icon('fit',17)+'</button>'+
-      '</header>':'<button data-action="gn3-focus" class="gn4-focus-exit">'+v4Icon('close',17)+'</button>')+
-      '<div class="gn4-main">'+
-        (!state.gnFocus?'<aside class="gn4-sidebar">'+
-          '<div class="gn4-tabs"><button data-action="gn4-tab" data-tab="pages" class="'+(state.gnSidebarTab==='pages'?'active':'')+'">Seiten</button><button data-action="gn4-tab" data-tab="favorites" class="'+(state.gnSidebarTab==='favorites'?'active':'')+'">Favoriten</button><button data-action="gn4-tab" data-tab="outline" class="'+(state.gnSidebarTab==='outline'?'active':'')+'">Inhalt</button></div>'+
-          '<div class="gn4-sidehead"><strong>'+(state.gnSidebarTab==='outline'?'Gliederung':'Dokument')+'</strong>'+(!view?'<button data-action="gn-add-page">'+v4Icon('plus',15)+'</button>':'')+'</div>'+
-          (state.gnSidebarTab==='outline'?'<div class="gn4-outline">'+(outline||'<p>Keine Gliederung erkannt.</p>')+'</div>':'<div class="gn4-pages">'+(pages||'<p class="gn4-empty">Keine Favoriten.</p>')+'</div>')+
-          (!view?'<div class="gn4-side-actions"><button data-action="gn3-duplicate">Duplizieren</button><button data-action="gn-delete-page">Löschen</button><button data-action="gn4-template">Vorlage</button></div>':'')+
-        '</aside>':'')+
-        '<main class="gn4-editor">'+
-          (!state.gnFocus&&!view?'<div class="gn4-toolbar">'+
-            [['pen','text','Stift'],['marker','spark','Marker'],['eraser','eraser','Radierer'],['select','stack','Lasso'],['text','text','Text'],['shape','shape','Form']].map(function(x){return'<button data-action="gn-tool" title="'+x[2]+'" data-tool="'+x[0]+'" class="'+(state.gnTool===x[0]?'active':'')+'">'+v4Icon(x[1],17)+'<span>'+x[2]+'</span></button>'}).join('')+
-            '<span class="gn4-divider"></span>'+
-            ['#20242B','#3568D4','#B75850','#26785B','#D39A23'].map(function(col){return'<button data-action="gn-color" data-color="'+col+'" class="gn4-color '+(state.gnColor===col?'active':'')+'" style="--c:'+col+'"></button>'}).join('')+
-            '<span class="gn4-flex"></span><button class="gn4-mini" data-action="gn-undo">'+v4Icon('undo',16)+'</button><button class="gn4-mini" data-action="gn-redo">'+v4Icon('redo',16)+'</button>'+
-            '<label class="gn4-mini gn4-file">'+v4Icon('image',16)+'<input id="gn3ImageInput" type="file" accept="image/*"></label>'+
-          '</div>'+gn3ToolOptions():'')+
-          (!state.gnFocus&&!view?'<div class="gn4-docbar"><select id="gn3Paper"><option value="plain" '+(note.paper==='plain'?'selected':'')+'>Blanko</option><option value="ruled" '+(note.paper==='ruled'?'selected':'')+'>Liniert</option><option value="grid" '+(note.paper==='grid'?'selected':'')+'>Kariert</option><option value="dotted" '+(note.paper==='dotted'?'selected':'')+'>Punktiert</option><option value="cornell" '+(note.paper==='cornell'?'selected':'')+'>Cornell</option></select><button data-action="gn3-pdf">'+v4Icon('pdf',15)+'<span>PDF</span></button><span class="gn4-flex"></span><button data-action="gn3-export">'+v4Icon('download',15)+'<span>Export</span></button></div>':'')+
-          (view?'<div class="gn4-viewbar"><button data-action="gn4-prev-page" '+(list.findIndex(function(n){return n.id===note.id})===0?'disabled':'')+'>'+v4Icon('back',15)+' Vorherige</button><span>Seite '+(list.findIndex(function(n){return n.id===note.id})+1)+' / '+list.length+'</span><button data-action="gn4-next-page" '+(list.findIndex(function(n){return n.id===note.id})===list.length-1?'disabled':'')+'>Nächste '+v4Icon('arrow',15)+'</button></div>':'')+
-          (state.noteSplitV8?'<aside class="gn8-study"><header><strong>Lernen</strong><button data-action="gn8-split">'+v4Icon('close',14)+'</button></header><p>Was passiert mit der Gravitationskraft, wenn sich der Abstand verdoppelt?</p><button data-action="note-study">Lernrunde öffnen</button></aside>':'')+'<div class="gn4-stage"><div class="gn4-scale" style="width:'+state.gnZoom+'%"><div class="gn4-paper '+esc(note.paper||'ruled')+'"><textarea id="gnText" '+(view?'readonly':'')+' class="'+(!view&&state.gnTool==='text'?'editing':'')+'" placeholder="Text eingeben...">'+esc(note.text||'')+'</textarea><canvas id="gnCanvas" class="'+(view?'read-only':'')+'" width="1000" height="1400"></canvas></div></div></div>'+
-          (!state.gnFocus?'<footer class="gn4-bottom"><span>Seite '+(list.findIndex(function(n){return n.id===note.id})+1)+' von '+list.length+'</span><i></i><button data-action="gn3-fit">'+v4Icon('fit',14)+'</button><input id="gnZoom" type="range" min="70" max="180" value="'+state.gnZoom+'"><span>'+state.gnZoom+'%</span><span class="gn4-flex"></span><button data-action="gn3-export">'+v4Icon('download',14)+'Export</button><button data-action="mark-note-review">'+v4Icon('repeat',14)+'Wiederholen</button><button class="primary" data-action="note-study">'+v4Icon('play',14)+(sel&&sel.ids&&sel.ids.length?'Aus Auswahl lernen':'Lernrunde')+'</button></footer>':'')+
-        '</main>'+
-      '</div>'+
-      (!view&&sel&&sel.ids&&sel.ids.length?'<div class="gn4-selection"><span>'+sel.ids.length+' ausgewählt</span><button data-action="gn-copy-selection">'+v4Icon('copy',15)+'</button><button data-action="gn-color-selection" data-color="'+state.gnColor+'"><i style="background:'+state.gnColor+'"></i></button><button data-action="gn-learn-selection">'+v4Icon('play',15)+'</button><button class="danger" data-action="gn-delete-selection">'+v4Icon('trash',15)+'</button></div>':'')+
-      (!view&&selectedImage?'<div class="gn4-imagebar"><span>Bild</span><button data-action="gn3-image-smaller">−</button><button data-action="gn3-image-larger">+</button><button class="danger" data-action="gn3-image-delete">'+v4Icon('trash',14)+'</button></div>':'')+
-      (state.gnTemplateOpen?'<div class="gn4-modal"><div class="gn4-template-sheet"><header><strong>Seitenvorlage</strong><button data-action="gn4-template-close">'+v4Icon('close',16)+'</button></header><div class="gn4-template-grid">'+['plain','ruled','grid','dotted','cornell'].map(function(p){return'<button data-action="gn4-paper" data-paper="'+p+'" class="'+(note.paper===p?'active':'')+'">'+gn3PaperThumb(p)+'<span>'+(p==='plain'?'Blanko':p==='ruled'?'Liniert':p==='grid'?'Kariert':p==='dotted'?'Punktiert':'Cornell')+'</span></button>'}).join('')+'</div></div></div>':'')+
-    '</section>',false,'notes',false
-  );
-  gnBindCanvas(note,shapes,images);
-  const title=document.getElementById('gnTitle');if(title&&!view)title.oninput=function(){gnSaveNotePatch(note.id,{title:title.value||'Unbenannt'})};
-  const text=document.getElementById('gnText');if(text&&!view)text.oninput=function(){gnSaveNotePatch(note.id,{text:text.value})};
-  const paper=document.getElementById('gn3Paper');if(paper)paper.onchange=function(){gn3SetPaper(paper.value)};
-  const zoom=document.getElementById('gnZoom');if(zoom)zoom.oninput=function(){state.gnZoom=Number(zoom.value);document.querySelector('.gn4-scale').style.width=zoom.value+'%';const spans=document.querySelectorAll('.gn4-bottom>span');if(spans[1])spans[1].textContent=zoom.value+'%'};
-  const pen=document.getElementById('gnPenSize');if(pen)pen.oninput=function(){state.gnPenSize=Number(pen.value);const b=document.querySelector('.gn3-options b');if(b)b.textContent=pen.value};
-  const marker=document.getElementById('gnMarkerSize');if(marker)marker.oninput=function(){state.gnMarkerSize=Number(marker.value);const b=document.querySelector('.gn3-options b');if(b)b.textContent=marker.value};
-  const imageInput=document.getElementById('gn3ImageInput');if(imageInput)imageInput.onchange=function(){const file=imageInput.files&&imageInput.files[0];if(file)gn3InsertImage(file);imageInput.value=''}
-}
-function gnBindCanvas(note,shapes,images){
-  const canvas=document.getElementById('gnCanvas');if(!canvas)return;
-  const ctx=canvas.getContext('2d');let strokes=noteStrokes(note.id),drawing=false,current=null,start=null,moving=false,moveOrigin=null,moveSnapshot=null,shapeStart=null,shapePreview=null,imageDrag=null,eraseStarted=false,pointer=null;
-  function drawAll(){
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    images.forEach(function(im){const img=new Image();img.src=im.src;if(img.complete)ctx.drawImage(img,im.x,im.y,im.w,im.h);else img.onload=function(){drawAll()}});
-    shapes.forEach(function(s){ctx.save();ctx.strokeStyle=s.color;ctx.lineWidth=s.width||5;ctx.beginPath();if(s.kind==='line'){ctx.moveTo(s.x1,s.y1);ctx.lineTo(s.x2,s.y2)}else if(s.kind==='rect'){ctx.rect(Math.min(s.x1,s.x2),Math.min(s.y1,s.y2),Math.abs(s.x2-s.x1),Math.abs(s.y2-s.y1))}else{ctx.ellipse((s.x1+s.x2)/2,(s.y1+s.y2)/2,Math.abs(s.x2-s.x1)/2,Math.abs(s.y2-s.y1)/2,0,0,Math.PI*2)}ctx.stroke();ctx.restore()});
-    strokes.forEach(function(s){const pts=s.points||[];if(!pts.length)return;ctx.save();ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);for(let i=1;i<pts.length;i++)ctx.lineTo(pts[i].x,pts[i].y);ctx.strokeStyle=s.color;ctx.lineWidth=s.width;ctx.globalAlpha=s.tool==='marker'?.3:1;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();ctx.restore()});
-    const sel=state.gnSelection;if(sel&&sel.ids&&sel.ids.length){ctx.save();ctx.strokeStyle='#555b64';ctx.fillStyle='rgba(50,55,62,.04)';ctx.lineWidth=2;ctx.setLineDash([11,8]);ctx.fillRect(sel.x,sel.y,sel.w,sel.h);ctx.strokeRect(sel.x,sel.y,sel.w,sel.h);ctx.restore()}
-    if(shapePreview){ctx.save();ctx.strokeStyle=state.gnColor;ctx.lineWidth=state.gnPenSize;ctx.setLineDash([8,6]);ctx.beginPath();const s=shapePreview;if(state.gnShapeKind==='line'){ctx.moveTo(s.x1,s.y1);ctx.lineTo(s.x2,s.y2)}else if(state.gnShapeKind==='rect'){ctx.rect(Math.min(s.x1,s.x2),Math.min(s.y1,s.y2),Math.abs(s.x2-s.x1),Math.abs(s.y2-s.y1))}else{ctx.ellipse((s.x1+s.x2)/2,(s.y1+s.y2)/2,Math.abs(s.x2-s.x1)/2,Math.abs(s.y2-s.y1)/2,0,0,Math.PI*2)}ctx.stroke();ctx.restore()}
-    if(state.gnTool==='eraser'&&pointer){ctx.save();ctx.fillStyle='rgba(255,255,255,.55)';ctx.strokeStyle='#4d535c';ctx.lineWidth=2;ctx.beginPath();ctx.arc(pointer.x,pointer.y,state.gnEraserSize,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore()}
-  }
-  function posFromClient(x,y){const r=canvas.getBoundingClientRect();return{x:(x-r.left)/r.width*canvas.width,y:(y-r.top)/r.height*canvas.height}}
-  function pointsFromEvent(e){const raw=e;if(typeof raw.getCoalescedEvents==='function'){const arr=raw.getCoalescedEvents();if(arr&&arr.length)return arr.map(function(x){return posFromClient(x.clientX,x.clientY)})}return[posFromClient(e.clientX,e.clientY)]}
-  function erasePoints(points){
-    let changed=false;
-    points.forEach(function(p){
-      if(state.gnEraserMode==='precision'){const next=gn3PrecisionErase(strokes,p,state.gnEraserSize);if(JSON.stringify(next)!==JSON.stringify(strokes)){strokes=next;changed=true}}
-      else{const next=strokes.filter(function(s){return!gn3HitStroke(s,p,state.gnEraserSize)});if(next.length!==strokes.length){strokes=next;changed=true}}
-    });
-    if(changed)saveNoteStrokes(note.id,strokes);drawAll()
-  }
-  function down(e){
-    e.preventDefault();canvas.setPointerCapture(e.pointerId);const p=posFromClient(e.clientX,e.clientY);pointer=p;drawing=true;
-    if(state.gnTool==='eraser'){if(!eraseStarted){gnSnapshot(note.id);eraseStarted=true}erasePoints([p]);return}
-    if(state.gnTool==='select'){
-      const img=images.find(function(im){return p.x>=im.x&&p.x<=im.x+im.w&&p.y>=im.y&&p.y<=im.y+im.h});
-      if(img){state.gnSelectedImage=img.id;imageDrag={id:img.id,start:p,x:img.x,y:img.y};drawAll();return}
-      state.gnSelectedImage=null;
-      const sel=state.gnSelection;if(gnInsideSelection(p,sel)){moving=true;moveOrigin=p;moveSnapshot=JSON.parse(JSON.stringify(strokes));gnSnapshot(note.id);return}
-      state.gnSelection=null;start=p;drawAll();return
-    }
-    if(state.gnTool==='shape'){shapeStart=p;shapePreview={x1:p.x,y1:p.y,x2:p.x,y2:p.y};drawAll();return}
-    if(state.gnTool==='text')return;
-    gnSnapshot(note.id);current={id:Date.now()+Math.floor(Math.random()*9999),tool:state.gnTool==='marker'?'marker':'pen',color:state.gnTool==='marker'?'#F0C94D':state.gnColor,width:state.gnTool==='marker'?state.gnMarkerSize:state.gnPenSize,points:[p]};strokes.push(current);drawAll()
-  }
-  function move(e){
-    if(state.gnTool==='eraser'){pointer=posFromClient(e.clientX,e.clientY);if(drawing)erasePoints(pointsFromEvent(e));else drawAll();return}
-    if(!drawing)return;const p=posFromClient(e.clientX,e.clientY);
-    if(imageDrag){const dx=p.x-imageDrag.start.x,dy=p.y-imageDrag.start.y;const next=gn3ImageList(note.id).map(function(im){return im.id===imageDrag.id?Object.assign({},im,{x:imageDrag.x+dx,y:imageDrag.y+dy}):im});gn3SaveImages(note.id,next);images=next;drawAll();return}
-    if(state.gnTool==='select'){
-      if(moving&&state.gnSelection&&moveOrigin&&moveSnapshot){const dx=p.x-moveOrigin.x,dy=p.y-moveOrigin.y,ids=state.gnSelection.ids;strokes=moveSnapshot.map(function(s){return ids.includes(s.id)?Object.assign({},s,{points:(s.points||[]).map(function(q){return{x:q.x+dx,y:q.y+dy}})}):s});const base=gnSelectionBounds(moveSnapshot,ids);if(base)state.gnSelection=Object.assign({},base,{x:base.x+dx,y:base.y+dy});drawAll();return}
-      if(start){const rect={x:Math.min(start.x,p.x),y:Math.min(start.y,p.y),w:Math.abs(p.x-start.x),h:Math.abs(p.y-start.y)};drawAll();ctx.save();ctx.strokeStyle='#555b64';ctx.setLineDash([11,8]);ctx.strokeRect(rect.x,rect.y,rect.w,rect.h);ctx.restore();return}
-    }
-    if(state.gnTool==='shape'&&shapeStart){shapePreview={x1:shapeStart.x,y1:shapeStart.y,x2:p.x,y2:p.y};drawAll();return}
-    if(current){const pts=pointsFromEvent(e);current.points.push.apply(current.points,pts);drawAll()}
-  }
-  function up(e){
-    const p=posFromClient(e.clientX,e.clientY);
-    if(state.gnTool==='eraser'){drawing=false;eraseStarted=false;pointer=p;drawAll();return}
-    if(imageDrag){imageDrag=null;drawing=false;renderNotes();return}
-    if(state.gnTool==='select'){
-      if(moving){saveNoteStrokes(note.id,strokes);moving=false;moveOrigin=null;moveSnapshot=null;drawing=false;renderNotes();return}
-      if(start){const rect={x:Math.min(start.x,p.x),y:Math.min(start.y,p.y),w:Math.abs(p.x-start.x),h:Math.abs(p.y-start.y)};const ids=strokes.filter(function(s){const b=gnStrokeBounds(s);return !(b.x>rect.x+rect.w||b.x+b.w<rect.x||b.y>rect.y+rect.h||b.y+b.h<rect.y)}).map(function(s){return s.id});state.gnSelection=gnSelectionBounds(strokes,ids);start=null;drawing=false;renderNotes();return}
-    }
-    if(state.gnTool==='shape'&&shapePreview){gn3AddShape(state.gnShapeKind,{x:shapePreview.x1,y:shapePreview.y1},{x:shapePreview.x2,y:shapePreview.y2});shapePreview=null;shapeStart=null;drawing=false;renderNotes();return}
-    if(current){saveNoteStrokes(note.id,strokes);current=null}drawing=false
-  }
-  if(state.gnMode==='view'){canvas.style.pointerEvents='none';drawAll();return}
-  canvas.style.touchAction='none';canvas.style.cursor=state.gnTool==='eraser'?'none':'crosshair';
-  canvas.addEventListener('pointerdown',down,{passive:false});canvas.addEventListener('pointermove',move,{passive:false});canvas.addEventListener('pointerup',up,{passive:false});canvas.addEventListener('pointercancel',up,{passive:false});
-  if('onpointerrawupdate' in canvas)canvas.addEventListener('pointerrawupdate',move,{passive:false});
-  canvas.addEventListener('pointerleave',function(){if(!drawing){pointer=null;drawAll()}});
-  drawAll()
-}
-if(!state.gnSidebarTab)state.gnSidebarTab='pages';
-if(!state.gnTemplateOpen)state.gnTemplateOpen=false;
-const gn3PrevClick=app.onclick;
-app.onclick=function(e){
-  const b=e.target.closest('[data-action]');if(!b){if(gn3PrevClick)gn3PrevClick(e);return}
-  const a=b.dataset.action;
-  if(a==='notes'){state.gnSelection=null;renderNotes();return}
-  if(a==='gn-tool'){state.gnTool=b.dataset.tool;state.gnSelection=null;state.gnSelectedImage=null;renderNotes();return}
-  if(a==='gn3-erase-mode'){state.gnEraserMode=b.dataset.mode;renderNotes();return}
-  if(a==='gn4-tab'){state.gnSidebarTab=b.dataset.tab;renderNotes();return}
-  if(a==='gn4-mode'){state.gnMode=b.dataset.mode||'edit';state.gnSelection=null;state.gnSelectedImage=null;renderNotes();return}
-  if(a==='gn4-prev-page'){gn4GoPage(-1);return}
-  if(a==='gn4-next-page'){gn4GoPage(1);return}
-  if(a==='gn4-template'){state.gnTemplateOpen=true;renderNotes();return}
-  if(a==='gn4-template-close'){state.gnTemplateOpen=false;renderNotes();return}
-  if(a==='gn4-paper'){state.gnTemplateOpen=false;gn3SetPaper(b.dataset.paper);return}
-  if(a==='gn3-shape-kind'){state.gnShapeKind=b.dataset.kind;renderNotes();return}
-  if(a==='gn3-favorite'){gn3ToggleFavorite();return}
-  if(a==='gn3-focus'){state.gnFocus=!state.gnFocus;renderNotes();return}
-  if(a==='gn3-fit'){state.gnZoom=100;renderNotes();return}
-  if(a==='gn3-duplicate'){gn3DuplicateNote();return}
-  if(a==='gn3-export'){gn3ExportPage();return}
-  if(a==='gn3-pdf'){v4Toast('PDF-Import folgt in der nächsten Beta');return}
-  if(a==='gn3-image-smaller'&&state.gnSelectedImage){gn3ResizeImage(state.gnSelectedImage,.9);return}
-  if(a==='gn3-image-larger'&&state.gnSelectedImage){gn3ResizeImage(state.gnSelectedImage,1.1);return}
-  if(a==='gn3-image-delete'&&state.gnSelectedImage){gn3DeleteImage(state.gnSelectedImage);return}
-  if(gn3PrevClick)gn3PrevClick(e)
-};
-
-
-/* SnapStudy V6 — document-first product experience */
-V4_ICONS.folder='<path d="M3 7h7l2 2h9v10H3z"/><path d="M3 7V5h6l2 2"/>';
-V4_ICONS.search='<circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/>';
-V4_ICONS.settings='<circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.4 1a7 7 0 0 0-1.7-1L14.5 3h-5L9 6.1a7 7 0 0 0-1.7 1l-2.4-1-2 3.4L5 11a7 7 0 0 0 0 2l-2 1.5 2 3.4 2.4-1a7 7 0 0 0 1.7 1l.5 3.1h5l.5-3.1a7 7 0 0 0 1.7-1l2.4 1 2-3.4-2-1.5a7 7 0 0 0 .1-1Z"/>';
-V4_ICONS.download='<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/>';
-V4_ICONS.upload='<path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M5 21h14"/>';
-V4_ICONS.note='<path d="M5 3h11l3 3v15H5z"/><path d="M16 3v4h3"/><path d="M8 11h8M8 15h8"/>';
-V4_ICONS.grid='<rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><rect x="14" y="14" width="6" height="6"/>';
-
-if(!state.libraryTabV6) state.libraryTabV6='notes';
-if(!state.libraryQueryV6) state.libraryQueryV6='';
-
-function v6RecentNotes(){
-  return notesStore().slice().sort(function(a,b){return (b.updatedAt||0)-(a.updatedAt||0)})
-}
-function v6NoteSubject(n){return n.subject||'Physik'}
-function v6Time(ts){
-  if(!ts)return'';
-  const d=new Date(ts),now=new Date(),same=d.toDateString()===now.toDateString();
-  return same?d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'})
-}
-function v6OpenNote(id){state.noteId=id;state.gnMode='view';renderNotes()}
-function v6NewNote(){
-  const list=notesStore(),n={id:'n'+Date.now().toString(36),title:'Unbenannte Notiz',text:'',paper:'ruled',subject:'Physik',favorite:false,updatedAt:Date.now()};
-  list.unshift(n);saveNotesStore(list);state.noteId=n.id;state.gnMode='edit';renderNotes()
-}
-function v6Backup(){
-  const payload={version:1,exportedAt:new Date().toISOString(),notes:notesStore(),rounds:v4Library(),reviews:v4Reviews()};
-  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='snapstudy-backup-'+today()+'.json';a.click();setTimeout(function(){URL.revokeObjectURL(a.href)},1000);v4Toast('Backup erstellt')
-}
-function v6Restore(file){
-  if(!file)return;
-  const r=new FileReader();
-  r.onload=function(){
-    try{
-      const data=JSON.parse(String(r.result||'{}'));
-      if(!Array.isArray(data.notes))throw new Error('Ungültiges Backup');
-      saveNotesStore(data.notes);
-      if(Array.isArray(data.rounds))v4Save('snapstudy-library-v4',data.rounds);
-      if(Array.isArray(data.reviews))v4Save('snapstudy-reviews-v4',data.reviews);
-      state.noteId=(data.notes[0]&&data.notes[0].id)||state.noteId;v4Toast('Backup importiert');renderLibraryV4()
-    }catch(_){v4Toast('Backup konnte nicht gelesen werden')}
-  };
-  r.readAsText(file)
-}
-function v6DocRow(n){
-  const count=noteStrokes(n.id).length;
-  return '<article class="v6-docrow" data-id="'+esc(n.id)+'"><button class="v6-doc-main" data-action="v6-open-note" data-id="'+esc(n.id)+'"><span class="v6-fileicon">'+v4Icon('note',19)+'</span><span class="v6-doccopy"><strong>'+esc(n.title||'Unbenannt')+'</strong><small>'+esc(v6NoteSubject(n))+' · '+(count?count+' Striche · ':'')+(String(n.text||'').trim()?'Text + Handschrift':'Notiz')+'</small></span></button><span class="v6-doctime">'+esc(v6Time(n.updatedAt))+'</span></article>'
-}
-function v6RoundRow(r){
-  return '<article class="v6-docrow"><button class="v6-doc-main" data-action="play-library" data-id="'+esc(r.id)+'"><span class="v6-fileicon round">'+v4Icon('stack',19)+'</span><span class="v6-doccopy"><strong>'+esc(r.title||'Lernrunde')+'</strong><small>'+esc(r.topic||'Lernen')+' · '+((r.questions||[]).length)+' Fragen</small></span></button><button class="v6-row-action" data-action="share-library" data-id="'+esc(r.id)+'">'+v4Icon('share',15)+'</button></article>'
-}
-
-function renderHome(){
-  const due=v4Due(),rounds=v4Library(),notes=v6RecentNotes(),recentNotes=notes.slice(0,3),recentRounds=rounds.slice(0,2);
-  const p=profile();
-  app.innerHTML=shell(
-    '<section class="v6-home-head"><div><span class="v6-overline">Heute</span><h1>Lernübersicht</h1></div><button class="v6-head-action" data-action="library">'+v4Icon('search',17)+'</button></section>'+
-    '<section class="v6-today-panel">'+
-      '<div class="v6-today-line"><span class="v6-today-status '+(due.length?'due':'clear')+'">'+v4Icon(due.length?'repeat':'check',17)+'</span><div><strong>'+(due.length?due.length+' Wiederholungen':'Keine Wiederholungen offen')+'</strong><small>'+(due.length?'Aus Fehlern und markierten Notizen':'Du bist für heute auf aktuellem Stand')+'</small></div>'+(due.length?'<button data-action="start-due">Starten</button>':'')+'</div>'+
-      '<div class="v6-metrics"><span><b>'+notes.length+'</b><small>Notizseiten</small></span><span><b>'+rounds.length+'</b><small>Lernrunden</small></span><span><b>'+((p.sessions||0))+'</b><small>Runden gespielt</small></span></div>'+
-    '</section>'+
-    '<section class="v6-section"><div class="v6-section-title"><h2>Schnellstart</h2></div><div class="v6-actions"><button data-action="v6-new-note">'+v4Icon('note',18)+'<span><b>Neue Notiz</b><small>Schreiben oder zeichnen</small></span></button><button data-action="create">'+v4Icon('camera',18)+'<span><b>Scannen</b><small>Foto zu Lernrunde</small></span></button><button data-action="create-text">'+v4Icon('text',18)+'<span><b>Text importieren</b><small>Direkt Fragen erstellen</small></span></button></div></section>'+
-    '<section class="v6-section"><div class="v6-section-title"><h2>Zuletzt bearbeitet</h2><button data-action="library">Alle anzeigen</button></div><div class="v6-doclist">'+(recentNotes.length?recentNotes.map(v6DocRow).join(''):'<div class="v6-empty-line">Noch keine Notizen.</div>')+'</div></section>'+
-    (recentRounds.length?'<section class="v6-section"><div class="v6-section-title"><h2>Letzte Lernrunden</h2></div><div class="v6-doclist">'+recentRounds.map(v6RoundRow).join('')+'</div></section>':'')+
-    '<footer class="v6-home-foot"><span>'+remaining()+' automatische Erstellungen heute</span><a href="/privacy/snapstudy" target="_blank" rel="noopener">Datenschutz</a></footer>',
-    false,'today',false
-  )
-}
-
-function renderLibraryV4(){
-  const notes=v6RecentNotes(),rounds=v4Library(),q=String(state.libraryQueryV6||'').toLowerCase().trim(),tab=state.libraryTabV6||'notes';
-  const nFiltered=q?notes.filter(function(n){return (String(n.title||'')+' '+String(n.text||'')+' '+v6NoteSubject(n)).toLowerCase().includes(q)}):notes;
-  const rFiltered=q?rounds.filter(function(r){return (String(r.title||'')+' '+String(r.topic||'')).toLowerCase().includes(q)}):rounds;
-  const body=tab==='notes'
-    ?(nFiltered.length?'<div class="v6-doclist">'+nFiltered.map(v6DocRow).join('')+'</div>':'<div class="v6-library-empty">'+v4Icon('note',24)+'<strong>Keine Notizen gefunden</strong><span>Lege eine neue Notiz an oder ändere die Suche.</span></div>')
-    :(rFiltered.length?'<div class="v6-doclist">'+rFiltered.map(v6RoundRow).join('')+'</div>':'<div class="v6-library-empty">'+v4Icon('stack',24)+'<strong>Keine Lernrunden gefunden</strong><span>Erstelle eine Runde aus einem Foto, Text oder einer Notiz.</span></div>');
-  app.innerHTML=shell(
-    '<section class="v6-library-head"><div><span class="v6-overline">Bibliothek</span><h1>Sammlung</h1></div><button class="v6-new" data-action="'+(tab==='notes'?'v6-new-note':'create')+'">'+v4Icon('plus',16)+(tab==='notes'?'Notiz':'Runde')+'</button></section>'+
-    '<label class="v6-search">'+v4Icon('search',16)+'<input id="v6LibrarySearch" value="'+esc(state.libraryQueryV6||'')+'" placeholder="Notizen und Lernrunden durchsuchen"></label>'+
-    '<div class="v6-lib-tabs"><button data-action="v6-library-tab" data-tab="notes" class="'+(tab==='notes'?'active':'')+'">Notizen <span>'+notes.length+'</span></button><button data-action="v6-library-tab" data-tab="rounds" class="'+(tab==='rounds'?'active':'')+'">Lernrunden <span>'+rounds.length+'</span></button></div>'+
-    '<div class="v6-library-toolbar"><span>'+ (tab==='notes'?nFiltered.length:rFiltered.length)+' Einträge</span><div><button data-action="v6-backup">'+v4Icon('download',14)+'Sichern</button><label>'+v4Icon('upload',14)+'Import<input id="v6RestoreInput" type="file" accept="application/json"></label></div></div>'+
-    body,
-    false,'library',false
-  );
-  const search=document.getElementById('v6LibrarySearch');if(search)search.oninput=function(){state.libraryQueryV6=search.value;renderLibraryV4()};
-  const restore=document.getElementById('v6RestoreInput');if(restore)restore.onchange=function(){const file=restore.files&&restore.files[0];if(file)v6Restore(file);restore.value=''}
-}
-
-const v6PreviousClick=app.onclick;
-app.onclick=function(e){
-  const b=e.target.closest('[data-action]');
-  if(!b){if(v6PreviousClick)v6PreviousClick(e);return}
-  const a=b.dataset.action;
-  if(a==='v6-new-note'){v6NewNote();return}
-  if(a==='v6-open-note'){v6OpenNote(b.dataset.id);return}
-  if(a==='v6-library-tab'){state.libraryTabV6=b.dataset.tab||'notes';state.libraryQueryV6='';renderLibraryV4();return}
-  if(a==='v6-backup'){v6Backup();return}
-  if(v6PreviousClick)v6PreviousClick(e)
-};
-
-
-/* V6 flat application chrome */
-function topbar(back){
-  return '<header class="v6-topbar">'+
-    (back?'<button class="v6-top-icon" data-action="home" aria-label="Zurück">'+v4Icon('back',18)+'</button>':'<button class="v6-wordmark" data-action="home">SnapStudy</button>')+
-    '<span class="v6-top-spacer"></span>'+
-    '<button class="v6-top-icon" data-action="library" aria-label="Suchen">'+v4Icon('search',17)+'</button>'+
-  '</header>'
-}
-
-
-/* V7 — native typography and neutral product copy */
-function nav(active){
-  const items=[['today','Heute','today'],['notes','Notizen','text'],['reviews','Wiederholen','repeat'],['library','Sammlung','stack']];
-  return '<nav class="v4-nav">'+items.map(function(x){return'<button data-action="'+x[0]+'" class="'+(active===x[0]?'active':'')+'">'+v4Icon(x[2],20)+'<span>'+x[1]+'</span></button>'}).join('')+'</nav>'
-}
-
-function renderHome(){
-  const due=v4Due(),rounds=v4Library(),notes=v6RecentNotes(),recentNotes=notes.slice(0,4),recentRounds=rounds.slice(0,2);
-  app.innerHTML=shell(
-    '<section class="v7-pagehead"><h1>Heute</h1></section>'+
-    (due.length
-      ?'<section class="v7-review-strip"><div><strong>Wiederholen</strong><span>'+due.length+' fällig</span></div><button data-action="start-due">Starten</button></section>'
-      :'<section class="v7-review-strip clear"><div><strong>Wiederholen</strong><span>Nichts fällig</span></div></section>')+
-    '<section class="v7-section"><h2>Neu</h2><div class="v7-new-actions">'+
-      '<button data-action="v6-new-note">'+v4Icon('note',18)+'<span>Notiz</span></button>'+
-      '<button data-action="create">'+v4Icon('camera',18)+'<span>Foto</span></button>'+
-      '<button data-action="create-text">'+v4Icon('text',18)+'<span>Text</span></button>'+
-    '</div></section>'+
-    '<section class="v7-section"><div class="v7-sectionhead"><h2>Zuletzt</h2><button data-action="library">Alle</button></div><div class="v6-doclist">'+
-      (recentNotes.length?recentNotes.map(v6DocRow).join(''):'<div class="v7-empty">Keine Notizen</div>')+
-    '</div></section>'+
-    (recentRounds.length?'<section class="v7-section"><h2>Lernrunden</h2><div class="v6-doclist">'+recentRounds.map(v6RoundRow).join('')+'</div></section>':''),
-    false,'today',false
-  )
-}
-
-function renderCreate(textOnly){
-  const only=!!textOnly,preview=state.preview?'<img class="v4-preview" src="'+esc(state.preview)+'" alt="">':'';
-  const photo=only?'':'<label class="v7-upload">'+preview+'<input id="photoInput" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment">'+(!state.preview?'<span>'+v4Icon('camera',22)+'</span><strong>Foto auswählen</strong><small>Kamera oder Galerie</small>':'<em>Ändern</em>')+'</label>';
-  app.innerHTML=shell(
-    '<section class="v7-pagehead"><h1>Neue Lernrunde</h1></section>'+
-    '<div class="v7-segment"><button data-action="create" class="'+(!only?'active':'')+'">Foto</button><button data-action="create-text" class="'+(only?'active':'')+'">Text</button></div>'+
-    '<div class="v7-create">'+photo+
-      '<label class="v7-field"><span>'+(only?'Text':'Notiz')+'</span><textarea id="studyText" placeholder="'+(only?'Text einfügen':'Optional')+'">'+esc(state.textDraft)+'</textarea></label>'+
-      '<button class="v4-btn primary full" data-action="analyze">Fragen erstellen</button>'+
-      '<small class="v7-usage">'+remaining()+' heute verfügbar</small>'+
-    '</div>',
-    true,'today',true
-  );
-  const input=document.getElementById('photoInput');
-  if(input)input.onchange=function(e){const file=e.target.files&&e.target.files[0];if(!file)return;if(file.size>8*1024*1024){renderError('Datei zu groß.',true);return}state.file=file;if(state.preview)URL.revokeObjectURL(state.preview);state.preview=URL.createObjectURL(file);renderCreate(false)}
-}
-
-function renderLoading(){
-  app.innerHTML=shell('<section class="v7-loading"><span class="v4-loader"></span><strong>Fragen werden erstellt…</strong></section>',false,'today',true)
-}
-
-function renderError(message,localOnly){
-  const canText=String(state.textDraft||'').trim().length>=20;
-  app.innerHTML=shell(
-    '<section class="v7-pagehead"><h1>Nicht verfügbar</h1><p>'+(localOnly?esc(message):'Die Erstellung ist gerade nicht erreichbar.')+'</p></section>'+
-    '<div class="v7-buttonstack"><button class="v4-btn primary full" data-action="retry-analyze">Erneut versuchen</button>'+
-    (canText?'<button class="v4-btn secondary full" data-action="local-text">Nur Text verwenden</button>':'<button class="v4-btn secondary full" data-action="continue-text">Text eingeben</button>')+'</div>',
-    true,'today',true
-  )
-}
-
-function renderQuestion(){
-  const ch=state.challenge,q=ch.questions[state.qIndex],total=ch.questions.length,pct=((state.qIndex+(state.answered?1:0))/total)*100;
-  let input='';
-  if(q.choices&&q.choices.length)input='<div class="v4-answers">'+q.choices.map(function(x,i){return'<button class="v4-answer" data-action="choice" data-value="'+esc(x)+'"><span>'+String.fromCharCode(65+i)+'</span><b>'+esc(x)+'</b></button>'}).join('')+'</div>';
-  else input='<div class="v4-free"><input id="answerInput" placeholder="Antwort"><button class="v4-btn primary" data-action="submit-answer">Prüfen</button></div>';
-  let after='';
-  if(state.answered)after='<div class="v4-feedback '+(state.lastCorrect?'good':'bad')+'"><div>'+v4Icon(state.lastCorrect?'check':'alert',18)+'<strong>'+(state.lastCorrect?'Richtig':'Falsch')+'</strong></div><p>'+esc(state.lastExplanation||'')+'</p></div>'+
-    (state.lastCorrect&&state.mode==='normal'?'<button class="v4-uncertain '+(state.uncertainMarked?'marked':'')+'" data-action="mark-uncertain">'+v4Icon('repeat',15)+(state.uncertainMarked?'Markiert':'Später wiederholen')+'</button>':'')+
-    '<button class="v4-btn primary full" data-action="next">'+(state.qIndex===total-1?'Ergebnis':'Weiter')+'</button>';
-  app.innerHTML=shell(
-    '<div class="v4-lesson-top"><button class="v4-icon-btn quiet" data-action="home">'+v4Icon('back',19)+'</button><div class="v4-progress"><i style="width:'+pct+'%"></i></div><span>'+(state.qIndex+1)+' / '+total+'</span></div>'+
-    '<section class="v7-question"><span>'+esc(ch.topic||'Lernrunde')+'</span><h1>'+esc(q.prompt)+'</h1></section>'+
-    (state.answered?'':input)+after,
-    false,'today',true
-  )
-}
-
-function renderResult(){
-  const total=state.challenge.questions.length,pct=Math.round(state.score/total*100),p=profile(),day=new Date().toISOString().slice(0,10),y=new Date(Date.now()-86400000).toISOString().slice(0,10);
-  if(p.last!==day){p.streak=p.last===y?(p.streak||0)+1:1;p.last=day}p.xp=(p.xp||0)+Math.max(10,pct);p.sessions=(p.sessions||0)+1;localStorage.setItem('snapstudy-profile',JSON.stringify(p));
-  if(state.mode!=='review')v4SaveRound(state.challenge);
-  app.innerHTML=shell(
-    '<section class="v7-result"><span>Ergebnis</span><strong>'+state.score+' / '+total+'</strong><small>'+pct+'%</small></section>'+
-    '<div class="v7-buttonstack"><button class="v4-btn primary full" data-action="today">Fertig</button><button class="v4-btn secondary full" data-action="duel">'+v4Icon('share',15)+'Teilen</button></div>',
-    false,'today',true
-  )
-}
-
-function renderReviewsV4(){
-  const all=v4Reviews().slice().sort(function(a,b){return(a.dueAt||0)-(b.dueAt||0)}),due=all.filter(function(x){return(x.dueAt||0)<=Date.now()}),later=all.filter(function(x){return(x.dueAt||0)>Date.now()});
-  let body='';
-  if(!all.length)body='<div class="v7-empty-state"><strong>Nichts fällig</strong><button class="v4-btn secondary" data-action="create">Neue Lernrunde</button></div>';
-  else body=(due.length?'<section class="v7-section"><div class="v7-sectionhead"><h2>Heute</h2><span>'+due.length+'</span></div><div class="v4-review-list">'+due.slice(0,8).map(v4ReviewRow).join('')+'</div><button class="v4-btn primary full v7-start" data-action="start-due">Starten</button></section>':'')+
-    (later.length?'<section class="v7-section"><div class="v7-sectionhead"><h2>Später</h2><span>'+later.length+'</span></div><div class="v4-review-list muted">'+later.slice(0,8).map(v4ReviewRow).join('')+'</div></section>':'');
-  app.innerHTML=shell('<section class="v7-pagehead"><h1>Wiederholen</h1></section>'+body,false,'reviews',false)
-}
-
-function renderDuel(){
-  const list=v4Library(),current=state.challenge&&state.challenge.questions?state.challenge:list[0];
-  app.innerHTML=shell(
-    '<section class="v7-pagehead"><h1>Teilen</h1></section>'+
-    (current?'<div class="v7-share-row"><span class="v6-fileicon round">'+v4Icon('stack',18)+'</span><div><strong>'+esc(current.title)+'</strong><small>'+current.questions.length+' Fragen</small></div></div><button class="v4-btn primary full" data-action="share-current">Link teilen</button>':
-    '<div class="v7-empty-state"><strong>Keine Lernrunde ausgewählt</strong><button class="v4-btn secondary" data-action="create">Neue Lernrunde</button></div>'),
-    false,'today',true
-  )
-}
-
-function gn3ToolOptions(){
-  if(state.gnTool==='pen')return '<div class="gn3-options"><span>Stift</span><input id="gnPenSize" type="range" min="2" max="16" value="'+state.gnPenSize+'"><b>'+state.gnPenSize+'</b></div>';
-  if(state.gnTool==='marker')return '<div class="gn3-options"><span>Marker</span><input id="gnMarkerSize" type="range" min="14" max="64" value="'+state.gnMarkerSize+'"><b>'+state.gnMarkerSize+'</b></div>';
-  if(state.gnTool==='eraser')return '<div class="gn3-options"><span>Radierer</span><div class="gn3-segment"><button data-action="gn3-erase-mode" data-mode="stroke" class="'+(state.gnEraserMode==='stroke'?'active':'')+'">Strich</button><button data-action="gn3-erase-mode" data-mode="precision" class="'+(state.gnEraserMode==='precision'?'active':'')+'">Teil</button></div><div class="gn3-segment">'+[34,58,92].map(function(v){return'<button data-action="gn-eraser-size" data-size="'+v+'" class="'+(state.gnEraserSize===v?'active':'')+'">'+(v===34?'S':v===58?'M':'L')+'</button>'}).join('')+'</div></div>';
-  if(state.gnTool==='shape')return '<div class="gn3-options"><span>Form</span><div class="gn3-segment"><button data-action="gn3-shape-kind" data-kind="line" class="'+(state.gnShapeKind==='line'?'active':'')+'">Linie</button><button data-action="gn3-shape-kind" data-kind="rect" class="'+(state.gnShapeKind==='rect'?'active':'')+'">Rechteck</button><button data-action="gn3-shape-kind" data-kind="ellipse" class="'+(state.gnShapeKind==='ellipse'?'active':'')+'">Ellipse</button></div></div>';
-  if(state.gnTool==='select')return '<div class="gn3-options"><span>Lasso</span></div>';
-  if(state.gnTool==='text')return '<div class="gn3-options"><span>Text</span></div>';
-  return ''
-}
-
-
-/* V8 — practical workspace features */
-if(!state.librarySectionV8)state.librarySectionV8='notes';
-if(!state.libraryViewV8)state.libraryViewV8='list';
-if(!state.librarySortV8)state.librarySortV8='recent';
-if(!state.libraryFolderV8)state.libraryFolderV8='all';
-if(!state.noteSplitV8)state.noteSplitV8=false;
-
-function v8Deleted(){return v4Load('snapstudy-deleted-notes-v8',[])}
-function v8SaveDeleted(v){v4Save('snapstudy-deleted-notes-v8',v)}
-function v8SoftDeleteNote(id){
-  const list=notesStore(),i=list.findIndex(function(n){return n.id===id});if(i<0)return;
-  const removed=Object.assign({},list[i],{deletedAt:Date.now()});
-  list.splice(i,1);saveNotesStore(list);const del=v8Deleted();del.unshift(removed);v8SaveDeleted(del.slice(0,50));
-  if(list.length)state.noteId=list[Math.max(0,i-1)].id;else{const n={id:'n'+Date.now().toString(36),title:'Unbenannte Notiz',text:'',paper:'ruled',subject:'Physik',favorite:false,updatedAt:Date.now()};list.push(n);saveNotesStore(list);state.noteId=n.id}
-}
-function v8RestoreNote(id){
-  const del=v8Deleted(),i=del.findIndex(function(n){return n.id===id});if(i<0)return;
-  const n=Object.assign({},del[i],{deletedAt:undefined,updatedAt:Date.now()});del.splice(i,1);v8SaveDeleted(del);const list=notesStore();list.unshift(n);saveNotesStore(list);state.noteId=n.id;state.librarySectionV8='notes';renderLibraryV4()
-}
-function v8PurgeNote(id){v8SaveDeleted(v8Deleted().filter(function(n){return n.id!==id}));localStorage.removeItem('snapstudy-note-strokes-'+id);localStorage.removeItem('snapstudy-note-shapes-'+id);localStorage.removeItem('snapstudy-note-images-'+id);renderLibraryV4()}
-function gnDeletePage(){
-  const list=notesStore();if(list.length<=1){v4Toast('Mindestens eine Notiz muss bleiben');return}
-  v8SoftDeleteNote(state.noteId);state.gnPageMenu=false;state.gnSelection=null;renderNotes()
-}
-function v8Folder(n){return n.subject||'Physik'}
-function v8LibraryNoteRow(n){
-  return '<article class="v8-row"><button data-action="v6-open-note" data-id="'+esc(n.id)+'"><span class="v8-doc">'+v4Icon('note',17)+'</span><span><strong>'+esc(n.title||'Unbenannt')+'</strong><small>'+esc(v8Folder(n))+' · '+esc(v6Time(n.updatedAt))+'</small></span></button>'+(n.favorite?'<i>★</i>':'')+'</article>'
-}
-function v8DeletedRow(n){
-  return '<article class="v8-row deleted"><div><span class="v8-doc">'+v4Icon('trash',17)+'</span><span><strong>'+esc(n.title||'Unbenannt')+'</strong><small>Gelöscht '+esc(v6Time(n.deletedAt))+'</small></span></div><footer><button data-action="v8-restore" data-id="'+esc(n.id)+'">Wiederherstellen</button><button data-action="v8-purge" data-id="'+esc(n.id)+'">Löschen</button></footer></article>'
-}
-function renderLibraryV4(){
-  const notes=v6RecentNotes(),rounds=v4Library(),deleted=v8Deleted(),q=String(state.libraryQueryV6||'').trim().toLowerCase(),section=state.librarySectionV8||'notes';
-  let items=notes.filter(function(n){return state.libraryFolderV8==='all'||v8Folder(n)===state.libraryFolderV8});
-  if(section==='favorites')items=items.filter(function(n){return n.favorite});
-  if(q)items=items.filter(function(n){return (String(n.title||'')+' '+String(n.text||'')+' '+v8Folder(n)).toLowerCase().includes(q)});
-  items=items.slice().sort(function(a,b){return state.librarySortV8==='title'?String(a.title).localeCompare(String(b.title)):(b.updatedAt||0)-(a.updatedAt||0)});
-  const rFiltered=q?rounds.filter(function(r){return (String(r.title||'')+' '+String(r.topic||'')).toLowerCase().includes(q)}):rounds;
-  let body='';
-  if(section==='deleted')body=deleted.length?'<div class="v8-list">'+deleted.map(v8DeletedRow).join('')+'</div>':'<div class="v8-empty">Papierkorb ist leer</div>';
-  else if(section==='rounds')body=rFiltered.length?'<div class="v8-list">'+rFiltered.map(v6RoundRow).join('')+'</div>':'<div class="v8-empty">Keine Lernrunden</div>';
-  else if(state.libraryViewV8==='grid')body=items.length?'<div class="v8-grid">'+items.map(function(n){return'<button data-action="v6-open-note" data-id="'+esc(n.id)+'"><span class="v8-sheet '+esc(n.paper||'ruled')+'"></span><strong>'+esc(n.title||'Unbenannt')+'</strong><small>'+esc(v8Folder(n))+'</small></button>'}).join('')+'</div>':'<div class="v8-empty">Keine Notizen</div>';
-  else body=items.length?'<div class="v8-list">'+items.map(v8LibraryNoteRow).join('')+'</div>':'<div class="v8-empty">Keine Notizen</div>';
-  app.innerHTML=shell(
-    '<section class="v8-head"><h1>Sammlung</h1><button data-action="v6-new-note">'+v4Icon('plus',15)+'Neu</button></section>'+
-    '<label class="v8-search">'+v4Icon('search',15)+'<input id="v8Search" placeholder="Suchen" value="'+esc(state.libraryQueryV6||'')+'"></label>'+
-    '<div class="v8-tabs"><button data-action="v8-section" data-section="notes" class="'+(section==='notes'?'active':'')+'">Notizen</button><button data-action="v8-section" data-section="favorites" class="'+(section==='favorites'?'active':'')+'">Favoriten</button><button data-action="v8-section" data-section="rounds" class="'+(section==='rounds'?'active':'')+'">Lernrunden</button><button data-action="v8-section" data-section="deleted" class="'+(section==='deleted'?'active':'')+'">Gelöscht</button></div>'+
-    (section==='notes'||section==='favorites'?'<div class="v8-tools"><select id="v8Folder"><option value="all">Alle Fächer</option><option value="Physik">Physik</option><option value="Mathe">Mathe</option><option value="Sonstige">Sonstige</option></select><select id="v8Sort"><option value="recent">Zuletzt geändert</option><option value="title">Titel</option></select><button data-action="v8-view">'+v4Icon(state.libraryViewV8==='list'?'grid':'stack',15)+'</button><span></span><button data-action="v6-backup">Sichern</button><label>Import<input id="v6RestoreInput" type="file" accept="application/json"></label></div>':'')+
-    body,false,'library',false
-  );
-  const search=document.getElementById('v8Search');if(search)search.oninput=function(){state.libraryQueryV6=search.value;renderLibraryV4()};
-  const folder=document.getElementById('v8Folder');if(folder){folder.value=state.libraryFolderV8;folder.onchange=function(){state.libraryFolderV8=folder.value;renderLibraryV4()}};
-  const sort=document.getElementById('v8Sort');if(sort){sort.value=state.librarySortV8;sort.onchange=function(){state.librarySortV8=sort.value;renderLibraryV4()}};
-  const restore=document.getElementById('v6RestoreInput');if(restore)restore.onchange=function(){const file=restore.files&&restore.files[0];if(file)v6Restore(file);restore.value=''}
-}
-
-const v8PrevClick=app.onclick;
-app.onclick=function(e){
-  const b=e.target.closest('[data-action]');if(!b){if(v8PrevClick)v8PrevClick(e);return}
-  const a=b.dataset.action;
-  if(a==='v8-section'){state.librarySectionV8=b.dataset.section||'notes';state.libraryQueryV6='';renderLibraryV4();return}
-  if(a==='v8-view'){state.libraryViewV8=state.libraryViewV8==='list'?'grid':'list';renderLibraryV4();return}
-  if(a==='v8-restore'){v8RestoreNote(b.dataset.id);return}
-  if(a==='v8-purge'){v8PurgeNote(b.dataset.id);return}
-  if(a==='gn8-split'){state.noteSplitV8=!state.noteSplitV8;renderNotes();return}
-  if(v8PrevClick)v8PrevClick(e)
-};
-
-
-/* V9 — Trophy cabinet, goals and mastery progression */
-function v9Activity(){return v4Load('snapstudy-activity-v9',[])}
-function v9SaveActivity(v){v4Save('snapstudy-activity-v9',v.slice(-180))}
-function v9TrophyState(){return v4Load('snapstudy-trophies-v9',{unlocked:{},seen:{}})}
-function v9SaveTrophyState(v){v4Save('snapstudy-trophies-v9',v)}
-function v9Day(){return new Date().toISOString().slice(0,10)}
-function v9WeekKey(ts){
-  const d=new Date(ts||Date.now()),u=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()));
-  const day=u.getUTCDay()||7;u.setUTCDate(u.getUTCDate()+4-day);
-  const y=new Date(Date.UTC(u.getUTCFullYear(),0,1));
-  const w=Math.ceil((((u-y)/86400000)+1)/7);
-  return u.getUTCFullYear()+'-W'+String(w).padStart(2,'0')
-}
-function v9WeekStats(){
-  const key=v9WeekKey(),rows=v9Activity().filter(function(x){return x.week===key});
-  return rows.reduce(function(a,x){a.sessions+=x.sessions||0;a.reviews+=x.reviews||0;a.perfect+=x.perfect||0;return a},{sessions:0,reviews:0,perfect:0})
-}
-function v9RecordResult(pct,mode){
-  const day=v9Day(),week=v9WeekKey(),rows=v9Activity(),row=rows.find(function(x){return x.day===day});
-  if(row){row.sessions=(row.sessions||0)+1;row.reviews=(row.reviews||0)+(mode==='review'?1:0);row.perfect=(row.perfect||0)+(pct===100?1:0);row.week=week}
-  else rows.push({day:day,week:week,sessions:1,reviews:mode==='review'?1:0,perfect:pct===100?1:0});
-  v9SaveActivity(rows)
-}
-function v9Stats(){
-  const p=profile(),notes=notesStore(),reviews=v4Reviews(),week=v9WeekStats(),activity=v9Activity();
-  return{
-    xp:p.xp||0,
-    streak:p.streak||0,
-    sessions:p.sessions||0,
-    perfects:p.perfects||0,
-    notes:notes.length,
-    rounds:v4Library().length,
-    reviewsDone:p.reviewsDone||0,
-    mastered:reviews.filter(function(x){return(x.stage||0)>=3}).length,
-    weekSessions:week.sessions,
-    weekReviews:week.reviews,
-    activeDays:activity.filter(function(x){return(x.sessions||0)>0}).length
-  }
-}
-const V9_TROPHIES=[
-  {id:'first',name:'Losgelegt',desc:'1 Lernrunde abgeschlossen',tier:'Bronze',points:20,metric:'sessions',target:1},
-  {id:'sessions5',name:'Im Rhythmus',desc:'5 Lernrunden abgeschlossen',tier:'Bronze',points:30,metric:'sessions',target:5},
-  {id:'streak3',name:'Drei Tage',desc:'3 Tage in Folge gelernt',tier:'Bronze',points:35,metric:'streak',target:3},
-  {id:'xp250',name:'250 XP',desc:'250 XP gesammelt',tier:'Bronze',points:30,metric:'xp',target:250},
-  {id:'perfect1',name:'Fehlerfrei',desc:'Eine Runde mit 100 %',tier:'Silver',points:50,metric:'perfects',target:1},
-  {id:'notes5',name:'Notizsammler',desc:'5 Notizen angelegt',tier:'Silver',points:45,metric:'notes',target:5},
-  {id:'sessions20',name:'20 Runden',desc:'20 Lernrunden abgeschlossen',tier:'Silver',points:65,metric:'sessions',target:20},
-  {id:'streak7',name:'Eine Woche',desc:'7 Tage in Folge gelernt',tier:'Silver',points:75,metric:'streak',target:7},
-  {id:'reviews10',name:'Drangeblieben',desc:'10 Wiederholungen abgeschlossen',tier:'Silver',points:60,metric:'reviewsDone',target:10},
-  {id:'xp1000',name:'1.000 XP',desc:'1.000 XP gesammelt',tier:'Gold',points:90,metric:'xp',target:1000},
-  {id:'perfect5',name:'Präzise',desc:'5 fehlerfreie Runden',tier:'Gold',points:100,metric:'perfects',target:5},
-  {id:'notes20',name:'Archiv',desc:'20 Notizen angelegt',tier:'Gold',points:90,metric:'notes',target:20},
-  {id:'master5',name:'Gefestigt',desc:'5 Inhalte bis Stufe 3 wiederholt',tier:'Gold',points:110,metric:'mastered',target:5},
-  {id:'sessions50',name:'50 Runden',desc:'50 Lernrunden abgeschlossen',tier:'Gold',points:120,metric:'sessions',target:50},
-  {id:'streak30',name:'30 Tage',desc:'30 Tage in Folge gelernt',tier:'Platin',points:180,metric:'streak',target:30},
-  {id:'xp5000',name:'5.000 XP',desc:'5.000 XP gesammelt',tier:'Platin',points:200,metric:'xp',target:5000},
-  {id:'sessions100',name:'100 Runden',desc:'100 Lernrunden abgeschlossen',tier:'Platin',points:220,metric:'sessions',target:100}
-];
-function v9Metric(t,s){return Math.max(0,Number(s[t.metric]||0))}
-function v9Evaluate(){
-  const s=v9Stats(),state=v9TrophyState(),newOnes=[];
-  V9_TROPHIES.forEach(function(t){
-    if(v9Metric(t,s)>=t.target&&!state.unlocked[t.id]){state.unlocked[t.id]=Date.now();newOnes.push(t)}
-  });
-  v9SaveTrophyState(state);return newOnes
-}
-function v9CupScore(){
-  const state=v9TrophyState();
-  return V9_TROPHIES.reduce(function(sum,t){return sum+(state.unlocked[t.id]?t.points:0)},0)
-}
-function v9League(score){
-  if(score>=900)return{name:'Platin',next:null,min:900,max:900};
-  if(score>=450)return{name:'Gold',next:'Platin',min:450,max:900};
-  if(score>=180)return{name:'Silber',next:'Gold',min:180,max:450};
-  return{name:'Bronze',next:'Silber',min:0,max:180}
-}
-function v9NextTrophy(){
-  const s=v9Stats(),state=v9TrophyState(),locked=V9_TROPHIES.filter(function(t){return!state.unlocked[t.id]});
-  locked.sort(function(a,b){
-    const pa=Math.min(1,v9Metric(a,s)/a.target),pb=Math.min(1,v9Metric(b,s)/b.target);
-    return pb-pa||a.target-b.target
-  });
-  return locked[0]||null
-}
-function v9Progress(t){
-  if(!t)return{value:1,current:0,target:0};
-  const current=Math.min(t.target,v9Metric(t,v9Stats()));
-  return{value:t.target?current/t.target:0,current:current,target:t.target}
-}
-function v9TierIcon(tier){
-  return tier==='Platin'?'✦':tier==='Gold'?'◆':tier==='Silver'?'◇':'●'
-}
-function v9TrophyCard(t){
-  const state=v9TrophyState(),on=!!state.unlocked[t.id],p=v9Progress(t),pct=Math.round(p.value*100);
-  return'<article class="v9-trophy '+(on?'unlocked':'locked')+'"><span class="v9-cup">'+v4Icon('trophy',20)+'</span><div><div class="v9-trophy-title"><strong>'+esc(t.name)+'</strong><i class="'+t.tier.toLowerCase()+'">'+v9TierIcon(t.tier)+' '+esc(t.tier)+'</i></div><small>'+esc(t.desc)+'</small>'+(on?'<em>+'+t.points+' Pokalpunkte</em>':'<div class="v9-mini-progress"><i style="width:'+pct+'%"></i><span>'+p.current+' / '+p.target+'</span></div>')+'</div></article>'
-}
-function renderTrophies(){
-  v9Evaluate();
-  const state=v9TrophyState(),score=v9CupScore(),league=v9League(score),next=v9NextTrophy(),np=v9Progress(next),week=v9WeekStats(),unlocked=V9_TROPHIES.filter(function(t){return state.unlocked[t.id]}).length;
-  const leaguePct=league.next?Math.max(0,Math.min(100,Math.round((score-league.min)/(league.max-league.min)*100))):100;
-  app.innerHTML=shell(
-    '<section class="v9-head"><button data-action="today">'+v4Icon('back',18)+'</button><div><span>Pokale</span><h1>'+score+' Punkte</h1></div><strong>'+unlocked+' / '+V9_TROPHIES.length+'</strong></section>'+
-    '<section class="v9-league"><div><span class="v9-league-mark">'+v4Icon('trophy',24)+'</span><div><small>Stufe</small><strong>'+league.name+'</strong></div></div><div class="v9-league-progress"><i style="width:'+leaguePct+'%"></i></div>'+(league.next?'<small>Noch '+Math.max(0,league.max-score)+' bis '+league.next+'</small>':'<small>Höchste Stufe erreicht</small>')+'</section>'+
-    (next?'<section class="v9-next"><div class="v9-sectionline"><h2>Nächster Pokal</h2><span>'+Math.round(np.value*100)+'%</span></div>'+v9TrophyCard(next)+'</section>':'')+
-    '<section class="v9-week"><div class="v9-sectionline"><h2>Diese Woche</h2><span>'+week.sessions+' Runden</span></div><div class="v9-goals">'+
-      '<div><strong>5 Runden</strong><span><i style="width:'+Math.min(100,week.sessions/5*100)+'%"></i></span><small>'+Math.min(5,week.sessions)+' / 5</small></div>'+
-      '<div><strong>2 Wiederholungen</strong><span><i style="width:'+Math.min(100,week.reviews/2*100)+'%"></i></span><small>'+Math.min(2,week.reviews)+' / 2</small></div>'+
-    '</div></section>'+
-    '<section class="v9-cabinet"><div class="v9-sectionline"><h2>Sammlung</h2><span>'+unlocked+' freigeschaltet</span></div><div class="v9-trophies">'+V9_TROPHIES.map(v9TrophyCard).join('')+'</div></section>',
-    true,'today',true
-  )
-}
-function v9TrophyStrip(){
-  const score=v9CupScore(),league=v9League(score),next=v9NextTrophy(),p=v9Progress(next);
-  return '<button class="v9-home-strip" data-action="trophies"><span>'+v4Icon('trophy',18)+'</span><div><strong>'+league.name+' · '+score+' Punkte</strong><small>'+(next?('Nächster Pokal: '+next.name):'Alle Pokale freigeschaltet')+'</small></div>'+(next?'<i><b style="width:'+Math.round(p.value*100)+'%"></b></i>':'')+v4Icon('arrow',15)+'</button>'
-}
-function v9UnlockOverlay(list){
-  if(!list||!list.length)return'';
-  const t=list[0];
-  return '<div class="v9-unlock"><div>'+v4Icon('trophy',34)+'</div><span>Neuer Pokal</span><strong>'+esc(t.name)+'</strong><small>+'+t.points+' Pokalpunkte</small></div>'
-}
-
-/* Header now surfaces trophies without bringing back gamified clutter. */
-function topbar(back){
-  const score=v9CupScore();
-  return '<header class="v6-topbar">'+
-    (back?'<button class="v6-top-icon" data-action="home" aria-label="Zurück">'+v4Icon('back',18)+'</button>':'<button class="v6-wordmark" data-action="home">SnapStudy</button>')+
-    '<span class="v6-top-spacer"></span>'+
-    '<button class="v9-top-cup" data-action="trophies">'+v4Icon('trophy',15)+'<span>'+score+'</span></button>'+
-    '<button class="v6-top-icon" data-action="library" aria-label="Suchen">'+v4Icon('search',17)+'</button>'+
-  '</header>'
-}
-
-function renderHome(){
-  v9Evaluate();
-  const due=v4Due(),rounds=v4Library(),notes=v6RecentNotes(),recentNotes=notes.slice(0,4),recentRounds=rounds.slice(0,2);
-  app.innerHTML=shell(
-    '<section class="v7-pagehead"><h1>Heute</h1></section>'+
-    v9TrophyStrip()+
-    (due.length
-      ?'<section class="v7-review-strip"><div><strong>Wiederholen</strong><span>'+due.length+' fällig</span></div><button data-action="start-due">Starten</button></section>'
-      :'<section class="v7-review-strip clear"><div><strong>Wiederholen</strong><span>Nichts fällig</span></div></section>')+
-    '<section class="v7-section"><h2>Neu</h2><div class="v7-new-actions">'+
-      '<button data-action="v6-new-note">'+v4Icon('note',18)+'<span>Notiz</span></button>'+
-      '<button data-action="create">'+v4Icon('camera',18)+'<span>Foto</span></button>'+
-      '<button data-action="create-text">'+v4Icon('text',18)+'<span>Text</span></button>'+
-    '</div></section>'+
-    '<section class="v7-section"><div class="v7-sectionhead"><h2>Zuletzt</h2><button data-action="library">Alle</button></div><div class="v6-doclist">'+
-      (recentNotes.length?recentNotes.map(v6DocRow).join(''):'<div class="v7-empty">Keine Notizen</div>')+
-    '</div></section>'+
-    (recentRounds.length?'<section class="v7-section"><h2>Lernrunden</h2><div class="v6-doclist">'+recentRounds.map(v6RoundRow).join('')+'</div></section>':''),
-    false,'today',false
-  )
-}
-
-function renderResult(){
-  const total=state.challenge.questions.length,pct=Math.round(state.score/total*100),p=profile(),day=v9Day(),y=new Date(Date.now()-86400000).toISOString().slice(0,10);
-  if(p.last!==day){p.streak=p.last===y?(p.streak||0)+1:1;p.last=day}
-  p.xp=(p.xp||0)+Math.max(10,pct);
-  p.sessions=(p.sessions||0)+1;
-  p.perfects=(p.perfects||0)+(pct===100?1:0);
-  p.reviewsDone=(p.reviewsDone||0)+(state.mode==='review'?1:0);
-  localStorage.setItem('snapstudy-profile',JSON.stringify(p));
-  v9RecordResult(pct,state.mode);
-  if(state.mode!=='review')v4SaveRound(state.challenge);
-  const newTrophies=v9Evaluate(),score=v9CupScore(),league=v9League(score);
-  if(newTrophies.length&&navigator.vibrate)navigator.vibrate([25,35,25]);
-  app.innerHTML=shell(
-    '<section class="v7-result"><span>Ergebnis</span><strong>'+state.score+' / '+total+'</strong><small>'+pct+'%</small></section>'+
-    '<div class="v9-result-progress"><span>'+v4Icon('trophy',16)+' '+league.name+'</span><strong>'+score+' Pokalpunkte</strong></div>'+
-    (newTrophies.length?'<button class="v9-new-trophy" data-action="trophies">'+v4Icon('trophy',19)+'<span><strong>'+esc(newTrophies[0].name)+'</strong><small>Neuer Pokal · +'+newTrophies[0].points+'</small></span>'+v4Icon('arrow',15)+'</button>':'')+
-    '<div class="v7-buttonstack"><button class="v4-btn primary full" data-action="today">Fertig</button><button class="v4-btn secondary full" data-action="duel">'+v4Icon('share',15)+'Teilen</button></div>'+
-    v9UnlockOverlay(newTrophies),
-    false,'today',true
-  )
-}
-
-const v9PrevClick=app.onclick;
-app.onclick=function(e){
-  const b=e.target.closest('[data-action]');if(!b){if(v9PrevClick)v9PrevClick(e);return}
-  if(b.dataset.action==='trophies'){renderTrophies();return}
-  if(v9PrevClick)v9PrevClick(e)
-};
-
-/* SnapStudy trophy route capture — bypass legacy click-wrapper chains. */
-window.addEventListener('click', function(event){
-  const target = event.target && event.target.closest ? event.target.closest('[data-action="trophies"]') : null;
-  if(!target) return;
-  event.preventDefault();
-  event.stopPropagation();
-  try { renderTrophies(); } catch (error) {
-    console.error('Trophy screen failed', error);
-    location.assign('/trophies?build=20260929-5');
-  }
-}, true);
-
-/* Final application boot — keep this at the very end. */
-try {
-  if(location.pathname === '/trophies') {
-    renderTrophies();
-  } else if(!handleHash()) {
-    renderHome();
-  }
-} catch (error) {
-  console.error('SnapStudy boot failed', error);
-  app.innerHTML = '<main class="v4-shell"><section class="v7-pagehead"><h1>SnapStudy</h1><p>Die App konnte nicht gestartet werden.</p></section><div class="v7-buttonstack"><button class="v4-btn primary full" onclick="location.reload()">Neu laden</button></div></main>';
-}
+try{render();}catch(err){console.error(err);root.innerHTML='<main class="fatal"><h1>SnapStudy</h1><p>Die App konnte nicht gestartet werden.</p><button onclick="location.reload()">Neu laden</button></main>';}
