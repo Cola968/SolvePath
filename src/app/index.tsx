@@ -11,6 +11,7 @@ export default function SnapStudyScreen() {
   const [canGoBack, setCanGoBack] = useState(false);
   const [failed, setFailed] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  const retryCount = useRef(0);
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -23,7 +24,19 @@ export default function SnapStudyScreen() {
 
   const onNavigation = (nav: WebViewNavigation) => {
     setCanGoBack(nav.canGoBack);
-    if (nav.url.startsWith(APP_ORIGIN)) setFailed(false);
+    if (nav.url.startsWith(APP_ORIGIN)) {
+      retryCount.current = 0;
+      setFailed(false);
+    }
+  };
+
+  const handleLoadFailure = () => {
+    if (retryCount.current < 2) {
+      retryCount.current += 1;
+      setTimeout(() => setReloadKey((value) => value + 1), 1400);
+      return;
+    }
+    setFailed(true);
   };
 
   const shouldLoad = (request: { url: string }) => {
@@ -44,23 +57,32 @@ export default function SnapStudyScreen() {
       <View style={styles.errorScreen}>
         <StatusBar style="dark" />
         <View style={styles.mark}>
+          <View style={styles.markFold} />
           <View style={styles.markLineLong} />
           <View style={styles.markLineMedium} />
           <View style={styles.markLineShort} />
         </View>
-        <Text style={styles.title}>SnapStudy ist gerade offline.</Text>
+        <Text style={styles.title}>Keine Verbindung</Text>
         <Text style={styles.copy}>
-          Deine gespeicherten Notizen bleiben erhalten. Prüfe deine Verbindung und lade die App neu.
+          SnapStudy konnte gerade nicht geladen werden. Deine Notizen bleiben erhalten.
         </Text>
         <Pressable
           accessibilityRole="button"
           style={styles.retryButton}
           onPress={() => {
+            retryCount.current = 0;
             setFailed(false);
             setReloadKey((value) => value + 1);
           }}
         >
-          <Text style={styles.retryText}>Erneut laden</Text>
+          <Text style={styles.retryText}>Erneut versuchen</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          style={styles.browserButton}
+          onPress={() => void Linking.openURL(APP_URL)}
+        >
+          <Text style={styles.browserText}>Im Browser öffnen</Text>
         </Pressable>
       </View>
     );
@@ -77,9 +99,9 @@ export default function SnapStudyScreen() {
         originWhitelist={['https://*', 'blob:*', 'about:*']}
         onNavigationStateChange={onNavigation}
         onShouldStartLoadWithRequest={shouldLoad}
-        onError={() => setFailed(true)}
+        onError={handleLoadFailure}
         onHttpError={(event) => {
-          if (event.nativeEvent.statusCode >= 500) setFailed(true);
+          if (event.nativeEvent.statusCode >= 500) handleLoadFailure();
         }}
         javaScriptEnabled
         domStorageEnabled
@@ -120,85 +142,110 @@ const styles = StyleSheet.create({
     left: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
+    gap: 10,
     backgroundColor: '#F5F6F8',
   },
   loadingBar: {
-    width: 54,
-    height: 5,
+    width: 34,
+    height: 3,
     borderRadius: 999,
     backgroundColor: '#3568D4',
   },
   loadingText: {
-    color: '#6D7480',
-    fontSize: 13,
-    fontWeight: '700',
+    color: '#737A84',
+    fontSize: 12,
+    fontWeight: '500',
   },
   errorScreen: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 30,
+    paddingHorizontal: 28,
     backgroundColor: '#F5F6F8',
   },
   mark: {
-    width: 58,
-    height: 70,
-    borderWidth: 3,
-    borderColor: '#1C2433',
-    borderRadius: 14,
+    width: 48,
+    height: 58,
+    borderWidth: 2,
+    borderColor: '#2D333B',
+    borderRadius: 7,
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: 12,
-    paddingTop: 24,
-    gap: 7,
+    paddingHorizontal: 10,
+    paddingTop: 20,
+    gap: 5,
+    position: 'relative',
+  },
+  markFold: {
+    position: 'absolute',
+    right: -2,
+    top: -2,
+    width: 13,
+    height: 13,
+    borderTopRightRadius: 6,
+    borderBottomLeftRadius: 5,
+    backgroundColor: '#E2B84B',
   },
   markLineLong: {
-    height: 4,
-    width: 28,
+    height: 2,
+    width: 23,
     borderRadius: 999,
     backgroundColor: '#3568D4',
   },
   markLineMedium: {
-    height: 4,
-    width: 22,
+    height: 2,
+    width: 18,
     borderRadius: 999,
     backgroundColor: '#3568D4',
   },
   markLineShort: {
-    height: 4,
-    width: 15,
+    height: 2,
+    width: 13,
     borderRadius: 999,
     backgroundColor: '#3568D4',
   },
   title: {
-    marginTop: 22,
-    color: '#1C2433',
-    fontSize: 25,
-    lineHeight: 30,
-    fontWeight: '900',
+    marginTop: 20,
+    color: '#20242B',
+    fontSize: 22,
+    lineHeight: 27,
+    fontWeight: '600',
     textAlign: 'center',
   },
   copy: {
-    marginTop: 10,
-    maxWidth: 330,
-    color: '#6D7480',
-    fontSize: 14,
-    lineHeight: 21,
+    marginTop: 8,
+    maxWidth: 300,
+    color: '#737A84',
+    fontSize: 13,
+    lineHeight: 19,
     textAlign: 'center',
   },
   retryButton: {
-    marginTop: 22,
-    minHeight: 50,
-    minWidth: 170,
+    marginTop: 20,
+    minHeight: 44,
+    minWidth: 168,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 22,
-    borderRadius: 12,
+    paddingHorizontal: 20,
+    borderRadius: 6,
     backgroundColor: '#3568D4',
   },
   retryText: {
     color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '900',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  browserButton: {
+    marginTop: 8,
+    minHeight: 40,
+    minWidth: 168,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 18,
+    borderRadius: 6,
+  },
+  browserText: {
+    color: '#5F6670',
+    fontSize: 12,
+    fontWeight: '500',
   },
 });
