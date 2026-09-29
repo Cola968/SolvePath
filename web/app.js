@@ -808,6 +808,14 @@ function recolorSelection(){
   const sel=state.selection;if(!sel||sel.noteId!==state.noteId||sel.pageId!==state.pageId)return;
   data.setStrokes(state.noteId,state.pageId,data.strokes(state.noteId,state.pageId).map(s=>sel.ids.includes(s.id)?Object.assign({},s,{color:state.color}):s));renderNotes();
 }
+function scaleSelection(factor){
+  const sel=state.selection;if(!sel||sel.noteId!==state.noteId||sel.pageId!==state.pageId)return;
+  const strokes=data.strokes(state.noteId,state.pageId),chosen=strokes.filter(s=>sel.ids.includes(s.id));
+  const pts=chosen.flatMap(s=>s.points||[]);if(!pts.length)return;
+  const xs=pts.map(p=>p.x),ys=pts.map(p=>p.y),cx=(Math.min(...xs)+Math.max(...xs))/2,cy=(Math.min(...ys)+Math.max(...ys))/2;
+  const next=strokes.map(s=>sel.ids.includes(s.id)?Object.assign({},s,{points:(s.points||[]).map(p=>({x:cx+(p.x-cx)*factor,y:cy+(p.y-cy)*factor}))}):s);
+  data.setStrokes(state.noteId,state.pageId,next);v14Haptic();renderNotes();
+}
 function resizeSelectedImage(factor){
   const p=getPage(),id=state.selectedImage;if(!p||!id)return;
   patchPage({images:(p.images||[]).map(x=>x.id===id?Object.assign({},x,{w:Math.max(10,Math.min(80,(x.w||35)*factor))}):x)});renderNotes();
@@ -1575,7 +1583,7 @@ function finishChallenge(){
 
 function v14EditorContext(n,p){
   if(state.selection&&state.selection.noteId===n.id&&state.selection.pageId===p.id&&state.selection.ids.length){
-    return '<div class="v14-objectbar"><button data-action="copy-selection">'+icon('copy',17)+'</button><button data-action="recolor-selection"><i style="background:'+state.color+'"></i></button><button class="danger" data-action="delete-selection">'+icon('trash',17)+'</button></div>';
+    return '<div class="v14-objectbar"><button data-action="selection-smaller" aria-label="Verkleinern">−</button><button data-action="selection-larger" aria-label="Vergrößern">+</button><button data-action="copy-selection" aria-label="Kopieren">'+icon('copy',17)+'</button><button data-action="recolor-selection" aria-label="Farbe"><i style="background:'+state.color+'"></i></button><button class="danger" data-action="delete-selection" aria-label="Löschen">'+icon('trash',17)+'</button></div>';
   }
   if(state.selectedImage){
     return '<div class="v14-objectbar"><button data-action="image-smaller">−</button><button data-action="image-larger">+</button><button class="danger" data-action="image-delete">'+icon('trash',17)+'</button></div>';
@@ -1747,6 +1755,8 @@ window.addEventListener('click',e=>{
   else if(a==='marker-size'){state.markerSize=+b.dataset.size;renderNotes();}
   else if(a==='eraser-size'){state.eraserSize=+b.dataset.size;renderNotes();}
   else if(a==='eraser-mode'){state.eraserMode=b.dataset.mode||'precision';renderNotes();}
+  else if(a==='selection-smaller')scaleSelection(.9);
+  else if(a==='selection-larger')scaleSelection(1.1);
   else if(a==='copy-selection')copySelection();
   else if(a==='delete-selection')deleteSelection();
   else if(a==='recolor-selection')recolorSelection();
