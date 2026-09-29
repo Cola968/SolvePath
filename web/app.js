@@ -250,6 +250,7 @@ function renderNotes(){
       '</main>'+
       '<div id="noteMenu" class="popover hidden"><button data-action="duplicate-note">'+icon('copy',14)+' Duplizieren</button><button data-action="delete-note" class="danger">'+icon('trash',14)+' Löschen</button></div>'+
       '<div id="templateMenu" class="template-modal hidden"><div><header><strong>Seitenvorlage</strong><button data-action="close-template">'+icon('close',15)+'</button></header><section>'+['plain','ruled','grid','dotted','cornell'].map(p=>'<button data-action="set-paper" data-paper="'+p+'" class="'+(n.paper===p?'active':'')+'"><span class="template '+p+'"></span><small>'+paperName(p)+'</small></button>').join('')+'</section></div></div>'+
+      (state.selection&&state.selection.noteId===n.id&&state.selection.ids.length?'<div class="selectionbar"><span>'+state.selection.ids.length+' ausgewählt</span><button data-action="copy-selection">'+icon('copy',14)+'</button><button data-action="recolor-selection"><i style="background:'+state.color+'"></i></button><button data-action="delete-selection" class="danger">'+icon('trash',14)+'</button></div>':'')+
     '</section>', 'notes',{wide:true,noTop:true, noNav:state.focus}
   );
   bindNote(n);
@@ -259,7 +260,7 @@ function toolOptions(){
   if(state.noteTool==='pen') return '<div class="toolopts"><span>Stift</span><input id="penSize" type="range" min="2" max="16" value="'+state.penSize+'"><b>'+state.penSize+'</b></div>';
   if(state.noteTool==='marker') return '<div class="toolopts"><span>Marker</span><input id="markerSize" type="range" min="12" max="60" value="'+state.markerSize+'"><b>'+state.markerSize+'</b></div>';
   if(state.noteTool==='eraser') return '<div class="toolopts"><span>Radierer</span>'+[30,55,90].map(v=>'<button data-action="eraser-size" data-size="'+v+'" class="'+(state.eraserSize===v?'active':'')+'">'+(v===30?'S':v===55?'M':'L')+'</button>').join('')+'</div>';
-  if(state.noteTool==='shape') return '<div class="toolopts"><span>Form</span><button data-action="shape-kind" data-kind="line" class="active">Linie</button><button data-action="shape-kind" data-kind="rect">Rechteck</button><button data-action="shape-kind" data-kind="ellipse">Ellipse</button></div>';
+  if(state.noteTool==='shape') return '<div class="toolopts"><span>Form</span><button data-action="shape-kind" data-kind="line" class="'+((state.shapeKind||'line')==='line'?'active':'')+'">Linie</button><button data-action="shape-kind" data-kind="rect" class="'+(state.shapeKind==='rect'?'active':'')+'">Rechteck</button><button data-action="shape-kind" data-kind="ellipse" class="'+(state.shapeKind==='ellipse'?'active':'')+'">Ellipse</button></div>';
   if(state.noteTool==='select') return '<div class="toolopts"><span>Lasso</span><small>Bereich ziehen, dann verschieben oder löschen.</small></div>';
   return '<div class="toolopts"><span>'+state.noteTool.charAt(0).toUpperCase()+state.noteTool.slice(1)+'</span></div>';
 }
@@ -313,6 +314,20 @@ function bindNote(n){
     img.onpointerup=()=>{if(!drag)return;const id=img.dataset.imageId,arr=(n.images||[]).map(x=>x.id===id?Object.assign({},x,{x:parseFloat(img.style.left),y:parseFloat(img.style.top)}):x);patchNote({images:arr});drag=null;};
   });
 }
+function deleteSelection(){
+  const sel=state.selection;if(!sel||sel.noteId!==state.noteId)return;
+  const strokes=data.strokes(state.noteId).filter(s=>!sel.ids.includes(s.id));
+  data.setStrokes(state.noteId,strokes);state.selection=null;renderNotes();
+}
+function copySelection(){
+  const sel=state.selection;if(!sel||sel.noteId!==state.noteId)return;
+  const strokes=data.strokes(state.noteId),copies=strokes.filter(s=>sel.ids.includes(s.id)).map(s=>Object.assign({},s,{id:uid('s'),points:(s.points||[]).map(p=>({x:p.x+35,y:p.y+35}))}));
+  data.setStrokes(state.noteId,strokes.concat(copies));state.selection={noteId:state.noteId,ids:copies.map(s=>s.id)};renderNotes();
+}
+function recolorSelection(){
+  const sel=state.selection;if(!sel||sel.noteId!==state.noteId)return;
+  data.setStrokes(state.noteId,data.strokes(state.noteId).map(s=>sel.ids.includes(s.id)?Object.assign({},s,{color:state.color}):s));renderNotes();
+}
 function addImageToNote(file){
   if(!file)return;const r=new FileReader();r.onload=()=>{const n=getNote(),arr=[...(n.images||[]),{id:uid('img'),src:String(r.result),x:20,y:30,w:35}];patchNote({images:arr});renderNotes();};r.readAsDataURL(file);
 }
@@ -340,7 +355,7 @@ function addReview(q,challenge,reason='wrong'){
   data.setReviews([item,...list.filter(x=>x.key!==key)].slice(0,100));
 }
 function updateReview(q,correct){
-  const list=data.reviews(),key=state.challenge.title+'|'+q.prompt,r=list.find(x=>x.key===key);if(!r)return;
+  const list=data.reviews(),r=list.find(x=>x.prompt===q.prompt);if(!r)return;
   if(correct){r.stage=(r.stage||0)+1;const days=[1,3,7,14,30][Math.min(4,r.stage-1)];r.dueAt=Date.now()+days*86400000;}else{r.stage=0;r.dueAt=Date.now()+86400000;}
   data.setReviews(list);
 }
@@ -447,8 +462,11 @@ window.addEventListener('click',e=>{
   else if(a==='purge-note')purgeNote(b.dataset.id);
   else if(a==='note-mode'){state.noteMode=b.dataset.mode;state.selection=null;renderNotes();}
   else if(a==='note-tool'){state.noteTool=b.dataset.tool;renderNotes();}
-  else if(a==='note-color'){state.color=b.dataset.color;renderNotes();}
+  else if(a==='note-color'){state.color=b.dataset.color;if(state.selection&&state.selection.noteId===state.noteId)recolorSelection();else renderNotes();}
   else if(a==='eraser-size'){state.eraserSize=+b.dataset.size;renderNotes();}
+  else if(a==='copy-selection')copySelection();
+  else if(a==='delete-selection')deleteSelection();
+  else if(a==='recolor-selection')recolorSelection();
   else if(a==='shape-kind'){state.shapeKind=b.dataset.kind;renderNotes();}
   else if(a==='undo')undo();
   else if(a==='redo')redo();
