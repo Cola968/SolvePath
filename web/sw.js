@@ -1,5 +1,5 @@
-const CACHE='snapstudy-v12-2';
-const SHELL=['/','/styles.css?v=1202','/app.js?v=1202','/manifest.webmanifest','/icon.svg'];
+const CACHE='snapstudy-v12-3';
+const SHELL=['/','/styles.css?v=1203','/app.js?v=1203','/manifest.webmanifest','/icon.svg'];
 
 self.addEventListener('install',event=>{
   self.skipWaiting();
