@@ -1678,6 +1678,31 @@ function render(){
   else if(state.screen==='create')renderCreate(state.createMode);
 }
 
+
+window.__snapstudyBack=()=>{
+  if(state.docContextId){state.docContextId=null;state.moveSheetOpen=false;v14RenderCurrent();return true;}
+  if(state.quickCreateOpen){state.quickCreateOpen=false;v14RenderCurrent();return true;}
+  if(state.sortSheetOpen){state.sortSheetOpen=false;renderLibrary();return true;}
+  if(state.libraryOptionsOpen){state.libraryOptionsOpen=false;renderLibrary();return true;}
+  if(state.folderModal){state.folderModal=false;renderLibrary();return true;}
+  if(state.folderMenu){state.folderMenu=false;renderLibrary();return true;}
+  if(state.pagesSheetOpen){state.pagesSheetOpen=false;state.pageActionsOpen=false;renderNotes();return true;}
+  if(state.noteInfo){state.noteInfo=false;renderNotes();return true;}
+  if(state.docSearchOpen){state.docSearchOpen=false;state.docSearchQuery='';renderNotes();return true;}
+  if(state.toolMenu){state.toolMenu=false;renderNotes();return true;}
+  if(state.screen==='notes'){
+    const target=state.editorReturn||'library';
+    if(target==='home'){state.screen='home';renderHome();}
+    else if(target==='noteslist'){state.screen='noteslist';renderNotesList();}
+    else {state.screen='library';renderLibrary();}
+    return true;
+  }
+  if(state.screen==='create'||state.screen==='trophies'){state.screen='home';history.replaceState(null,'','/');renderHome();return true;}
+  if(state.screen==='library'&&state.libraryFolder!=='all'){state.libraryFolder='all';renderLibrary();return true;}
+  if(state.screen==='library'&&(state.libraryTab==='favorites'||state.libraryTab==='deleted')){state.libraryTab='notes';renderLibrary();return true;}
+  return false;
+};
+
 window.addEventListener('click',e=>{
   const b=e.target.closest('[data-action]');if(!b)return;const a=b.dataset.action;
   if(a==='home'){state.screen='home';state.quickCreateOpen=false;history.replaceState(null,'','/');v14Haptic();v14Transition(()=>renderHome());}
