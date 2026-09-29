@@ -280,3 +280,11 @@ button:disabled{cursor:default}
   .template-modal .template{height:78px}
   .notefoot>span{display:none}
 }
+
+
+.selectionbar{position:fixed;z-index:135;left:50%;bottom:calc(var(--navh) + 8px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;align-items:center;gap:4px;background:#2d3239;color:#fff;border-radius:6px;padding:4px 5px;box-shadow:0 8px 24px rgba(26,30,36,.18)}
+.selectionbar>span{padding:0 7px;font-size:8px}
+.selectionbar button{width:29px;height:29px;border:0;background:transparent;color:#fff;border-radius:4px;display:grid;place-items:center}
+.selectionbar button:hover{background:rgba(255,255,255,.08)}
+.selectionbar button.danger{color:#ffaaa3}
+.selectionbar button i{display:block;width:14px;height:14px;border-radius:50%;border:2px solid #fff}
