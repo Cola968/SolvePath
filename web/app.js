@@ -233,7 +233,12 @@ function markNoteForReview(){
 function updateRecentColor(color){const next=[color,...state.recentColors.filter(c=>c!==color)].slice(0,5);state.recentColors=next;save('ss11:recentColors',next);}
 function noteRow(n){
   const marks=(n.pinned?'<i class="pinmark">'+icon('pin',12)+'</i>':'')+(n.favorite?'<i class="fav">★</i>':'');
-  return '<article class="row"><button data-action="open-note" data-id="'+esc(n.id)+'"><span class="fileicon">'+icon('note',17)+'</span><span class="rowcopy"><strong>'+esc(n.title||'Unbenannt')+'</strong><small>'+esc(n.subject||'Ohne Fach')+' · '+(n.updatedAt?fmtDate(n.updatedAt):'')+'</small></span></button><span class="rowmarks">'+marks+'</span></article>';
+  const pages=(n.pages||[]).length;
+  const location=folderName(n.folderId)||n.subject||'Ohne Fach';
+  return '<article class="row"><button data-action="open-note" data-id="'+esc(n.id)+'">'+
+    '<span class="fileicon">'+icon('note',17)+'</span>'+
+    '<span class="rowcopy"><strong>'+esc(n.title||'Unbenannt')+'</strong><small>'+esc(location)+' · '+pages+' '+(pages===1?'Seite':'Seiten')+' · '+(n.updatedAt?fmtDate(n.updatedAt):'')+'</small></span>'+
+    '</button><span class="rowmarks">'+marks+'</span></article>';
 }
 function roundRow(r){
   return '<article class="row"><button data-action="play-round" data-id="'+esc(r.id)+'"><span class="fileicon blue">'+icon('stack',17)+'</span><span class="rowcopy"><strong>'+esc(r.title||'Lernrunde')+'</strong><small>'+esc(r.topic||'')+' · '+(r.questions?.length||0)+' Fragen</small></span></button></article>';
@@ -242,18 +247,28 @@ function roundRow(r){
 function renderHome(){
   evalTrophies();
   const notes=data.notes().slice().sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
-  const pinned=notes.filter(n=>n.pinned).slice(0,3),due=data.reviews().filter(r=>(r.dueAt||0)<=Date.now()),ws=weekStats();
-  const score=trophyScore(),unlocked=load(KEYS.trophies,{unlocked:{}}).unlocked;
-  const locked=TROPHIES.filter(t=>!unlocked[t.id]).sort((a,b)=>((stats()[b.metric]||0)/b.target)-((stats()[a.metric]||0)/a.target));
-  const next=locked[0];
+  const pinned=notes.filter(n=>n.pinned).slice(0,3);
+  const due=data.reviews().filter(r=>(r.dueAt||0)<=Date.now());
+  const ws=weekStats(),score=trophyScore(),profile=data.profile();
+  const dateLabel=new Intl.DateTimeFormat('de-DE',{weekday:'long',day:'numeric',month:'long'}).format(new Date());
+
   root.innerHTML=shell(
-    '<section class="pagehead"><h1>Heute</h1></section>'+
-    '<button class="progress-strip" data-action="trophies"><span class="cupbox">'+icon('trophy',18)+'</span><div><strong>'+league(score)+' · '+score+' Punkte</strong><small>'+(next?'Nächster Pokal: '+esc(next.name):'Alle Pokale freigeschaltet')+'</small></div>'+icon('arrow',14)+'</button>'+
-    '<section class="review-strip"><div><strong>Wiederholen</strong><span>'+(due.length?due.length+' fällig':'Nichts fällig')+'</span></div>'+(due.length?'<button data-action="start-due">Starten</button>':'')+'</section>'+
-    '<section class="section"><h2>Neu</h2><div class="quick"><button data-action="new-note">'+icon('note',18)+'<span>Notiz</span></button><button data-action="create-photo">'+icon('camera',18)+'<span>Foto</span></button><button data-action="create-text">'+icon('text',18)+'<span>Text</span></button></div></section>'+
+    '<section class="homehead"><div><h1>Heute</h1><span>'+esc(dateLabel)+'</span></div></section>'+
+    '<section class="review-strip home-review"><div><strong>Wiederholen</strong><span>'+(due.length?due.length+' fällig':'Nichts fällig')+'</span></div>'+(due.length?'<button data-action="start-due">Starten</button>':'')+'</section>'+
+    '<section class="section compact-section"><div class="sectionhead"><h2>Neu</h2></div>'+
+      '<div class="homeactions">'+
+        '<button data-action="new-note">'+icon('note',17)+'<span>Notiz</span></button>'+
+        '<button data-action="create-photo">'+icon('camera',17)+'<span>Foto</span></button>'+
+        '<button data-action="create-text">'+icon('text',17)+'<span>Text</span></button>'+
+      '</div>'+
+    '</section>'+
     (pinned.length?'<section class="section"><div class="sectionhead"><h2>Angepinnt</h2><button data-action="library-pinned">Alle</button></div><div class="rows">'+pinned.map(noteRow).join('')+'</div></section>':'')+
-    '<section class="section"><div class="sectionhead"><h2>Zuletzt</h2><button data-action="library">Alle</button></div><div class="rows">'+(notes.length?notes.slice(0,4).map(noteRow).join(''):'<div class="emptyline">Keine Notizen</div>')+'</div></section>'+
-    '<section class="weekline"><span>Diese Woche</span><strong>'+ws.sessions+' Runden · '+ws.reviews+' Wiederholungen</strong></section>',
+    '<section class="section"><div class="sectionhead"><h2>Zuletzt</h2><button data-action="library">Alle</button></div><div class="rows">'+(notes.length?notes.slice(0,5).map(noteRow).join(''):'<div class="emptyline">Keine Dokumente</div>')+'</div></section>'+
+    '<section class="home-status">'+
+      '<button data-action="trophies"><span>'+icon('trophy',15)+'</span><div><strong>'+league(score)+'</strong><small>'+score+' Pokalpunkte</small></div>'+icon('arrow',13)+'</button>'+
+      '<div><span>Diese Woche</span><strong>'+ws.sessions+' Runden · '+ws.reviews+' Wiederholungen</strong></div>'+
+      '<div><span>Serie</span><strong>'+(profile.streak||0)+' Tage</strong></div>'+
+    '</section>',
     'home'
   );
 }
