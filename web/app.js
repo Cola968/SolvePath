@@ -351,47 +351,224 @@ function duplicateNote(){
 }
 
 function renderNotes(){
-  const n=getNote();if(!n){state.screen='library';renderLibrary();return;}
-  const pages=n.pages||[],p=getPage(n);if(!p){addPage();return;}
-  const idx=pages.findIndex(x=>x.id===p.id),outline=noteOutline(p),split=splitChallenge(n),sq=split?.questions?.[state.splitIndex%split.questions.length]||null;
-  const navContent=state.noteNav==='outline'
-    ?'<aside class="outlinebar">'+(outline.length?outline.map(x=>'<button data-action="jump-outline" data-start="'+x.start+'">'+esc(x.label)+'</button>').join(''):'<small>Keine Überschriften</small>')+'</aside>'
-    :'<aside class="pagestrip">'+pages.map((pg,i)=>'<button data-action="open-page" data-id="'+pg.id+'" class="'+(pg.id===p.id?'active':'')+'"><span class="mini-sheet '+esc(pg.paper||'ruled')+'"></span><small>'+(pg.bookmark?'★ ':'')+esc(pg.title||('Seite '+(i+1)))+'</small></button>').join('')+(state.noteMode==='edit'?'<button class="addpage" data-action="add-page">'+icon('plus',16)+'<small>Seite</small></button>':'')+'</aside>';
-  const palette=state.recentColors.slice(0,5),folders=data.folders();
-  root.innerHTML=shell(
+  const n=getNote();
+  if(!n){
+    state.screen='library';
+    renderLibrary();
+    return;
+  }
+  const pages=Array.isArray(n.pages)?n.pages:[];
+  const p=getPage(n);
+  if(!p){
+    addPage();
+    return;
+  }
+
+  const pageIndex=pages.findIndex(x=>x.id===p.id);
+  const outline=noteOutline(p);
+  const split=splitChallenge(n);
+  const splitQuestion=split?.questions?.length ? split.questions[state.splitIndex%split.questions.length] : null;
+  const palette=state.recentColors.slice(0,5);
+  const folders=data.folders();
+
+  const pageNav=pages.map((pg,i)=>
+    '<button data-action="open-page" data-id="'+esc(pg.id)+'" class="'+(pg.id===p.id?'active':'')+'">'+
+      '<span class="mini-sheet '+esc(pg.paper||'ruled')+'"></span>'+
+      '<small>'+(pg.bookmark?'★ ':'')+esc(pg.title||('Seite '+(i+1)))+'</small>'+
+    '</button>'
+  ).join('')+(state.noteMode==='edit'
+    ?'<button class="addpage" data-action="add-page">'+icon('plus',16)+'<small>Seite</small></button>'
+    :'');
+
+  const outlineNav=outline.length
+    ?outline.map(x=>'<button data-action="jump-outline" data-start="'+x.start+'">'+esc(x.label)+'</button>').join('')
+    :'<small>Keine Überschriften</small>';
+
+  const navBlock=state.noteNav==='outline'
+    ?'<aside class="outlinebar">'+outlineNav+'</aside>'
+    :'<aside class="pagestrip">'+pageNav+'</aside>';
+
+  let toolbar='';
+  if(!state.focus&&state.noteMode==='edit'){
+    const tools=[['pen','pen'],['marker','marker'],['eraser','eraser'],['select','select'],['text','text'],['shape','shape']];
+    toolbar=
+      '<div class="notetools">'+
+        tools.map(x=>'<button title="'+x[0]+'" data-action="note-tool" data-tool="'+x[0]+'" class="'+(state.noteTool===x[0]?'active':'')+'">'+icon(x[1],17)+'</button>').join('')+
+        '<i></i>'+
+        palette.map(col=>'<button data-action="note-color" data-color="'+col+'" class="color '+(state.color===col?'active':'')+'" style="--c:'+col+'"></button>').join('')+
+        '<label class="customcolor" title="Farbe"><span>+</span><input id="customColor" type="color" value="'+esc(state.color)+'"></label>'+
+        '<span></span>'+
+        '<button data-action="undo" aria-label="Rückgängig">'+icon('undo',16)+'</button>'+
+        '<button data-action="redo" aria-label="Wiederholen">'+icon('redo',16)+'</button>'+
+        '<label class="imagepick" aria-label="Bild einfügen">'+icon('image',16)+'<input id="imageInput" type="file" accept="image/*"></label>'+
+      '</div>'+
+      toolOptions();
+  }
+
+  const viewBar=state.noteMode==='view'
+    ?'<div class="viewbar">'+
+       '<button data-action="prev-page" '+(pageIndex<=0?'disabled':'')+'>'+icon('back',14)+' Vorherige</button>'+
+       '<span>Seite '+(pageIndex+1)+' / '+pages.length+'</span>'+
+       '<button data-action="next-page" '+(pageIndex>=pages.length-1?'disabled':'')+'>Nächste '+icon('arrow',14)+'</button>'+
+     '</div>'
+    :'';
+
+  let splitPane='';
+  if(state.splitStudy&&splitQuestion){
+    splitPane=
+      '<aside class="splitpane">'+
+        '<header><div><small>Lernansicht</small><strong>'+esc(n.title)+'</strong></div><button data-action="toggle-split">'+icon('close',14)+'</button></header>'+
+        '<p>'+esc(splitQuestion.prompt)+'</p>'+
+        (state.splitReveal
+          ?'<div class="splitanswer">'+esc((splitQuestion.accepted&&splitQuestion.accepted[0])||splitQuestion.explanation||'')+'</div>'
+          :'<button class="splitreveal" data-action="split-reveal">Antwort anzeigen</button>')+
+        '<footer><button data-action="split-next">Weiter</button><button data-action="split-full">Runde öffnen</button></footer>'+
+      '</aside>';
+  }
+
+  const images=(p.images||[]).map(img=>
+    '<img data-image-id="'+esc(img.id)+'" class="'+(state.selectedImage===img.id?'selected':'')+'" src="'+img.src+'" style="left:'+img.x+'%;top:'+img.y+'%;width:'+img.w+'%;">'
+  ).join('');
+
+  const footer=!state.focus
+    ?'<footer class="notefoot">'+
+       '<button data-action="note-info">'+esc(n.subject||'Ohne Fach')+'</button>'+
+       '<button data-action="template-menu">'+paperName(p.paper)+'</button>'+
+       '<span class="grow"></span>'+
+       '<button data-action="page-more">'+icon('more',13)+'<span>Seite</span></button>'+
+       '<button data-action="toggle-split">'+icon('stack',13)+'<span>Split</span></button>'+
+       '<button data-action="export-note">'+icon('download',13)+'<span>Export</span></button>'+
+       '<button class="learn-button" data-action="note-study">'+icon('play',13)+'<span>Lernen</span></button>'+
+       '<button data-action="note-more" aria-label="Mehr">'+icon('more',14)+'</button>'+
+     '</footer>'
+    :'';
+
+  const noteMenu=
+    '<div id="noteMenu" class="popover hidden">'+
+      '<button data-action="mark-note-review">'+icon('repeat',14)+' Wiederholen</button>'+
+      '<button data-action="note-info">'+icon('note',14)+' Details</button>'+
+      '<button data-action="duplicate-note">'+icon('copy',14)+' Dokument duplizieren</button>'+
+      '<button data-action="delete-note" class="danger">'+icon('trash',14)+' Dokument löschen</button>'+
+    '</div>';
+
+  const pageMenu=
+    '<div id="pageMenu" class="popover page-menu hidden">'+
+      '<button data-action="bookmark-page">'+icon('star',14)+(p.bookmark?' Lesezeichen entfernen':' Lesezeichen')+'</button>'+
+      '<button data-action="duplicate-page">'+icon('copy',14)+' Seite duplizieren</button>'+
+      '<button data-action="delete-page" class="danger">'+icon('trash',14)+' Seite löschen</button>'+
+    '</div>';
+
+  const templateMenu=
+    '<div id="templateMenu" class="template-modal hidden"><div>'+
+      '<header><strong>Seitenvorlage</strong><button data-action="close-template">'+icon('close',15)+'</button></header>'+
+      '<section>'+
+        ['plain','ruled','grid','dotted','cornell'].map(kind=>
+          '<button data-action="set-paper" data-paper="'+kind+'" class="'+(p.paper===kind?'active':'')+'">'+
+            '<span class="template '+kind+'"></span><small>'+paperName(kind)+'</small>'+
+          '</button>'
+        ).join('')+
+      '</section>'+
+    '</div></div>';
+
+  let infoModal='';
+  if(state.noteInfo){
+    infoModal=
+      '<div class="info-modal"><div>'+
+        '<header><strong>Dokument</strong><button data-action="close-note-info">'+icon('close',15)+'</button></header>'+
+        '<label>Titel<input id="infoTitle" value="'+esc(n.title)+'"></label>'+
+        '<label>Fach<select id="infoSubject"><option>Physik</option><option>Mathe</option><option>Geografie</option><option>Englisch</option><option>Sonstige</option></select></label>'+
+        '<label>Ordner<select id="infoFolder"><option value="none">Kein Ordner</option>'+folders.map(f=>'<option value="'+esc(f.id)+'">'+esc(f.name)+'</option>').join('')+'</select></label>'+
+        '<label>Tags<input id="infoTags" value="'+esc((n.tags||[]).join(', '))+'" placeholder="z. B. Klausur, Q1"></label>'+
+        '<div class="info-actions">'+
+          '<button data-action="pin-note">'+icon('pin',14)+(n.pinned?' Loslösen':' Anpinnen')+'</button>'+
+          '<button data-action="favorite-note">'+icon('star',14)+(n.favorite?' Entfernen':' Favorit')+'</button>'+
+        '</div>'+
+      '</div></div>';
+  }
+
+  const selectionBar=(state.selection&&state.selection.noteId===n.id&&state.selection.pageId===p.id&&state.selection.ids.length)
+    ?'<div class="selectionbar">'+
+       '<span>'+state.selection.ids.length+' ausgewählt</span>'+
+       '<button data-action="copy-selection">'+icon('copy',14)+'</button>'+
+       '<button data-action="recolor-selection"><i style="background:'+state.color+'"></i></button>'+
+       '<button data-action="delete-selection" class="danger">'+icon('trash',14)+'</button>'+
+     '</div>'
+    :'';
+
+  const imageBar=state.selectedImage
+    ?'<div class="imagebar"><span>Bild</span><button data-action="image-smaller">−</button><button data-action="image-larger">+</button><button data-action="image-delete" class="danger">'+icon('trash',14)+'</button></div>'
+    :'';
+
+  const html=
     '<section class="noteshell '+(state.focus?'focus ':'')+(state.noteMode==='view'?'view':'edit')+'">'+
-      '<header class="notehead"><button class="iconbtn" data-action="home">'+icon('back',17)+'</button><div class="notetitle"><span>'+esc(n.subject||'Notizen')+' · <i id="saveStatus">Gespeichert</i></span><input id="noteTitle" '+(state.noteMode==='view'?'readonly':'')+' value="'+esc(n.title)+'"></div>'+
-      '<div class="modes"><button data-action="note-mode" data-mode="edit" class="'+(state.noteMode==='edit'?'active':'')+'">Bearbeiten</button><button data-action="note-mode" data-mode="view" class="'+(state.noteMode==='view'?'active':'')+'">Ansicht</button></div>'+
-      '<button class="iconbtn '+(n.pinned?'blueicon':'')+'" data-action="pin-note" aria-label="Anpinnen">'+icon('pin',16)+'</button>'+
-      '<button class="iconbtn '+(n.favorite?'gold':'')+'" data-action="favorite-note" aria-label="Favorit">'+icon('star',16)+'</button>'+
-      '<button class="iconbtn" data-action="focus-note" aria-label="Fokus">'+icon('fit',16)+'</button></header>'+
-      (!state.focus?'<div class="notenavtabs"><button data-action="note-nav" data-nav="pages" class="'+(state.noteNav==='pages'?'active':'')+'">Seiten</button><button data-action="note-nav" data-nav="outline" class="'+(state.noteNav==='outline'?'active':'')+'">Inhalt</button></div>'+navContent:'')+
+      '<header class="notehead">'+
+        '<button class="iconbtn" data-action="home">'+icon('back',17)+'</button>'+
+        '<div class="notetitle"><span>'+esc(n.subject||'Notizen')+' · <i id="saveStatus">Gespeichert</i></span><input id="noteTitle" '+(state.noteMode==='view'?'readonly':'')+' value="'+esc(n.title)+'"></div>'+
+        '<div class="modes"><button data-action="note-mode" data-mode="edit" class="'+(state.noteMode==='edit'?'active':'')+'">Bearbeiten</button><button data-action="note-mode" data-mode="view" class="'+(state.noteMode==='view'?'active':'')+'">Ansicht</button></div>'+
+        '<button class="iconbtn '+(n.pinned?'blueicon':'')+'" data-action="pin-note" aria-label="Anpinnen">'+icon('pin',16)+'</button>'+
+        '<button class="iconbtn '+(n.favorite?'gold':'')+'" data-action="favorite-note" aria-label="Favorit">'+icon('star',16)+'</button>'+
+        '<button class="iconbtn" data-action="focus-note" aria-label="Fokus">'+icon('fit',16)+'</button>'+
+      '</header>'+
+      (!state.focus
+        ?'<div class="notenavtabs"><button data-action="note-nav" data-nav="pages" class="'+(state.noteNav==='pages'?'active':'')+'">Seiten</button><button data-action="note-nav" data-nav="outline" class="'+(state.noteNav==='outline'?'active':'')+'">Inhalt</button></div>'+navBlock
+        :'')+
       '<main class="noteeditor">'+
-        (!state.focus&&state.noteMode==='edit'?'<div class="notetools">'+[['pen','pen'],['marker','marker'],['eraser','eraser'],['select','select'],['text','text'],['shape','shape']].map(x=>'<button title="'+x[0]+'" data-action="note-tool" data-tool="'+x[0]+'" class="'+(state.noteTool===x[0]?'active':'')+'">'+icon(x[1],17)+'</button>').join('')+
-          '<i></i>'+palette.map(col=>'<button data-action="note-color" data-color="'+col+'" class="color '+(state.color===col?'active':'')+'" style="--c:'+col+'"></button>').join('')+
-          '<label class="customcolor" title="Farbe"><span>+</span><input id="customColor" type="color" value="'+esc(state.color)+'"></label>'+
-          '<span></span><button data-action="undo">'+icon('undo',16)+'</button><button data-action="redo">'+icon('redo',16)+'</button><label class="imagepick">'+icon('image',16)+'<input id="imageInput" type="file" accept="image/*"></label></div>':'')+
-        (!state.focus&&state.noteMode==='edit'?toolOptions():'')+
-        (state.noteMode==='view'?'<div class="viewbar"><button data-action="prev-page" '+(idx<=0?'disabled':'')+'>'+icon('back',14)+' Vorherige</button><span>Seite '+(idx+1)+' / '+pages.length+'</span><button data-action="next-page" '+(idx>=pages.length-1?'disabled':'')+'>Nächste '+icon('arrow',14)+'</button></div>':'')+
-        (state.splitStudy&&sq?'<aside class="splitpane"><header><div><small>Lernansicht</small><strong>'+esc(n.title)+'</strong></div><button data-action="toggle-split">'+icon('close',14)+'</button></header><p>'+esc(sq.prompt)+'</p>'+(state.splitReveal?'<div class="splitanswer">'+esc((sq.accepted&&sq.accepted[0])||sq.explanation||'')+'</div>':'<button class="splitreveal" data-action="split-reveal">Antwort anzeigen</button>')+'<footer><button data-action="split-next">Weiter</button><button data-action="split-full">Runde öffnen</button></footer></aside>':'')+
-        '<div class="paperstage"><div class="paper '+esc(p.paper||'ruled')+'"><textarea id="noteText" '+(state.noteMode==='view'?'readonly':'')+' class="'+(state.noteMode==='edit'&&state.noteTool==='text'?'editing':'')+'" placeholder="Text eingeben...">'+esc(p.text||'')+'</textarea><canvas id="noteCanvas" width="1000" height="1400"></canvas><div id="imageLayer">'+(p.images||[]).map(img=>'<img data-image-id="'+img.id+'" class="'+(state.selectedImage===img.id?'selected':'')+'" src="'+img.src+'" style="left:'+img.x+'%;top:'+img.y+'%;width:'+img.w+'%;">').join('')+'</div></div></div>'+
-        (!state.focus?'<footer class="notefoot"><button data-action="note-info">'+esc(n.subject||'Ohne Fach')+'</button><button data-action="template-menu">'+paperName(p.paper)+'</button><span class="grow"></span><button data-action="page-more">'+icon('more',13)+' Seite</button><button data-action="toggle-split">'+icon('stack',13)+' Split</button><button data-action="export-note">'+icon('download',13)+' Export</button><button data-action="note-study">'+icon('play',13)+' Lernen</button><button data-action="note-more">'+icon('more',14)+'</button></footer>':'')+
+        toolbar+
+        viewBar+
+        splitPane+
+        '<div class="paperstage"><div class="paper '+esc(p.paper||'ruled')+'">'+
+          '<textarea id="noteText" '+(state.noteMode==='view'?'readonly':'')+' class="'+(state.noteMode==='edit'&&state.noteTool==='text'?'editing':'')+'" placeholder="Text eingeben...">'+esc(p.text||'')+'</textarea>'+
+          '<canvas id="noteCanvas" width="1000" height="1400"></canvas>'+
+          '<div id="imageLayer">'+images+'</div>'+
+        '</div></div>'+
+        footer+
       '</main>'+
-      '<div id="noteMenu" class="popover hidden"><button data-action="mark-note-review">'+icon('repeat',14)+' Wiederholen</button><button data-action="note-info">'+icon('note',14)+' Details</button><button data-action="duplicate-note">'+icon('copy',14)+' Dokument duplizieren</button><button data-action="delete-note" class="danger">'+icon('trash',14)+' Dokument löschen</button></div>'+
-      '<div id="pageMenu" class="popover page-menu hidden"><button data-action="bookmark-page">'+icon('star',14)+(p.bookmark?' Lesezeichen entfernen':' Lesezeichen')+'</button><button data-action="duplicate-page">'+icon('copy',14)+' Seite duplizieren</button><button data-action="delete-page" class="danger">'+icon('trash',14)+' Seite löschen</button></div>'+
-      '<div id="templateMenu" class="template-modal hidden"><div><header><strong>Seitenvorlage</strong><button data-action="close-template">'+icon('close',15)+'</button></header><section>'+['plain','ruled','grid','dotted','cornell'].map(kind=>'<button data-action="set-paper" data-paper="'+kind+'" class="'+(p.paper===kind?'active':'')+'"><span class="template '+kind+'"></span><small>'+paperName(kind)+'</small></button>').join('')+'</section></div></div>'+
-      (state.noteInfo?'<div class="info-modal"><div><header><strong>Dokument</strong><button data-action="close-note-info">'+icon('close',15)+'</button></header><label>Titel<input id="infoTitle" value="'+esc(n.title)+'"></label><label>Fach<select id="infoSubject"><option>Physik</option><option>Mathe</option><option>Geografie</option><option>Englisch</option><option>Sonstige</option></select></label><label>Ordner<select id="infoFolder"><option value="none">Kein Ordner</option>'+folders.map(f=>'<option value="'+f.id+'">'+esc(f.name)+'</option>').join('')+'</select></label><label>Tags<input id="infoTags" value="'+esc((n.tags||[]).join(', '))+'" placeholder="z. B. Klausur, Q1"></label><div class="info-actions"><button data-action="pin-note">'+icon('pin',14)+(n.pinned?' Loslösen':' Anpinnen')+'</button><button data-action="favorite-note">'+icon('star',14)+(n.favorite?' Entfernen':' Favorit')+'</button></div></div></div>':'')+
-      (state.selection&&state.selection.noteId===n.id&&state.selection.pageId===p.id&&state.selection.ids.length?'<div class="selectionbar"><span>'+state.selection.ids.length+' ausgewählt</span><button data-action="copy-selection">'+icon('copy',14)+'</button><button data-action="recolor-selection"><i style="background:'+state.color+'"></i></button><button data-action="delete-selection" class="danger">'+icon('trash',14)+'</button></div>':'')+
-      (state.selectedImage?'<div class="imagebar"><span>Bild</span><button data-action="image-smaller">−</button><button data-action="image-larger">+</button><button data-action="image-delete" class="danger">'+icon('trash',14)+'</button></div>':'')+
-    '</section>','notes',{wide:true,noTop:true,noNav:state.focus}
-  );
-  const infoSubject=$('#infoSubject');if(infoSubject){infoSubject.value=n.subject||'Physik';infoSubject.onchange=e=>patchNote({subject:e.target.value});}
-  const infoFolder=$('#infoFolder');if(infoFolder){infoFolder.value=n.folderId||'none';infoFolder.onchange=e=>moveNoteToFolder(e.target.value);}
-  const infoTags=$('#infoTags');if(infoTags)infoTags.onchange=e=>patchNote({tags:e.target.value.split(',').map(x=>x.trim()).filter(Boolean).slice(0,12)});}
-  const infoTitle=$('#infoTitle');if(infoTitle)infoTitle.oninput=e=>{patchNote({title:e.target.value});const t=$('#noteTitle');if(t)t.value=e.target.value;};
-  const custom=$('#customColor');if(custom)custom.oninput=e=>{state.color=e.target.value;updateRecentColor(state.color);renderNotes();};
+      noteMenu+pageMenu+templateMenu+infoModal+selectionBar+imageBar+
+    '</section>';
+
+  root.innerHTML=shell(html,'notes',{wide:true,noTop:true,noNav:state.focus});
+
+  const infoSubject=$('#infoSubject');
+  if(infoSubject){
+    infoSubject.value=n.subject||'Physik';
+    infoSubject.onchange=e=>patchNote({subject:e.target.value});
+  }
+  const infoFolder=$('#infoFolder');
+  if(infoFolder){
+    infoFolder.value=n.folderId||'none';
+    infoFolder.onchange=e=>moveNoteToFolder(e.target.value);
+  }
+  const infoTags=$('#infoTags');
+  if(infoTags)infoTags.onchange=e=>patchNote({tags:e.target.value.split(',').map(x=>x.trim()).filter(Boolean).slice(0,12)});
+  const infoTitle=$('#infoTitle');
+  if(infoTitle)infoTitle.oninput=e=>{
+    patchNote({title:e.target.value});
+    const t=$('#noteTitle');
+    if(t)t.value=e.target.value;
+  };
+  const custom=$('#customColor');
+  if(custom)custom.oninput=e=>{
+    state.color=e.target.value;
+    updateRecentColor(state.color);
+    renderNotes();
+  };
+
   bindNote(n,p);
-  if(state.jumpStart!==null){requestAnimationFrame(()=>{const t=$('#noteText');if(t){const start=state.jumpStart;state.jumpStart=null;state.noteMode='edit';state.noteTool='text';t.readOnly=false;t.classList.add('editing');t.focus();t.setSelectionRange(start,start);}});}
+
+  if(state.jumpStart!==null){
+    requestAnimationFrame(()=>{
+      const t=$('#noteText');
+      if(!t)return;
+      const cursor=state.jumpStart;
+      state.jumpStart=null;
+      state.noteMode='edit';
+      state.noteTool='text';
+      t.readOnly=false;
+      t.classList.add('editing');
+      t.focus();
+      t.setSelectionRange(cursor,cursor);
+    });
+  }
 }
 function paperName(p){return ({plain:'Blanko',ruled:'Liniert',grid:'Kariert',dotted:'Punktiert',cornell:'Cornell'})[p]||'Liniert';}
 function toolOptions(){
