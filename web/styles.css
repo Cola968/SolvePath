@@ -357,3 +357,187 @@ button:disabled{cursor:default}
   .notefoot>button{font-size:0;width:30px;padding:0;justify-content:center}
   .notefoot>button:first-child,.notefoot>button:nth-child(2){font-size:7px;width:auto}
 }
+
+
+/* V12 — real document app pass */
+:root{
+  --bg:#f6f7f9;
+  --surface:#ffffff;
+  --surface2:#fafbfc;
+  --text:#202124;
+  --muted:#70757a;
+  --line:#dfe1e5;
+  --line2:#c8ccd1;
+  --blue:#1a73e8;
+  --blue2:#e8f0fe;
+  --green:#188038;
+  --red:#b3261e;
+  --gold:#9a6b00;
+  --radius:5px;
+}
+html,body{background:var(--bg)}
+body{font-size:14px}
+.topbar{height:52px;background:rgba(255,255,255,.97);border-color:var(--line)}
+.wordmark{font-size:15px;font-weight:600;letter-spacing:-.01em}
+.iconbtn,.trophy-pill{min-width:40px;min-height:40px}
+.trophy-pill{min-width:auto;height:32px;padding:0 9px;border-color:transparent;background:transparent}
+.trophy-pill:hover{background:#f1f3f4}
+.pagehead h1,.libraryhead h1,.homehead h1{font-size:21px;line-height:1.2;font-weight:600;letter-spacing:-.015em}
+.section{margin-top:20px}
+.sectionhead{min-height:26px;margin-bottom:4px}
+.sectionhead h2{font-size:12px;font-weight:600}
+.sectionhead button{min-height:32px;padding:0 5px;font-size:9px;color:#5f6368}
+.rows{border-top:1px solid var(--line)}
+.row{min-height:58px}
+.row>button,.row>div{padding:9px 2px}
+.rowcopy strong{font-size:11px;line-height:1.25;font-weight:500}
+.rowcopy small{font-size:8.5px;line-height:1.25;color:#7a8087}
+.fileicon{width:32px;height:38px;border-radius:3px}
+.rowmarks{min-width:28px;justify-content:flex-end}
+
+/* Today */
+.homehead{padding:19px 0 12px;border-bottom:1px solid var(--line)}
+.homehead>div{display:grid;gap:2px}
+.homehead span{font-size:9px;color:#7a8087;text-transform:capitalize}
+.home-review{min-height:56px}
+.home-review strong{font-size:11px}
+.compact-section{margin-top:17px}
+.homeactions{display:flex;align-items:center;gap:6px;margin-top:3px}
+.homeactions button{
+  min-height:40px;border:1px solid var(--line);background:#fff;border-radius:5px;
+  padding:0 12px;display:flex;align-items:center;gap:7px;color:#4b5157;font-size:9.5px;font-weight:500
+}
+.homeactions button:hover{background:#f8f9fa;border-color:#c9cdd2}
+.homeactions svg{color:#5f6368}
+.home-status{margin-top:22px;padding:8px 0 18px;border-top:1px solid var(--line);display:grid}
+.home-status>button,.home-status>div{
+  min-height:43px;border:0;border-bottom:1px solid #e9eaed;background:transparent;
+  display:flex;align-items:center;gap:9px;padding:0 2px;text-align:left;color:#4d5156
+}
+.home-status>button>span{width:27px;height:27px;display:grid;place-items:center;color:#8a6500}
+.home-status>button>div{display:grid;gap:1px;flex:1}
+.home-status>button>div strong,.home-status>div strong{font-size:9px;font-weight:500}
+.home-status>button>div small,.home-status>div>span{font-size:8px;color:#7a8087}
+.home-status>div{justify-content:space-between}
+
+/* Library */
+.libraryhead{align-items:center}
+.libraryhead>div{min-width:0}
+.libraryhead>button{min-height:36px;padding:0 10px;background:transparent;border:0;color:var(--blue);font-size:9px}
+.searchbar{height:40px;border-radius:5px;background:#fff}
+.searchbar input{font-size:10px}
+.tabs{scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{height:36px;font-size:8.5px}
+.toolbarline{min-height:40px}
+.toolbarline select,.toolbarline button,.toolbarline label{min-height:30px;font-size:8px}
+.foldercrumb{height:27px;border:0;background:transparent;padding:0;display:flex;align-items:center;gap:4px;color:#5f6368;font-size:8px}
+.foldersection,.documentssection{margin-top:16px}
+.foldergrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.foldergrid button{
+  min-height:61px;border:1px solid var(--line);background:#fff;border-radius:5px;padding:9px;
+  display:grid;grid-template-columns:30px 1fr;grid-template-rows:auto auto;text-align:left;column-gap:8px;color:var(--text)
+}
+.foldergrid button>span{grid-row:1/3;width:30px;height:30px;display:grid;place-items:center;color:#5f6368}
+.foldergrid button strong{font-size:9.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.foldergrid button small{font-size:7.5px;color:#7a8087}
+.newmenu{
+  position:fixed;right:14px;bottom:calc(var(--navh) + 12px + env(safe-area-inset-bottom));z-index:145;
+  width:174px;border:1px solid var(--line);background:#fff;padding:4px;border-radius:6px;
+  box-shadow:0 8px 24px rgba(32,33,36,.14)
+}
+.newmenu button{width:100%;min-height:38px;border:0;background:transparent;border-radius:4px;display:flex;align-items:center;gap:8px;padding:0 9px;color:#3c4043;font-size:9px}
+.newmenu button:hover{background:#f1f3f4}
+.foldercreate{margin-top:12px}
+.docgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 10px}
+.docgrid .sheet{background-color:#fff;box-shadow:0 1px 2px rgba(60,64,67,.08)}
+.docgrid strong{font-size:9.5px;font-weight:500}
+.docgrid small{font-size:7.5px}
+
+/* Notes chrome */
+.noteshell{background:#eceff1}
+.notehead{height:52px;background:#fff;border-color:var(--line);padding:0 6px}
+.notetitle span{font-size:7.5px;color:#80868b}
+.notetitle input{font-size:12px;font-weight:500}
+.modes{background:#f1f3f4;border-radius:5px}
+.modes button{min-height:28px;font-size:7.5px}
+.modes button.active{box-shadow:none;border:1px solid #dadce0}
+.notenavtabs{height:33px;background:#fff;border-color:var(--line);padding:0 9px}
+.notenavtabs button{height:32px;font-size:8px}
+.pagestrip{height:84px;padding:7px;background:#f6f7f8}
+.pagestrip>button{width:67px;min-width:67px;border-radius:3px}
+.pagestrip>button.active{box-shadow:0 0 0 2px rgba(26,115,232,.3);background:#fff}
+.pagestrip .mini-sheet{height:46px}
+.pagestrip .addpage{height:62px;border-radius:4px}
+.outlinebar{background:#f6f7f8;border-color:var(--line)}
+.outlinebar button{border-radius:4px;background:#fff}
+.noteeditor{background:#e9ecef}
+.notetools{min-height:48px;border-color:var(--line);padding:4px 7px;background:#fff}
+.notetools>button,.notetools>label{width:40px;height:38px;border-radius:5px}
+.notetools>button.active{background:var(--blue2);color:var(--blue)}
+.notetools .color{width:20px;height:20px}
+.toolopts{min-height:38px;background:#fafafa;padding:5px 9px;border-color:var(--line)}
+.toolopts>span{font-size:8px}
+.toolopts button{min-height:29px}
+.erasermodes{display:flex;gap:3px;border-right:1px solid var(--line);padding-right:7px}
+.paperstage{padding:10px}
+.paper{box-shadow:0 1px 5px rgba(60,64,67,.16)}
+.paper textarea{font-family:"Roboto",Arial,sans-serif;font-size:15px;line-height:30px}
+.notefoot{min-height:46px;background:#fff;border-color:var(--line);padding:5px 8px}
+.notefoot>button{min-width:38px;min-height:34px;font-size:8px}
+.notefoot .learn-button{background:var(--blue)!important;color:#fff!important;padding:0 9px!important}
+.notefoot button span{display:inline}
+.popover{border-radius:6px}
+.page-menu{right:56px}
+.template-modal>div,.info-modal>div{border-radius:7px}
+.info-modal input,.info-modal select{font-size:10px}
+
+/* Document search */
+.docsearch{position:relative;z-index:55;border-bottom:1px solid var(--line);background:#fff;padding:7px 9px}
+.docsearch>label{height:36px;border:1px solid var(--line);border-radius:5px;display:flex;align-items:center;gap:7px;padding:0 9px;color:#72777f;background:#f8f9fa}
+.docsearch input{min-width:0;flex:1;border:0;outline:0;background:transparent;color:var(--text);font-size:9.5px}
+.docsearch-results{position:absolute;left:9px;right:9px;top:48px;max-height:230px;overflow:auto;border:1px solid var(--line);background:#fff;box-shadow:0 6px 18px rgba(32,33,36,.12)}
+.docsearch-results button{width:100%;min-height:46px;border:0;border-bottom:1px solid #eceff1;background:#fff;padding:7px 9px;display:grid;gap:2px;text-align:left}
+.docsearch-results button:hover{background:#f8f9fa}
+.docsearch-results strong{font-size:8px;font-weight:500;color:#5f6368}
+.docsearch-results span{font-size:8.5px;color:#3c4043;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.docsearch-results>small{display:block;padding:14px;color:#7a8087;font-size:8px}
+
+/* Temporary overlays only get elevation */
+.splitpane{border-radius:6px}
+.selectionbar,.imagebar{border-radius:6px}
+
+/* Trophy screen: progress, not casino */
+.trophyhead{height:62px}
+.league{min-height:62px}
+.bigcup{border-radius:5px}
+.trophycard>span{border-radius:5px}
+.trophycard.on>span{background:#fff8e1}
+.unlockrow{border-radius:5px}
+
+/* General touch/focus */
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{
+  outline:2px solid rgba(26,115,232,.45);outline-offset:1px
+}
+button{transition:background-color .12s ease,border-color .12s ease,color .12s ease}
+.toast{border-radius:5px!important}
+
+@media(min-width:720px){
+  .foldergrid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .docgrid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:540px){
+  .homeactions{display:grid;grid-template-columns:repeat(3,1fr)}
+  .homeactions button{justify-content:center;padding:0 8px}
+  .foldergrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .notehead{padding:0 4px}
+  .notehead .iconbtn{min-width:34px;width:34px;height:36px}
+  .notehead .iconbtn:nth-last-child(2){display:none}
+  .modes button{padding:0 5px}
+  .notetools{gap:0}
+  .notetools>button,.notetools>label{width:36px;height:36px}
+  .notefoot>button{font-size:0;width:36px;padding:0;justify-content:center}
+  .notefoot>button span{display:none}
+  .notefoot>button:first-child,.notefoot>button:nth-child(2){font-size:7px;width:auto}
+  .newmenu{right:10px}
+}
