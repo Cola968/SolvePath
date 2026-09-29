@@ -195,39 +195,48 @@ function roundRow(r){
 
 function renderHome(){
   evalTrophies();
-  const notes=data.notes().slice().sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0)), due=data.reviews().filter(r=>(r.dueAt||0)<=Date.now()), ws=weekStats();
-  const score=trophyScore(), next=TROPHIES.find(t=>!load(KEYS.trophies,{unlocked:{}}).unlocked[t.id]);
+  const notes=data.notes().slice().sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  const pinned=notes.filter(n=>n.pinned).slice(0,3),due=data.reviews().filter(r=>(r.dueAt||0)<=Date.now()),ws=weekStats();
+  const score=trophyScore(),unlocked=load(KEYS.trophies,{unlocked:{}}).unlocked;
+  const locked=TROPHIES.filter(t=>!unlocked[t.id]).sort((a,b)=>((stats()[b.metric]||0)/b.target)-((stats()[a.metric]||0)/a.target));
+  const next=locked[0];
   root.innerHTML=shell(
     '<section class="pagehead"><h1>Heute</h1></section>'+
     '<button class="progress-strip" data-action="trophies"><span class="cupbox">'+icon('trophy',18)+'</span><div><strong>'+league(score)+' · '+score+' Punkte</strong><small>'+(next?'Nächster Pokal: '+esc(next.name):'Alle Pokale freigeschaltet')+'</small></div>'+icon('arrow',14)+'</button>'+
     '<section class="review-strip"><div><strong>Wiederholen</strong><span>'+(due.length?due.length+' fällig':'Nichts fällig')+'</span></div>'+(due.length?'<button data-action="start-due">Starten</button>':'')+'</section>'+
     '<section class="section"><h2>Neu</h2><div class="quick"><button data-action="new-note">'+icon('note',18)+'<span>Notiz</span></button><button data-action="create-photo">'+icon('camera',18)+'<span>Foto</span></button><button data-action="create-text">'+icon('text',18)+'<span>Text</span></button></div></section>'+
+    (pinned.length?'<section class="section"><div class="sectionhead"><h2>Angepinnt</h2><button data-action="library-pinned">Alle</button></div><div class="rows">'+pinned.map(noteRow).join('')+'</div></section>':'')+
     '<section class="section"><div class="sectionhead"><h2>Zuletzt</h2><button data-action="library">Alle</button></div><div class="rows">'+(notes.length?notes.slice(0,4).map(noteRow).join(''):'<div class="emptyline">Keine Notizen</div>')+'</div></section>'+
     '<section class="weekline"><span>Diese Woche</span><strong>'+ws.sessions+' Runden · '+ws.reviews+' Wiederholungen</strong></section>',
     'home'
   );
 }
 function renderLibrary(){
-  let notes=data.notes(), rounds=data.rounds(), deleted=data.deleted(), q=state.libraryQuery.trim().toLowerCase();
-  if(q){ notes=notes.filter(n=>(n.title+' '+n.text+' '+n.subject).toLowerCase().includes(q)); rounds=rounds.filter(r=>(r.title+' '+r.topic).toLowerCase().includes(q)); }
-  if(state.libraryTab==='favorites') notes=notes.filter(n=>n.favorite);
-  notes=notes.slice().sort((a,b)=>state.librarySort==='title'?String(a.title).localeCompare(String(b.title)):(b.updatedAt||0)-(a.updatedAt||0));
+  let notes=data.notes(),rounds=data.rounds(),deleted=data.deleted(),q=state.libraryQuery.trim().toLowerCase();
+  if(state.librarySubject!=='all')notes=notes.filter(n=>(n.subject||'Ohne Fach')===state.librarySubject);
+  if(q){notes=notes.filter(n=>(String(n.title||'')+' '+String(n.text||'')+' '+String(n.subject||'')).toLowerCase().includes(q));rounds=rounds.filter(r=>(String(r.title||'')+' '+String(r.topic||'')).toLowerCase().includes(q));}
+  if(state.libraryTab==='favorites')notes=notes.filter(n=>n.favorite);
+  if(state.libraryTab==='pinned')notes=notes.filter(n=>n.pinned);
+  notes=notes.slice().sort((a,b)=>state.librarySort==='title'?String(a.title).localeCompare(String(b.title),'de'):(b.updatedAt||0)-(a.updatedAt||0));
   let body='';
-  if(state.libraryTab==='rounds') body=rounds.length?'<div class="rows">'+rounds.map(roundRow).join('')+'</div>':'<div class="empty">Keine Lernrunden</div>';
-  else if(state.libraryTab==='deleted') body=deleted.length?'<div class="rows">'+deleted.map(n=>'<article class="row deleted"><div><span class="fileicon">'+icon('trash',16)+'</span><span class="rowcopy"><strong>'+esc(n.title)+'</strong><small>Gelöscht '+fmtDate(n.deletedAt)+'</small></span></div><footer><button data-action="restore-note" data-id="'+n.id+'">Wiederherstellen</button><button data-action="purge-note" data-id="'+n.id+'">Löschen</button></footer></article>').join('')+'</div>':'<div class="empty">Papierkorb ist leer</div>';
-  else if(state.libraryView==='grid') body=notes.length?'<div class="docgrid">'+notes.map(n=>'<button data-action="open-note" data-id="'+n.id+'"><span class="sheet '+esc(n.paper||'ruled')+'"></span><strong>'+esc(n.title)+'</strong><small>'+esc(n.subject||'')+'</small></button>').join('')+'</div>':'<div class="empty">Keine Notizen</div>';
+  if(state.libraryTab==='rounds')body=rounds.length?'<div class="rows">'+rounds.map(roundRow).join('')+'</div>':'<div class="empty">Keine Lernrunden</div>';
+  else if(state.libraryTab==='deleted')body=deleted.length?'<div class="rows">'+deleted.map(n=>'<article class="row deleted"><div><span class="fileicon">'+icon('trash',16)+'</span><span class="rowcopy"><strong>'+esc(n.title)+'</strong><small>Gelöscht '+fmtDate(n.deletedAt)+'</small></span></div><footer><button data-action="restore-note" data-id="'+n.id+'">Wiederherstellen</button><button data-action="purge-note" data-id="'+n.id+'">Löschen</button></footer></article>').join('')+'</div>':'<div class="empty">Papierkorb ist leer</div>';
+  else if(state.libraryView==='grid')body=notes.length?'<div class="docgrid">'+notes.map(n=>'<button data-action="open-note" data-id="'+n.id+'"><span class="sheet '+esc(n.paper||'ruled')+'"></span><strong>'+esc(n.title)+'</strong><small>'+esc(n.subject||'')+(n.pinned?' · angepinnt':'')+'</small></button>').join('')+'</div>':'<div class="empty">Keine Notizen</div>';
   else body=notes.length?'<div class="rows">'+notes.map(noteRow).join('')+'</div>':'<div class="empty">Keine Notizen</div>';
 
+  const subjects=subjectList();
   root.innerHTML=shell(
     '<section class="libraryhead"><h1>Sammlung</h1><button data-action="new-note">'+icon('plus',14)+' Neu</button></section>'+
     '<label class="searchbar">'+icon('search',15)+'<input id="librarySearch" placeholder="Suchen" value="'+esc(state.libraryQuery)+'"></label>'+
-    '<div class="tabs">'+[['notes','Notizen'],['favorites','Favoriten'],['rounds','Lernrunden'],['deleted','Gelöscht']].map(x=>'<button data-action="library-tab" data-tab="'+x[0]+'" class="'+(state.libraryTab===x[0]?'active':'')+'">'+x[1]+'</button>').join('')+'</div>'+
-    ((state.libraryTab==='notes'||state.libraryTab==='favorites')?'<div class="toolbarline"><select id="sortSelect"><option value="recent">Zuletzt geändert</option><option value="title">Titel</option></select><button data-action="toggle-library-view">'+icon(state.libraryView==='list'?'grid':'list',15)+'</button><span></span><button data-action="backup">'+icon('download',13)+' Sichern</button><label>'+icon('upload',13)+' Import<input id="backupInput" type="file" accept="application/json"></label></div>':'')+body,
+    '<div class="tabs">'+[['notes','Notizen'],['pinned','Angepinnt'],['favorites','Favoriten'],['rounds','Lernrunden'],['deleted','Gelöscht']].map(x=>'<button data-action="library-tab" data-tab="'+x[0]+'" class="'+(state.libraryTab===x[0]?'active':'')+'">'+x[1]+'</button>').join('')+'</div>'+
+    ((['notes','pinned','favorites'].includes(state.libraryTab))?'<div class="toolbarline"><select id="subjectSelect"><option value="all">Alle Fächer</option>'+subjects.map(s=>'<option value="'+esc(s)+'">'+esc(s)+'</option>').join('')+'</select><select id="sortSelect"><option value="recent">Zuletzt geändert</option><option value="title">Titel</option></select><button data-action="toggle-library-view">'+icon(state.libraryView==='list'?'grid':'list',15)+'</button><span></span><button data-action="backup">'+icon('download',13)+' Sichern</button><label>'+icon('upload',13)+' Import<input id="backupInput" type="file" accept="application/json"></label></div>':'')+
+    body,
     'library'
   );
-  const s=$('#librarySearch'); if(s) s.oninput=e=>{state.libraryQuery=e.target.value;renderLibrary();};
-  const sort=$('#sortSelect'); if(sort){sort.value=state.librarySort;sort.onchange=e=>{state.librarySort=e.target.value;renderLibrary();};}
-  const bi=$('#backupInput'); if(bi) bi.onchange=e=>restoreBackup(e.target.files?.[0]);
+  const search=$('#librarySearch');if(search)search.oninput=e=>{state.libraryQuery=e.target.value;renderLibrary();};
+  const subject=$('#subjectSelect');if(subject){subject.value=state.librarySubject;subject.onchange=e=>{state.librarySubject=e.target.value;renderLibrary();};}
+  const sort=$('#sortSelect');if(sort){sort.value=state.librarySort;sort.onchange=e=>{state.librarySort=e.target.value;renderLibrary();};}
+  const bi=$('#backupInput');if(bi)bi.onchange=e=>restoreBackup(e.target.files?.[0]);
 }
 function backup(){
   const payload={version:10,notes:data.notes(),rounds:data.rounds(),reviews:data.reviews(),profile:data.profile(),deleted:data.deleted(),strokes:{}};
