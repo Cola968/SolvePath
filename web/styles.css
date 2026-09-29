@@ -2506,3 +2506,82 @@ button:active{transform:scale(.975);opacity:.82}
 .fatal button{
   min-height:48px;border:0;border-radius:12px;background:var(--ss-blue);color:white;padding:0 18px;font-size:15px;font-weight:600
 }
+
+
+/* V14.2 — native document gestures + final material refinement */
+.v14-docrow{
+  overflow:hidden;
+  touch-action:pan-y;
+}
+.v14-docrow>.v14-rowmain{
+  position:relative;
+  z-index:2;
+  transition:transform .26s cubic-bezier(.22,.78,.25,1),background-color .16s ease;
+  background:var(--ss-content);
+}
+.v14-swipeaction{
+  position:absolute;
+  z-index:1;
+  top:0;bottom:0;
+  width:82px;
+  border:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  color:#fff;
+  font-size:11px;
+  font-weight:600;
+}
+.v14-swipeaction small{font-size:11px;font-weight:600}
+.v14-swipeaction.pin{left:0;background:var(--ss-blue)}
+.v14-swipeaction.delete{right:0;background:var(--ss-red)}
+.v14-docrow.swipe-right>.v14-rowmain{transform:translateX(82px)}
+.v14-docrow.swipe-left>.v14-rowmain{transform:translateX(-82px)}
+.v14-docrow.swipe-left:after,.v14-docrow.swipe-right:after{opacity:0}
+.v14-docrow>.v14-rowmain:active{background:rgba(118,118,128,.055)}
+.v14-actionsheet .danger,.v14-actionsheet button.danger{color:var(--ss-red)!important}
+.v14-actionsheet>header>div{display:grid;gap:2px;min-width:0}
+.v14-actionsheet>header>div h2{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.v14-actionsheet>header>div small{
+  color:var(--ss-secondary);
+  font-size:12px;
+  line-height:16px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+/* Optically lighter materials: glass stays on controls, content stays solid. */
+@supports(backdrop-filter:blur(1px)){
+  .v14-navbar.collapsed,.v14-tabbar:before,.v14-editornav,.v14-editorbar{
+    background:color-mix(in srgb,var(--ss-material-strong) 92%,transparent);
+  }
+}
+.v14-tabbar:before{box-shadow:0 -.5px 0 rgba(255,255,255,.42)}
+.v14-navbar.collapsed{box-shadow:0 .5px 0 rgba(255,255,255,.34)}
+.v14-toolglass,.v14-toolaccessory{
+  box-shadow:0 1px 1px rgba(0,0,0,.035),0 5px 18px rgba(0,0,0,.055);
+}
+
+/* Better optical alignment and readable metadata. */
+.v14-docrow>button{min-height:80px}
+.v14-doccopy small{font-size:13.5px;line-height:18px}
+.v14-sectionhead h2{font-weight:660!important}
+.v14-largetitle h1{font-weight:720!important}
+.v14-focuscopy strong{font-weight:680}
+.v14-topiclist strong{font-weight:590}
+
+/* iOS-like tap feedback without web-hover artifacts on touch devices. */
+@media(hover:none){
+  .v14-circle:hover,.v14-contextmenu button:hover,.v14-contextmenu label:hover{background:transparent}
+}
+@media(hover:hover){
+  .v14-docrow>.v14-rowmain:hover{background:rgba(118,118,128,.045)}
+}
+
+/* Safer keyboard / bottom controls. */
+@supports(height:100svh){
+  .v14-app,.v14-study,.v14-editor{min-height:100svh}
+}
