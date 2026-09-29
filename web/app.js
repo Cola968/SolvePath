@@ -49,6 +49,10 @@ const ICONS = {
 function icon(name,size=18){ return '<svg class="icon" width="'+size+'" height="'+size+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(ICONS[name]||'')+'</svg>'; }
 ICONS.pin='<path d="M9 4h6"/><path d="m10 4-1 6-3 3h12l-3-3-1-6"/><path d="M12 13v8"/>';
 ICONS.folder='<path d="M3 6h7l2 2h9v10H3z"/><path d="M3 6V4h6l2 2"/>';
+ICONS.homeFill='<path fill="currentColor" stroke="none" d="M2.7 10.5 12 3l9.3 7.5v10.2a.8.8 0 0 1-.8.8h-5.7v-7h-5.6v7H3.5a.8.8 0 0 1-.8-.8z"/>';
+ICONS.noteFill='<path fill="currentColor" stroke="none" d="M5 2.8h10.2L19.2 7v14.2H5z"/><path stroke="white" stroke-width="1.5" d="M9 11h6M9 15h6"/>';
+ICONS.repeatFill='<path fill="currentColor" stroke="none" d="M20.8 6.2 17 2.8v2.4h-5a8 8 0 0 0-7.7 10.1l2.1-.6A5.8 5.8 0 0 1 12 7.4h5v2.2zM3.2 17.8 7 21.2v-2.4h5a8 8 0 0 0 7.7-10.1l-2.1.6A5.8 5.8 0 0 1 12 16.6H7v-2.2z"/>';
+ICONS.stackFill='<path fill="currentColor" stroke="none" d="m12 2.5 9.5 5.2L12 13 2.5 7.7z"/><path fill="currentColor" stroke="none" opacity=".82" d="m3.2 11.2 8.8 4.9 8.8-4.9v2.5L12 18.6l-8.8-4.9z"/><path fill="currentColor" stroke="none" opacity=".62" d="m3.2 15.6 8.8 4.9 8.8-4.9v2.2L12 22.5l-8.8-4.7z"/>';
 
 const KEYS = {
   notes:'ss10:notes', rounds:'ss10:rounds', reviews:'ss10:reviews', profile:'ss10:profile',
@@ -157,7 +161,7 @@ const state = {
   libraryTab:'notes', libraryView:'list', libraryQuery:'', librarySort:'recent', librarySubject:'all', libraryFolder:'all', newMenu:false, folderModal:false, folderModalMode:'create', folderEditId:null, folderMenu:false,
   recentColors:load('ss11:recentColors',['#20242B','#3568D4','#B75850','#26785B','#D39A23']),
   createMode:'photo', createText:'', createFile:null, createPreview:'', challenge:null, q:0, answered:false, score:0, lastCorrect:false, lastExplanation:'', quizMode:'normal',
-  toast:'', quickCreateOpen:false, pagesSheetOpen:false
+  toast:'', quickCreateOpen:false, pagesSheetOpen:false, sortSheetOpen:false
 };
 
 function toast(msg){
@@ -1196,6 +1200,301 @@ function renderNotes(){
   bindNote(n,p);
 }
 
+
+
+/* =========================
+   SNAPSTUDY V14 — NATIVE MATERIAL UI
+   ========================= */
+function v14Haptic(ms=8){
+  try{if(navigator.vibrate)navigator.vibrate(ms);}catch{}
+}
+function v14RenderCurrent(){
+  if(state.screen==='library')renderLibrary();
+  else if(state.screen==='reviews')renderReviews();
+  else if(state.screen==='notes')renderNotes();
+  else renderHome();
+}
+function v14BindLargeTitle(){
+  const scroller=document.querySelector('.v14-scroll'),bar=document.querySelector('.v14-navbar');
+  if(!scroller||!bar)return;
+  const sync=()=>bar.classList.toggle('collapsed',scroller.scrollTop>44);
+  scroller.addEventListener('scroll',sync,{passive:true});sync();
+}
+function v14TimeEstimate(count){return Math.max(2,Math.round(count*1.1));}
+function v14Preview(page,large=false){
+  page=page||{};
+  const image=(page.images||[])[0];
+  const text=String(page.text||'').trim();
+  const cls='v14-paperthumb '+(large?'large ':'')+esc(page.paper||'ruled');
+  if(image?.src)return '<span class="'+cls+' image" style="background-image:url('+JSON.stringify(image.src)+')"></span>';
+  const excerpt=esc(text.slice(0,110)||' ');
+  return '<span class="'+cls+'"><i></i><i></i><i></i><em>'+excerpt+'</em></span>';
+}
+function v14DocRow(n){
+  const page=(n.pages||[])[0]||{};
+  const pages=(n.pages||[]).length;
+  const subject=n.subject&&n.subject!=='Ohne Fach'?n.subject:'Dokument';
+  return '<article class="v14-docrow"><button data-action="open-note" data-id="'+esc(n.id)+'">'+
+    v14Preview(page,false)+
+    '<span class="v14-doccopy"><strong>'+esc(n.title||'Unbenannt')+'</strong><small>'+esc(subject)+' · '+pages+' '+(pages===1?'Seite':'Seiten')+' · '+fmtDate(n.updatedAt||Date.now())+'</small></span>'+
+    (n.pinned?'<span class="v14-pin">'+icon('pin',15)+'</span>':'')+
+    '<span class="v14-rowarrow">'+icon('arrow',14)+'</span>'+
+  '</button></article>';
+}
+function v14Section(title,action='',act=''){
+  return '<div class="v14-sectionhead"><h2>'+esc(title)+'</h2>'+(action?'<button data-action="'+act+'">'+esc(action)+'</button>':'')+'</div>';
+}
+function v14LargeNav(title,subtitle='',action=''){
+  return '<header class="v14-navbar"><div class="v14-navleft"><strong>'+esc(title)+'</strong></div><div class="v14-navactions">'+action+'</div></header>'+
+    '<section class="v14-largetitle"><h1>'+esc(title)+'</h1>'+(subtitle?'<p>'+esc(subtitle)+'</p>':'')+'</section>';
+}
+function v14Empty(title,copy,action='',label=''){
+  return '<section class="v14-empty"><span>'+icon('note',24)+'</span><h3>'+esc(title)+'</h3><p>'+esc(copy)+'</p>'+(action?'<button class="v14-secondary" data-action="'+action+'">'+esc(label||'Neu')+'</button>':'')+'</section>';
+}
+function v14CreateSheet(includeFolder=false){
+  if(!state.quickCreateOpen)return '';
+  return '<div class="v14-dim" data-action="close-create-sheet"></div><section class="v14-actionsheet">'+
+    '<div class="v14-sheetgrabber"></div><header><h2>Neu</h2><button data-action="close-create-sheet">'+icon('close',19)+'</button></header>'+
+    '<button data-action="new-note"><span>'+icon('note',21)+'</span><div><strong>Neue Notiz</strong><small>Leeres Dokument</small></div>'+icon('arrow',14)+'</button>'+
+    '<button data-action="create-photo"><span>'+icon('camera',21)+'</span><div><strong>Dokument scannen</strong><small>Kamera oder Foto</small></div>'+icon('arrow',14)+'</button>'+
+    '<button data-action="create-text"><span>'+icon('text',21)+'</span><div><strong>Text einfügen</strong><small>Lernfragen aus Text</small></div>'+icon('arrow',14)+'</button>'+
+    (includeFolder?'<button data-action="new-folder"><span>'+icon('folder',21)+'</span><div><strong>Neuer Ordner</strong><small>Dokumente organisieren</small></div>'+icon('arrow',14)+'</button>':'')+
+  '</section>';
+}
+function nav(active){
+  const items=[['home','Heute','home','homeFill'],['notes','Notizen','note','noteFill'],['reviews','Wiederholen','repeat','repeatFill'],['library','Sammlung','stack','stackFill']];
+  return '<nav class="v14-tabbar"><div>'+items.map(x=>'<button data-action="'+x[0]+'" class="'+(active===x[0]?'active':'')+'"><span>'+icon(active===x[0]?x[3]:x[2],22)+'</span><small>'+x[1]+'</small></button>').join('')+'</div></nav>';
+}
+function shell(content,active='home',opts={}){
+  return '<main class="v14-app '+(opts.wide?'wide':'')+'"><div class="v14-scroll">'+content+'</div>'+(opts.noNav?'':nav(active))+'</main>';
+}
+
+function renderHome(){
+  state.screen='home';
+  const notes=data.notes().slice().sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  const pinned=notes.filter(n=>n.pinned).slice(0,3);
+  const recent=notes.filter(n=>!pinned.some(p=>p.id===n.id)).slice(0,4);
+  const due=data.reviews().filter(r=>(r.dueAt||0)<=Date.now());
+  const rounds=data.rounds().slice().sort((a,b)=>(b.lastPlayedAt||0)-(a.lastPlayedAt||0));
+  const continueRound=rounds[0];
+  const add='<button class="v14-circle" data-action="open-create-sheet" aria-label="Neu">'+icon('plus',21)+'</button>';
+  let html=v14LargeNav('Heute',v13Date(),add);
+
+  if(due.length){
+    html+='<section class="v14-focus">'+
+      '<div class="v14-focuscopy"><span>Wiederholen</span><strong>'+due.length+' '+(due.length===1?'Karte':'Karten')+' fällig</strong><small>Etwa '+v14TimeEstimate(due.length)+' Minuten</small></div>'+
+      '<button data-action="start-due">'+icon('play',16)+'<span>Jetzt wiederholen</span></button>'+
+    '</section>';
+  }
+
+  if(continueRound){
+    html+='<section class="v14-section">'+v14Section('Weiterlernen')+
+      '<button class="v14-continue" data-action="play-round" data-id="'+esc(continueRound.id)+'">'+
+        '<span class="v14-roundpreview">'+icon('play',18)+'</span>'+
+        '<span><strong>'+esc(continueRound.title||'Lernrunde')+'</strong><small>'+esc(continueRound.topic||'Lernen')+' · '+((continueRound.questions||[]).length||0)+' Fragen</small></span>'+
+        icon('arrow',15)+
+      '</button></section>';
+  }
+
+  if(pinned.length){
+    html+='<section class="v14-section">'+v14Section('Angepinnt','Alle','library-pinned')+'<div class="v14-list">'+pinned.map(v14DocRow).join('')+'</div></section>';
+  }
+
+  html+='<section class="v14-section">'+v14Section('Zuletzt','Alle','library')+
+    (recent.length?'<div class="v14-list">'+recent.map(v14DocRow).join('')+'</div>':v14Empty('Noch keine Dokumente','Erstelle eine Notiz oder importiere Lernmaterial.','open-create-sheet','Neu erstellen'))+
+  '</section>'+v14CreateSheet(false);
+
+  root.innerHTML=shell(html,'home');
+  requestAnimationFrame(v14BindLargeTitle);
+}
+
+function renderLibrary(){
+  state.screen='library';
+  const folders=data.folders();
+  let notes=data.notes().slice(),rounds=data.rounds().slice();
+  const q=state.libraryQuery.trim().toLowerCase();
+  if(state.libraryFolder!=='all')notes=notes.filter(n=>n.folderId===state.libraryFolder);
+  if(state.libraryTab==='pinned')notes=notes.filter(n=>n.pinned);
+  if(q){
+    notes=notes.filter(n=>{
+      const text=(n.pages||[]).map(p=>p.text||'').join(' ');
+      return (String(n.title||'')+' '+String(n.subject||'')+' '+text+' '+(n.tags||[]).join(' ')).toLowerCase().includes(q);
+    });
+    rounds=rounds.filter(r=>(String(r.title||'')+' '+String(r.topic||'')).toLowerCase().includes(q));
+  }
+  notes.sort((a,b)=>state.librarySort==='title'?String(a.title).localeCompare(String(b.title),'de'):(b.updatedAt||0)-(a.updatedAt||0));
+
+  const add='<button class="v14-circle" data-action="library-new" aria-label="Neu">'+icon('plus',21)+'</button>';
+  const title=state.libraryFolder==='all'?'Sammlung':folderName(state.libraryFolder);
+  let html=v14LargeNav(title,'',add)+
+    '<label class="v14-search">'+icon('search',18)+'<input id="librarySearch" placeholder="Suchen" value="'+esc(state.libraryQuery)+'"></label>'+
+    '<div class="v14-segment"><button data-action="library-tab" data-tab="notes" class="'+(state.libraryTab==='notes'?'active':'')+'">Alle</button><button data-action="library-tab" data-tab="pinned" class="'+(state.libraryTab==='pinned'?'active':'')+'">Angepinnt</button><button data-action="library-tab" data-tab="rounds" class="'+(state.libraryTab==='rounds'?'active':'')+'">Lernrunden</button></div>';
+
+  if(state.libraryFolder!=='all'){
+    html+='<div class="v14-foldercrumb"><button data-action="all-folders">'+icon('back',16)+' Alle Ordner</button><button data-action="folder-more">'+icon('more',20)+'</button></div>';
+  }
+
+  if(state.libraryTab==='notes'&&state.libraryFolder==='all'&&!q&&folders.length){
+    html+='<section class="v14-section">'+v14Section('Ordner','Neu','new-folder')+'<div class="v14-foldergrid">'+
+      folders.map(f=>'<button data-action="open-folder" data-id="'+esc(f.id)+'"><span class="v14-foldericon">'+icon('folder',22)+'</span><strong>'+esc(f.name)+'</strong><small>'+data.notes().filter(n=>n.folderId===f.id).length+' Dokumente</small></button>').join('')+
+    '</div></section>';
+  }
+
+  html+='<section class="v14-section">'+v14Section(state.libraryTab==='rounds'?'Lernrunden':'Dokumente','Sortieren','open-sort-sheet');
+
+  if(state.libraryTab==='rounds'){
+    html+=rounds.length?'<div class="v14-list">'+rounds.map(r=>'<article class="v14-docrow"><button data-action="play-round" data-id="'+esc(r.id)+'"><span class="v14-roundthumb">'+icon('stack',20)+'</span><span class="v14-doccopy"><strong>'+esc(r.title||'Lernrunde')+'</strong><small>'+esc(r.topic||'Lernen')+' · '+((r.questions||[]).length)+' Fragen</small></span><span class="v14-rowarrow">'+icon('arrow',14)+'</span></button></article>').join('')+'</div>':v14Empty('Noch keine Lernrunden','Erstelle Lernfragen aus einem Dokument oder Text.');
+  }else{
+    html+=notes.length?'<div class="v14-list">'+notes.map(v14DocRow).join('')+'</div>':v14Empty('Keine Dokumente','Hier ist noch nichts gespeichert.','library-new','Dokument erstellen');
+  }
+  html+='</section>';
+
+  if(state.sortSheetOpen){
+    html+='<div class="v14-dim" data-action="close-sort-sheet"></div><section class="v14-actionsheet compact"><div class="v14-sheetgrabber"></div><header><h2>Sortieren</h2><button data-action="close-sort-sheet">'+icon('close',19)+'</button></header><button data-action="set-sort" data-sort="recent"><span>'+icon('repeat',19)+'</span><div><strong>Zuletzt geändert</strong></div>'+(state.librarySort==='recent'?icon('check',17):'')+'</button><button data-action="set-sort" data-sort="title"><span>'+icon('text',19)+'</span><div><strong>Titel</strong></div>'+(state.librarySort==='title'?icon('check',17):'')+'</button></section>';
+  }
+  if(state.folderMenu){
+    html+='<div class="v14-contextmenu folder"><button data-action="rename-folder">'+icon('text',17)+' Umbenennen</button><button class="danger" data-action="delete-folder">'+icon('trash',17)+' Ordner löschen</button></div>';
+  }
+  if(state.folderModal){
+    html+='<div class="v14-dim"></div><section class="v14-alert"><h2>'+(state.folderModalMode==='rename'?'Ordner umbenennen':'Neuer Ordner')+'</h2><input id="folderNameInput" value="'+esc(state.folderModalMode==='rename'?folderName(state.folderEditId):'')+'" placeholder="Name"><div><button data-action="close-folder-modal">Abbrechen</button><button data-action="'+(state.folderModalMode==='rename'?'save-folder-name':'create-folder')+'">'+(state.folderModalMode==='rename'?'Sichern':'Erstellen')+'</button></div></section>';
+  }
+  html+=v14CreateSheet(true);
+
+  root.innerHTML=shell(html,'library');
+  const search=$('#librarySearch');if(search)search.oninput=e=>{state.libraryQuery=e.target.value;renderLibrary();};
+  if(state.folderModal)requestAnimationFrame(()=>$('#folderNameInput')?.focus());
+  requestAnimationFrame(v14BindLargeTitle);
+}
+
+function renderReviews(){
+  state.screen='reviews';
+  const all=data.reviews().slice().sort((a,b)=>(a.dueAt||0)-(b.dueAt||0));
+  const due=all.filter(r=>(r.dueAt||0)<=Date.now()),later=all.filter(r=>(r.dueAt||0)>Date.now());
+  const grouped=list=>{const m={};list.forEach(r=>{const k=r.sourceTitle||'Lernstoff';(m[k]||(m[k]=[])).push(r);});return Object.entries(m);};
+
+  let html=v14LargeNav('Wiederholen','')+
+    '<section class="v14-reviewfocus"><div><span>Heute</span><strong>'+due.length+' '+(due.length===1?'Karte':'Karten')+'</strong><small>ca. '+v14TimeEstimate(due.length)+' Minuten</small></div>'+
+    (due.length?'<button class="v14-primary" data-action="start-due">'+icon('play',16)+' Wiederholung starten</button>':'')+'</section>';
+
+  html+='<section class="v14-section">'+v14Section('Heute fällig')+
+    (due.length?'<div class="v14-topiclist">'+grouped(due).map(([name,items])=>'<div><span></span><div><strong>'+esc(name)+'</strong><small>'+items.length+' '+(items.length===1?'Karte':'Karten')+'</small></div></div>').join('')+'</div>':v14Empty('Alles erledigt','Für heute ist keine Wiederholung mehr fällig.'))+
+  '</section>';
+
+  if(later.length){
+    html+='<section class="v14-section">'+v14Section('Demnächst')+'<div class="v14-topiclist later">'+grouped(later.slice(0,10)).map(([name,items])=>'<div><span></span><div><strong>'+esc(name)+'</strong><small>'+fmtDate(Math.min(...items.map(x=>x.dueAt)))+' · '+items.length+' '+(items.length===1?'Karte':'Karten')+'</small></div></div>').join('')+'</div></section>';
+  }
+
+  root.innerHTML=shell(html,'reviews');
+  requestAnimationFrame(v14BindLargeTitle);
+}
+
+function renderCreate(mode){
+  state.screen='create';state.createMode=mode||state.createMode;
+  let html='<header class="v14-compactnav"><button data-action="back">'+icon('back',21)+'</button><strong>Neue Lernrunde</strong><span></span></header>'+
+    '<main class="v14-create"><div class="v14-segment"><button data-action="create-photo" class="'+(state.createMode==='photo'?'active':'')+'">Foto</button><button data-action="create-text" class="'+(state.createMode==='text'?'active':'')+'">Text</button></div>';
+  if(state.createMode==='photo'){
+    html+='<label class="v14-upload">'+(state.createPreview?'<img src="'+state.createPreview+'" alt="">':'<span>'+icon('camera',25)+'</span><strong>Dokument auswählen</strong><small>Kamera oder Fotomediathek</small>')+'<input id="photoInput" type="file" accept="image/*" capture="environment"></label>';
+  }
+  html+='<label class="v14-field"><span>'+(state.createMode==='text'?'Text':'Kontext (optional)')+'</span><textarea id="createText" placeholder="'+(state.createMode==='text'?'Text einfügen':'Optionaler Hinweis')+'">'+esc(state.createText)+'</textarea></label><button class="v14-primary full" data-action="analyze">Fragen erstellen</button></main>';
+  root.innerHTML='<main class="v14-app">'+html+'</main>';
+  const pi=$('#photoInput');if(pi)pi.onchange=e=>{const file=e.target.files?.[0];if(!file)return;state.createFile=file;if(state.createPreview)URL.revokeObjectURL(state.createPreview);state.createPreview=URL.createObjectURL(file);renderCreate('photo');};
+}
+
+function renderQuestion(){
+  const ch=state.challenge,q=ch.questions[state.q],total=ch.questions.length,pct=((state.q+1)/total)*100;
+  let html='<main class="v14-study"><header><button data-action="home">'+icon('close',20)+'</button><div><i style="width:'+pct+'%"></i></div><small>'+(state.q+1)+' / '+total+'</small></header><section class="v14-studybody"><span>'+esc(ch.topic||'Lernrunde')+'</span><h1>'+esc(q.prompt)+'</h1>';
+  if(!state.answered){
+    if(q.choices?.length){
+      html+='<div class="v14-answers">'+q.choices.map((x,i)=>'<button data-action="answer" data-value="'+esc(x)+'"><span>'+String.fromCharCode(65+i)+'</span><strong>'+esc(x)+'</strong></button>').join('')+'</div>';
+    }else{
+      html+='<div class="v14-freeanswer"><input id="answerInput" placeholder="Deine Antwort"><button class="v14-primary" data-action="submit-answer">Prüfen</button></div>';
+    }
+  }else{
+    html+='<div class="v14-feedback '+(state.lastCorrect?'good':'bad')+'"><strong>'+(state.lastCorrect?'Richtig':'Noch nicht')+'</strong>'+(state.lastExplanation?'<p>'+esc(state.lastExplanation)+'</p>':'')+'</div>';
+    if(state.quizMode==='review'){
+      html+='<div class="v14-rating"><span>Wie sicher warst du?</span><div><button data-action="review-rate" data-rate="again">Nochmal</button><button data-action="review-rate" data-rate="hard">Schwierig</button><button data-action="review-rate" data-rate="good">Gut</button><button data-action="review-rate" data-rate="easy">Einfach</button></div></div>';
+    }else html+='<button class="v14-primary full next" data-action="next-question">'+(state.q===total-1?'Ergebnis':'Weiter')+'</button>';
+  }
+  html+='</section></main>';root.innerHTML=html;
+}
+
+function finishChallenge(){
+  const total=state.challenge.questions.length,pct=Math.round(state.score/total*100),p=data.profile(),today=dayKey(),y=dayKey(new Date(Date.now()-86400000));
+  if(p.last!==today){p.streak=p.last===y?(p.streak||0)+1:1;p.last=today;}
+  p.xp=(p.xp||0)+Math.max(10,pct);p.sessions=(p.sessions||0)+1;p.perfects=(p.perfects||0)+(pct===100?1:0);if(state.quizMode==='review')p.reviewsDone=(p.reviewsDone||0)+1;data.setProfile(p);
+  recordActivity(state.quizMode==='review'?'reviews':'sessions');
+  if(state.quizMode!=='review'){const r=Object.assign({},state.challenge,{id:state.challenge.id||uid('round'),lastPlayedAt:Date.now()});data.setRounds([r,...data.rounds().filter(x=>x.id!==r.id)].slice(0,50));}
+  evalTrophies();v14Haptic(18);
+  root.innerHTML='<main class="v14-result"><span>'+icon('check',27)+'</span><h1>Fertig</h1><p>'+state.score+' von '+total+' richtig</p><strong>'+pct+'%</strong><button class="v14-primary" data-action="home">Zur Übersicht</button></main>';
+}
+
+function v14EditorContext(n,p){
+  if(state.selection&&state.selection.noteId===n.id&&state.selection.pageId===p.id&&state.selection.ids.length){
+    return '<div class="v14-objectbar"><button data-action="copy-selection">'+icon('copy',17)+'</button><button data-action="recolor-selection"><i style="background:'+state.color+'"></i></button><button class="danger" data-action="delete-selection">'+icon('trash',17)+'</button></div>';
+  }
+  if(state.selectedImage){
+    return '<div class="v14-objectbar"><button data-action="image-smaller">−</button><button data-action="image-larger">+</button><button class="danger" data-action="image-delete">'+icon('trash',17)+'</button></div>';
+  }
+  return '';
+}
+function v14ToolOptions(){
+  if(state.noteTool==='pen'||state.noteTool==='marker'){
+    const isPen=state.noteTool==='pen',size=isPen?state.penSize:state.markerSize,action=isPen?'pen-size':'marker-size',sizes=isPen?[3,5,8]:[18,28,40];
+    return '<div class="v14-toolaccessory"><div class="v14-colors">'+state.recentColors.slice(0,5).map(col=>'<button data-action="note-color" data-color="'+col+'" class="'+(state.color===col?'active':'')+'" style="--c:'+col+'"></button>').join('')+'</div><div class="v14-sizes">'+sizes.map(v=>'<button data-action="'+action+'" data-size="'+v+'" class="'+(size===v?'active':'')+'"><i style="--s:'+Math.max(3,Math.min(12,isPen?v:v/4))+'px"></i></button>').join('')+'</div></div>';
+  }
+  if(state.noteTool==='eraser'){
+    return '<div class="v14-toolaccessory"><div class="v14-eraserseg"><button data-action="eraser-mode" data-mode="precision" class="'+(state.eraserMode==='precision'?'active':'')+'">Pixel</button><button data-action="eraser-mode" data-mode="stroke" class="'+(state.eraserMode==='stroke'?'active':'')+'">Objekt</button></div><div class="v14-sizes">'+[30,55,90].map(v=>'<button data-action="eraser-size" data-size="'+v+'" class="'+(state.eraserSize===v?'active':'')+'">'+(v===30?'S':v===55?'M':'L')+'</button>').join('')+'</div></div>';
+  }
+  return '';
+}
+function renderNotes(){
+  state.screen='notes';
+  const n=getNote();if(!n){state.screen='library';renderLibrary();return;}
+  const p=getPage(n);if(!p){addPage();return;}
+  const pages=n.pages||[],searchTerm=state.docSearchQuery.trim().toLowerCase();
+  const results=searchTerm?pages.flatMap((pg,i)=>{const hay=String(pg.text||'').toLowerCase(),out=[];let at=hay.indexOf(searchTerm),guard=0;while(at>=0&&guard<10){out.push({pageId:pg.id,page:i+1,start:at,snippet:String(pg.text||'').slice(Math.max(0,at-28),at+searchTerm.length+55).replace(/\n+/g,' ')});at=hay.indexOf(searchTerm,at+Math.max(1,searchTerm.length));guard++;}return out;}):[];
+
+  let html='<section class="v14-editor">'+
+    '<header class="v14-editornav"><button data-action="library">'+icon('back',22)+'</button><div><input id="noteTitle" value="'+esc(n.title)+'"><small id="saveStatus">Gespeichert</small></div><button data-action="note-more">'+icon('more',22)+'</button></header>';
+
+  if(state.noteMode==='edit'&&!state.focus){
+    html+='<nav class="v14-toolglass">'+[['pen','pen'],['marker','marker'],['eraser','eraser'],['select','select'],['text','text']].map(x=>'<button data-action="note-tool" data-tool="'+x[0]+'" class="'+(state.noteTool===x[0]?'active':'')+'">'+icon(x[1],21)+'</button>').join('')+'<button data-action="toggle-tool-menu" class="'+(state.toolMenu?'active':'')+'">'+icon('plus',21)+'</button></nav>'+v14ToolOptions();
+  }
+  if(state.toolMenu){
+    html+='<div class="v14-contextmenu insert"><button data-action="note-tool" data-tool="shape">'+icon('shape',18)+' Form</button><label>'+icon('image',18)+' Bild<input id="imageInput" type="file" accept="image/*"></label></div>';
+  }
+  if(state.docSearchOpen){
+    html+='<section class="v14-docsearch"><label>'+icon('search',18)+'<input id="docSearchInput" value="'+esc(state.docSearchQuery)+'" placeholder="Im Dokument suchen"><button data-action="toggle-doc-search">Abbrechen</button></label>'+(searchTerm?'<div>'+ (results.length?results.map(r=>'<button data-action="doc-search-result" data-page="'+esc(r.pageId)+'" data-start="'+r.start+'"><strong>Seite '+r.page+'</strong><span>'+esc(r.snippet)+'</span></button>').join(''):'<small>Keine Treffer</small>')+'</div>':'')+'</section>';
+  }
+
+  html+='<div class="v14-canvas"><div class="paper '+esc(p.paper||'ruled')+'">'+
+    '<textarea id="noteText" '+(state.noteMode==='view'?'readonly':'')+' class="'+(state.noteMode==='edit'&&state.noteTool==='text'?'editing':'')+'" placeholder="Text eingeben...">'+esc(p.text||'')+'</textarea>'+
+    '<canvas id="noteCanvas" width="1000" height="1400"></canvas>'+
+    '<div id="imageLayer">'+(p.images||[]).map(img=>'<img data-image-id="'+esc(img.id)+'" class="'+(state.selectedImage===img.id?'selected':'')+'" src="'+img.src+'" style="left:'+img.x+'%;top:'+img.y+'%;width:'+img.w+'%;">').join('')+'</div>'+
+    v14EditorContext(n,p)+
+  '</div></div>';
+
+  html+='<footer class="v14-editorbar"><button data-action="toggle-pages">'+icon('note',19)+'<span>Seiten</span></button><button data-action="template-menu">'+icon('grid',19)+'<span>Vorlage</span></button><span></span><button class="learn" data-action="note-study">'+icon('play',17)+'<span>Lernen</span></button></footer>';
+
+  if(state.pagesSheetOpen){
+    html+='<div class="v14-dim" data-action="toggle-pages"></div><section class="v14-pagesheet"><div class="v14-sheetgrabber"></div><header><h2>Seiten</h2><button data-action="add-page">'+icon('plus',20)+'</button></header><div class="v14-pagescroller">'+pages.map((pg,i)=>'<button data-action="open-page" data-id="'+esc(pg.id)+'" class="'+(pg.id===p.id?'active':'')+'">'+v14Preview(pg,true)+'<small>Seite '+(i+1)+'</small></button>').join('')+'</div></section>';
+  }
+
+  html+='<div id="noteMenu" class="v14-contextmenu note hidden"><button data-action="toggle-doc-search">'+icon('search',17)+' Im Dokument suchen</button><button data-action="note-mode" data-mode="'+(state.noteMode==='edit'?'view':'edit')+'">'+icon('note',17)+' '+(state.noteMode==='edit'?'Ansicht':'Bearbeiten')+'</button><button data-action="note-info">'+icon('text',17)+' Details</button><button data-action="mark-note-review">'+icon('repeat',17)+' Wiederholen</button><button data-action="export-note">'+icon('download',17)+' Exportieren</button><button data-action="duplicate-note">'+icon('copy',17)+' Duplizieren</button><button class="danger" data-action="delete-note">'+icon('trash',17)+' Löschen</button></div>';
+
+  html+='<section id="templateMenu" class="v14-actionsheet hidden"><div class="v14-sheetgrabber"></div><header><h2>Seitenvorlage</h2><button data-action="close-template">'+icon('close',19)+'</button></header><div class="v14-templategrid">'+['plain','ruled','grid','dotted','cornell'].map(kind=>'<button data-action="set-paper" data-paper="'+kind+'"><span class="template '+kind+'"></span><small>'+paperName(kind)+'</small></button>').join('')+'</div></section>';
+
+  if(state.noteInfo){
+    html+='<div class="v14-dim"></div><section class="v14-alert"><h2>Dokument</h2><label>Titel<input id="infoTitle" value="'+esc(n.title)+'"></label><label>Fach<input id="infoSubject" value="'+esc(n.subject||'')+'"></label><div><button data-action="close-note-info">Fertig</button><button data-action="pin-note">'+(n.pinned?'Loslösen':'Anpinnen')+'</button></div></section>';
+  }
+
+  html+='</section>';root.innerHTML=html;
+  const title=$('#noteTitle');if(title)title.oninput=e=>patchNote({title:e.target.value});
+  const infoTitle=$('#infoTitle');if(infoTitle)infoTitle.oninput=e=>patchNote({title:e.target.value});
+  const infoSubject=$('#infoSubject');if(infoSubject)infoSubject.oninput=e=>patchNote({subject:e.target.value});
+  const ds=$('#docSearchInput');if(ds){ds.oninput=e=>{state.docSearchQuery=e.target.value;renderNotes();};requestAnimationFrame(()=>{const x=$('#docSearchInput');if(x){x.focus();x.setSelectionRange(x.value.length,x.value.length);}});}
+  bindNote(n,p);
+}
 function render(){
   if(state.screen==='home')renderHome();
   else if(state.screen==='library')renderLibrary();
@@ -1208,8 +1507,11 @@ function render(){
 window.addEventListener('click',e=>{
   const b=e.target.closest('[data-action]');if(!b)return;const a=b.dataset.action;
   if(a==='home'){state.screen='home';state.quickCreateOpen=false;history.replaceState(null,'','/');renderHome();}
-  else if(a==='open-create-sheet'){state.quickCreateOpen=true;renderHome();}
-  else if(a==='close-create-sheet'){state.quickCreateOpen=false;renderHome();}
+  else if(a==='open-create-sheet'){state.quickCreateOpen=true;v14Haptic();v14RenderCurrent();}
+  else if(a==='close-create-sheet'){state.quickCreateOpen=false;v14RenderCurrent();}
+  else if(a==='open-sort-sheet'){state.sortSheetOpen=true;renderLibrary();}
+  else if(a==='close-sort-sheet'){state.sortSheetOpen=false;renderLibrary();}
+  else if(a==='set-sort'){state.librarySort=b.dataset.sort||'recent';state.sortSheetOpen=false;renderLibrary();}
   else if(a==='toggle-pages'){state.pagesSheetOpen=!state.pagesSheetOpen;renderNotes();}
   else if(a==='review-rate'){
     const q=state.challenge.questions[state.q],list=data.reviews(),r=list.find(x=>x.prompt===q.prompt);
@@ -1224,9 +1526,9 @@ window.addEventListener('click',e=>{
     if(state.q>=state.challenge.questions.length-1)finishChallenge();else{state.q++;state.answered=false;renderQuestion();}
   }
   else if(a==='back'){if(state.screen==='trophies'){state.screen='home';history.replaceState(null,'','/');renderHome();}else{state.screen='home';renderHome();}}
-  else if(a==='library'){state.screen='library';state.newMenu=false;renderLibrary();}
+  else if(a==='library'){state.screen='library';state.quickCreateOpen=false;state.newMenu=false;v14Haptic();renderLibrary();}
   else if(a==='library-pinned'){state.screen='library';state.libraryTab='pinned';state.libraryFolder='all';renderLibrary();}
-  else if(a==='library-new'){state.newMenu=!state.newMenu;renderLibrary();}
+  else if(a==='library-new'){state.quickCreateOpen=true;v14Haptic();renderLibrary();}
   else if(a==='new-folder'){state.newMenu=false;state.folderModal=true;state.folderModalMode='create';state.folderEditId=null;renderLibrary();}
   else if(a==='close-folder-modal'){state.folderModal=false;state.folderEditId=null;renderLibrary();}
   else if(a==='create-folder')createFolder($('#folderNameInput')?.value||'');
@@ -1236,14 +1538,14 @@ window.addEventListener('click',e=>{
   else if(a==='delete-folder')deleteFolder(state.libraryFolder);
   else if(a==='open-folder'){state.libraryFolder=b.dataset.id||'all';state.libraryTab='notes';state.folderMenu=false;renderLibrary();}
   else if(a==='all-folders'){state.libraryFolder='all';state.folderMenu=false;renderLibrary();}
-  else if(a==='notes'){state.screen='notes';state.noteMode='view';state.selectedImage=null;renderNotes();}
-  else if(a==='reviews'){state.screen='reviews';renderReviews();}
+  else if(a==='notes'){state.screen='notes';state.noteMode='view';state.selectedImage=null;v14Haptic();renderNotes();}
+  else if(a==='reviews'){state.screen='reviews';v14Haptic();renderReviews();}
   else if(a==='trophies'){state.screen='trophies';history.replaceState(null,'','/trophies');renderTrophies();}
   else if(a==='new-note'){state.newMenu=false;newNote();}
   else if(a==='open-note'){state.noteId=b.dataset.id;state.pageId=data.notes().find(n=>n.id===state.noteId)?.pages?.[0]?.id;state.noteMode='view';state.noteNav='pages';state.screen='notes';renderNotes();}
   else if(a==='open-page'){state.pageId=b.dataset.id;state.pagesSheetOpen=false;state.selection=null;state.selectedImage=null;renderNotes();}
   else if(a==='add-page')addPage();
-  else if(a==='library-tab'){state.libraryTab=b.dataset.tab;renderLibrary();}
+  else if(a==='library-tab'){state.libraryTab=b.dataset.tab;v14Haptic();renderLibrary();}
   else if(a==='toggle-library-view'){state.libraryView=state.libraryView==='list'?'grid':'list';renderLibrary();}
   else if(a==='backup')backup();
   else if(a==='restore-note')restoreNote(b.dataset.id);
@@ -1253,7 +1555,7 @@ window.addEventListener('click',e=>{
   else if(a==='toggle-tool-menu'){state.toolMenu=!state.toolMenu;renderNotes();}
   else if(a==='toggle-doc-search'){state.docSearchOpen=!state.docSearchOpen;if(!state.docSearchOpen)state.docSearchQuery='';renderNotes();}
   else if(a==='doc-search-result'){state.pageId=b.dataset.page;state.jumpStart=Number(b.dataset.start||0);state.docSearchOpen=false;state.docSearchQuery='';state.noteMode='edit';state.noteTool='text';renderNotes();}
-  else if(a==='note-tool'){state.noteTool=b.dataset.tool;state.toolMenu=false;state.selectedImage=null;renderNotes();}
+  else if(a==='note-tool'){state.noteTool=b.dataset.tool;state.toolMenu=false;state.selectedImage=null;v14Haptic();renderNotes();}
   else if(a==='note-color'){state.color=b.dataset.color;updateRecentColor(state.color);if(state.selection&&state.selection.noteId===state.noteId)recolorSelection();else renderNotes();}
   else if(a==='pen-size'){state.penSize=+b.dataset.size;renderNotes();}
   else if(a==='marker-size'){state.markerSize=+b.dataset.size;renderNotes();}
@@ -1297,7 +1599,7 @@ window.addEventListener('click',e=>{
   else if(a==='create-photo'){state.screen='create';state.createMode='photo';renderCreate('photo');}
   else if(a==='create-text'){state.screen='create';state.createMode='text';renderCreate('text');}
   else if(a==='analyze')analyze();
-  else if(a==='answer')checkAnswer(b.dataset.value);
+  else if(a==='answer'){v14Haptic(10);checkAnswer(b.dataset.value);}
   else if(a==='submit-answer')checkAnswer($('#answerInput')?.value||'');
   else if(a==='next-question'){if(state.q>=state.challenge.questions.length-1)finishChallenge();else{state.q++;state.answered=false;renderQuestion();}}
   else if(a==='start-due')startDue();
