@@ -521,8 +521,7 @@ app.onclick=function(e){
   if(notesPolishPrevious)notesPolishPrevious(e);
 };
 
-// Initialize only after all V4/Notes declarations are ready.
-if(!handleHash())renderHome();
+// App boot is intentionally deferred to the end of this file so all feature modules are initialized first.
 
 
 /* SnapStudy Notes V2 — reliable Goodnotes-style editor core */
@@ -1568,3 +1567,11 @@ app.onclick=function(e){
   if(b.dataset.action==='trophies'){renderTrophies();return}
   if(v9PrevClick)v9PrevClick(e)
 };
+
+/* Final application boot — keep this at the very end. */
+try {
+  if(!handleHash()) renderHome();
+} catch (error) {
+  console.error('SnapStudy boot failed', error);
+  app.innerHTML = '<main class="v4-shell"><section class="v7-pagehead"><h1>SnapStudy</h1><p>Die App konnte nicht gestartet werden.</p></section><div class="v7-buttonstack"><button class="v4-btn primary full" onclick="location.reload()">Neu laden</button></div></main>';
+}
