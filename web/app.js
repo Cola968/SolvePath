@@ -719,7 +719,7 @@ function bindNote(n,p){
   };
   canvas.onpointerup=e=>{
     const q=pos(e);drawing=false;
-    if(state.noteTool==='shape'&&state.shapeStart){const a=state.shapeStart,shape={id:uid('shape'),kind:state.shapeKind||'line',x1:a.x,y1:a.y,x2:q.x,y2:q.y,color:state.color,width:state.penSize};patchPage({shapes:[...(p.shapes||[]),shape]});state.shapeStart=null;renderNotes();return;}
+    if(state.noteTool==='shape'&&state.shapeStart){const a=state.shapeStart,shape={id:uid('shape'),kind:state.shapeKind||'line',x1:a.x,y1:a.y,x2:q.x,y2:q.y,color:state.color,width:state.penSize};patchPage({shapes:[...(p.shapes||[]),shape]});state.shapeStart=null;state.noteTool='select';renderNotes();return;}
     if(state.noteTool==='select'&&moveBase){data.setStrokes(n.id,p.id,strokes);moveBase=null;moveOrigin=null;start=null;renderNotes();return;}
     if(state.noteTool==='select'&&lasso){
       const ids=strokes.filter(s=>{const pts=s.points||[];if(!pts.length)return false;const xs=pts.map(x=>x.x),ys=pts.map(x=>x.y),b={x:Math.min(...xs),y:Math.min(...ys),r:Math.max(...xs),b:Math.max(...ys)};return !(b.x>lasso.x+lasso.w||b.r<lasso.x||b.y>lasso.y+lasso.h||b.b<lasso.y);}).map(s=>s.id);
@@ -758,7 +758,7 @@ function deleteSelectedImage(){
   patchPage({images:(p.images||[]).filter(x=>x.id!==id)});state.selectedImage=null;renderNotes();
 }
 function addImageToNote(file){
-  if(!file)return;const r=new FileReader();r.onload=()=>{const p=getPage(),arr=[...(p?.images||[]),{id:uid('img'),src:String(r.result),x:20,y:30,w:35}];patchPage({images:arr});renderNotes();};r.readAsDataURL(file);
+  if(!file)return;const r=new FileReader();r.onload=()=>{const p=getPage(),id=uid('img'),arr=[...(p?.images||[]),{id,src:String(r.result),x:20,y:30,w:35}];patchPage({images:arr});state.noteTool='select';state.selectedImage=id;renderNotes();};r.readAsDataURL(file);
 }
 function undo(){
   const key=state.noteId+':'+state.pageId,st=data.strokes(state.noteId,state.pageId),h=state.history[key]||[];if(!h.length)return;
