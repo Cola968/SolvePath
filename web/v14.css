@@ -1643,3 +1643,21 @@ button:active{transform:scale(.975);opacity:.82}
     --ss-separator:rgba(174,174,178,.46);
   }
 }
+
+
+/* Standalone screen scrolling after legacy CSS isolation */
+.v14-app:has(> .v14-compactnav){
+  height:100dvh;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+}
+.v14-study{
+  height:100dvh;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+}
+.v14-result,.v14-processing,.fatal{
+  height:100dvh;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+}
