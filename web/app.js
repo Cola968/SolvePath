@@ -160,7 +160,7 @@ const state = {
   selection:null, history:{}, redo:{}, focus:false, noteNav:'pages', splitStudy:false, splitReveal:false, splitIndex:0, noteInfo:false, selectedImage:null, jumpStart:null, docSearchOpen:false, docSearchQuery:'', toolMenu:false,
   libraryTab:'notes', libraryView:'list', libraryQuery:'', librarySort:'recent', librarySubject:'all', libraryFolder:'all', newMenu:false, folderModal:false, folderModalMode:'create', folderEditId:null, folderMenu:false,
   recentColors:load('ss11:recentColors',['#20242B','#3568D4','#B75850','#26785B','#D39A23']),
-  createMode:'photo', createText:'', createFile:null, createPreview:'', challenge:null, q:0, answered:false, score:0, lastCorrect:false, lastExplanation:'', quizMode:'normal',
+  createMode:'photo', createText:'', createFile:null, createPreview:'', createError:'', challenge:null, q:0, answered:false, score:0, lastCorrect:false, lastExplanation:'', quizMode:'normal',
   toast:'', quickCreateOpen:false, pagesSheetOpen:false, sortSheetOpen:false, docContextId:null, moveSheetOpen:false, noteListQuery:'', editorReturn:'library'
 };
 
@@ -892,15 +892,21 @@ function challengeFromAnalysis(a){
   return {id:uid('round'),title:a?.title||'Lernrunde',topic:a?.topic||'Lernen',questions:q.filter(x=>x.prompt).slice(0,5)};
 }
 async function analyze(){
-  const text=$('#createText')?.value.trim()||'';state.createText=text;
-  if(state.createMode==='text'&&text.length<20){toast('Bitte etwas mehr Text einfügen');return;}
-  root.innerHTML=shell('<div class="loading"><span></span><strong>Fragen werden erstellt…</strong></div>','home',{back:true,noNav:true});
+  const text=$('#createText')?.value.trim()||'';state.createText=text;state.createError='';
+  if(state.createMode==='text'&&text.length<20){state.createError='Füge etwas mehr Text ein, damit sinnvolle Fragen entstehen können.';renderCreate(state.createMode);return;}
+  root.innerHTML='<main class="v14-processing"><span>'+icon(state.createMode==='photo'?'camera':'text',24)+'</span><h1>Fragen werden erstellt</h1><p>'+(state.createMode==='photo'?'Dokument wird gelesen und strukturiert.':'Text wird analysiert und in Lernfragen umgewandelt.')+'</p><div><i></i></div><small>Das dauert normalerweise nur einen Moment.</small></main>';
   try{
     let res;
     if(state.createFile){const fd=new FormData();fd.append('file',state.createFile);if(text)fd.append('text',text);res=await fetch('/api/analyze',{method:'POST',body:fd});}
     else res=await fetch('/api/analyze',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text})});
     if(!res.ok)throw new Error('HTTP '+res.status);const a=await res.json();state.challenge=challengeFromAnalysis(a);if(!state.challenge.questions.length)state.challenge=localChallenge(text);startChallenge(state.challenge,'normal');
-  }catch{ if(text.length>=20)startChallenge(localChallenge(text),'normal');else{toast('Analyse nicht erreichbar');renderCreate(state.createMode);} }
+  }catch{
+    if(text.length>=20)startChallenge(localChallenge(text),'normal');
+    else{
+      state.createError='Das Dokument konnte gerade nicht verarbeitet werden. Prüfe die Verbindung und versuche es erneut.';
+      renderCreate(state.createMode);
+    }
+  }
 }
 function startChallenge(ch,mode='normal'){
   state.challenge=ch;state.quizMode=mode;state.q=0;state.score=0;state.answered=false;renderQuestion();
@@ -1490,9 +1496,11 @@ function renderCreate(mode){
   let html='<header class="v14-compactnav"><button data-action="back">'+icon('back',21)+'</button><strong>Neue Lernrunde</strong><span></span></header>'+
     '<main class="v14-create"><div class="v14-segment"><button data-action="create-photo" class="'+(state.createMode==='photo'?'active':'')+'">Foto</button><button data-action="create-text" class="'+(state.createMode==='text'?'active':'')+'">Text</button></div>';
   if(state.createMode==='photo'){
-    html+='<label class="v14-upload">'+(state.createPreview?'<img src="'+state.createPreview+'" alt="">':'<span>'+icon('camera',25)+'</span><strong>Dokument auswählen</strong><small>Kamera oder Fotomediathek</small>')+'<input id="photoInput" type="file" accept="image/*" capture="environment"></label>';
+    html+='<label class="v14-upload">'+(state.createPreview?'<img src="'+state.createPreview+'" alt="">':'<span>'+icon('camera',25)+'</span><strong>Dokument auswählen</strong><small>Kamera oder Fotomediathek</small>')+'<input id="photoInput" type="file" accept="image/*"></label>';
   }
-  html+='<label class="v14-field"><span>'+(state.createMode==='text'?'Text':'Kontext (optional)')+'</span><textarea id="createText" placeholder="'+(state.createMode==='text'?'Text einfügen':'Optionaler Hinweis')+'">'+esc(state.createText)+'</textarea></label><button class="v14-primary full" data-action="analyze">Fragen erstellen</button></main>';
+  html+='<label class="v14-field"><span>'+(state.createMode==='text'?'Text':'Kontext (optional)')+'</span><textarea id="createText" placeholder="'+(state.createMode==='text'?'Text einfügen':'Optionaler Hinweis')+'">'+esc(state.createText)+'</textarea></label>'+
+    (state.createError?'<div class="v14-inlineerror">'+icon('alert',18)+'<span>'+esc(state.createError)+'</span></div>':'')+
+    '<button class="v14-primary full" data-action="analyze">Fragen erstellen</button></main>';
   root.innerHTML='<main class="v14-app">'+html+'</main>';
   const pi=$('#photoInput');if(pi)pi.onchange=e=>{const file=e.target.files?.[0];if(!file)return;state.createFile=file;if(state.createPreview)URL.revokeObjectURL(state.createPreview);state.createPreview=URL.createObjectURL(file);renderCreate('photo');};
 }
@@ -1729,8 +1737,8 @@ window.addEventListener('click',e=>{
   else if(a==='image-larger')resizeSelectedImage(1.1);
   else if(a==='image-delete')deleteSelectedImage();
   else if(a==='note-study')startNoteStudy();
-  else if(a==='create-photo'){state.quickCreateOpen=false;state.screen='create';state.createMode='photo';v14Transition(()=>renderCreate('photo'));}
-  else if(a==='create-text'){state.quickCreateOpen=false;state.screen='create';state.createMode='text';v14Transition(()=>renderCreate('text'));}
+  else if(a==='create-photo'){state.quickCreateOpen=false;state.createError='';state.screen='create';state.createMode='photo';v14Transition(()=>renderCreate('photo'));}
+  else if(a==='create-text'){state.quickCreateOpen=false;state.createError='';state.screen='create';state.createMode='text';v14Transition(()=>renderCreate('text'));}
   else if(a==='analyze')analyze();
   else if(a==='answer'){v14Haptic(10);checkAnswer(b.dataset.value);}
   else if(a==='submit-answer')checkAnswer($('#answerInput')?.value||'');
