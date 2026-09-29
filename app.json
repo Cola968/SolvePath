@@ -3,21 +3,21 @@
     "name": "SnapStudy",
     "slug": "snapstudy",
     "scheme": "snapstudy",
-    "version": "0.13.0",
+    "version": "0.14.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "app.snapstudy.mobile",
-      "buildNumber": "5",
+      "buildNumber": "6",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "package": "app.snapstudy.mobile",
-      "versionCode": 5,
+      "versionCode": 6,
       "edgeToEdgeEnabled": true,
       "permissions": [
         "CAMERA"
