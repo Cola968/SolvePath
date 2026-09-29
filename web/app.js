@@ -610,7 +610,7 @@ function startDue(){
   const ch={id:uid('review'),title:'Wiederholen',topic:'Wiederholen',questions:due.map(r=>({prompt:r.prompt,choices:r.choices,accepted:r.accepted,explanation:r.explanation}))};startChallenge(ch,'review');
 }
 function startNoteStudy(){
-  const n=getNote();const text=(n.text||'').trim();if(text.length<20){toast('Die Notiz braucht etwas mehr Text');return;}startChallenge(localChallenge(text,n.title),'normal');
+  const n=getNote(),ch=splitChallenge(n);if(!ch){toast('Das Dokument braucht etwas mehr Text');return;}startChallenge(ch,'normal');
 }
 
 function render(){
@@ -626,13 +626,21 @@ window.addEventListener('click',e=>{
   const b=e.target.closest('[data-action]');if(!b)return;const a=b.dataset.action;
   if(a==='home'){state.screen='home';history.replaceState(null,'','/');renderHome();}
   else if(a==='back'){if(state.screen==='trophies'){state.screen='home';history.replaceState(null,'','/');renderHome();}else{state.screen='home';renderHome();}}
-  else if(a==='library'){state.screen='library';renderLibrary();}
-  else if(a==='library-pinned'){state.screen='library';state.libraryTab='pinned';renderLibrary();}
+  else if(a==='library'){state.screen='library';state.newMenu=false;renderLibrary();}
+  else if(a==='library-pinned'){state.screen='library';state.libraryTab='pinned';state.libraryFolder='all';renderLibrary();}
+  else if(a==='library-new'){state.newMenu=!state.newMenu;renderLibrary();}
+  else if(a==='new-folder'){state.newMenu=false;state.folderModal=true;renderLibrary();}
+  else if(a==='close-folder-modal'){state.folderModal=false;renderLibrary();}
+  else if(a==='create-folder'){createFolder($('#folderNameInput')?.value||'');state.folderModal=false;}
+  else if(a==='open-folder'){state.libraryFolder=b.dataset.id||'all';state.libraryTab='notes';renderLibrary();}
+  else if(a==='all-folders'){state.libraryFolder='all';renderLibrary();}
   else if(a==='notes'){state.screen='notes';state.noteMode='view';state.selectedImage=null;renderNotes();}
   else if(a==='reviews'){state.screen='reviews';renderReviews();}
   else if(a==='trophies'){state.screen='trophies';history.replaceState(null,'','/trophies');renderTrophies();}
-  else if(a==='new-note')newNote();
-  else if(a==='open-note'){state.noteId=b.dataset.id;state.noteMode='view';state.screen='notes';renderNotes();}
+  else if(a==='new-note'){state.newMenu=false;newNote();}
+  else if(a==='open-note'){state.noteId=b.dataset.id;state.pageId=data.notes().find(n=>n.id===state.noteId)?.pages?.[0]?.id;state.noteMode='view';state.noteNav='pages';state.screen='notes';renderNotes();}
+  else if(a==='open-page'){state.pageId=b.dataset.id;state.selection=null;state.selectedImage=null;renderNotes();}
+  else if(a==='add-page')addPage();
   else if(a==='library-tab'){state.libraryTab=b.dataset.tab;renderLibrary();}
   else if(a==='toggle-library-view'){state.libraryView=state.libraryView==='list'?'grid':'list';renderLibrary();}
   else if(a==='backup')backup();
@@ -656,11 +664,15 @@ window.addEventListener('click',e=>{
   else if(a==='note-info'){state.noteInfo=true;$('#noteMenu')?.classList.add('hidden');renderNotes();}
   else if(a==='close-note-info'){state.noteInfo=false;renderNotes();}
   else if(a==='focus-note'){state.focus=!state.focus;renderNotes();}
-  else if(a==='prev-note'||a==='next-note'){const notes=data.notes(),i=notes.findIndex(n=>n.id===state.noteId),j=i+(a==='next-note'?1:-1);if(notes[j]){state.noteId=notes[j].id;renderNotes();}}
+  else if(a==='prev-page'||a==='next-page'){const n=getNote(),pages=n?.pages||[],i=pages.findIndex(p=>p.id===state.pageId),j=i+(a==='next-page'?1:-1);if(pages[j]){state.pageId=pages[j].id;state.selection=null;state.selectedImage=null;renderNotes();}}
   else if(a==='template-menu')$('#templateMenu')?.classList.remove('hidden');
   else if(a==='close-template')$('#templateMenu')?.classList.add('hidden');
-  else if(a==='set-paper'){patchNote({paper:b.dataset.paper});renderNotes();}
+  else if(a==='set-paper'){patchPage({paper:b.dataset.paper});renderNotes();}
   else if(a==='note-more')$('#noteMenu')?.classList.toggle('hidden');
+  else if(a==='page-more')$('#pageMenu')?.classList.toggle('hidden');
+  else if(a==='bookmark-page'){const p=getPage();patchPage({bookmark:!p.bookmark});renderNotes();}
+  else if(a==='duplicate-page')duplicatePage();
+  else if(a==='delete-page')deletePage();
   else if(a==='mark-note-review'){markNoteForReview();$('#noteMenu')?.classList.add('hidden');}
   else if(a==='toggle-split'){const ch=splitChallenge(getNote());if(!ch){toast('Die Notiz braucht etwas mehr Text');}else{state.splitStudy=!state.splitStudy;state.splitReveal=false;renderNotes();}}
   else if(a==='split-reveal'){state.splitReveal=true;renderNotes();}
