@@ -1086,3 +1086,106 @@ app.onclick=function(e){
   if(a==='gn3-image-delete'&&state.gnSelectedImage){gn3DeleteImage(state.gnSelectedImage);return}
   if(gn3PrevClick)gn3PrevClick(e)
 };
+
+
+/* SnapStudy V6 — document-first product experience */
+V4_ICONS.folder='<path d="M3 7h7l2 2h9v10H3z"/><path d="M3 7V5h6l2 2"/>';
+V4_ICONS.search='<circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/>';
+V4_ICONS.settings='<circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.4 1a7 7 0 0 0-1.7-1L14.5 3h-5L9 6.1a7 7 0 0 0-1.7 1l-2.4-1-2 3.4L5 11a7 7 0 0 0 0 2l-2 1.5 2 3.4 2.4-1a7 7 0 0 0 1.7 1l.5 3.1h5l.5-3.1a7 7 0 0 0 1.7-1l2.4 1 2-3.4-2-1.5a7 7 0 0 0 .1-1Z"/>';
+V4_ICONS.download='<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/>';
+V4_ICONS.upload='<path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M5 21h14"/>';
+V4_ICONS.note='<path d="M5 3h11l3 3v15H5z"/><path d="M16 3v4h3"/><path d="M8 11h8M8 15h8"/>';
+V4_ICONS.grid='<rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><rect x="14" y="14" width="6" height="6"/>';
+
+if(!state.libraryTabV6) state.libraryTabV6='notes';
+if(!state.libraryQueryV6) state.libraryQueryV6='';
+
+function v6RecentNotes(){
+  return notesStore().slice().sort(function(a,b){return (b.updatedAt||0)-(a.updatedAt||0)})
+}
+function v6NoteSubject(n){return n.subject||'Physik'}
+function v6Time(ts){
+  if(!ts)return'';
+  const d=new Date(ts),now=new Date(),same=d.toDateString()===now.toDateString();
+  return same?d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'})
+}
+function v6OpenNote(id){state.noteId=id;state.gnMode='view';renderNotes()}
+function v6NewNote(){
+  const list=notesStore(),n={id:'n'+Date.now().toString(36),title:'Unbenannte Notiz',text:'',paper:'ruled',subject:'Physik',favorite:false,updatedAt:Date.now()};
+  list.unshift(n);saveNotesStore(list);state.noteId=n.id;state.gnMode='edit';renderNotes()
+}
+function v6Backup(){
+  const payload={version:1,exportedAt:new Date().toISOString(),notes:notesStore(),rounds:v4Library(),reviews:v4Reviews()};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='snapstudy-backup-'+today()+'.json';a.click();setTimeout(function(){URL.revokeObjectURL(a.href)},1000);v4Toast('Backup erstellt')
+}
+function v6Restore(file){
+  if(!file)return;
+  const r=new FileReader();
+  r.onload=function(){
+    try{
+      const data=JSON.parse(String(r.result||'{}'));
+      if(!Array.isArray(data.notes))throw new Error('Ungültiges Backup');
+      saveNotesStore(data.notes);
+      if(Array.isArray(data.rounds))v4Save('snapstudy-library-v4',data.rounds);
+      if(Array.isArray(data.reviews))v4Save('snapstudy-reviews-v4',data.reviews);
+      state.noteId=(data.notes[0]&&data.notes[0].id)||state.noteId;v4Toast('Backup importiert');renderLibraryV4()
+    }catch(_){v4Toast('Backup konnte nicht gelesen werden')}
+  };
+  r.readAsText(file)
+}
+function v6DocRow(n){
+  const count=noteStrokes(n.id).length;
+  return '<article class="v6-docrow" data-id="'+esc(n.id)+'"><button class="v6-doc-main" data-action="v6-open-note" data-id="'+esc(n.id)+'"><span class="v6-fileicon">'+v4Icon('note',19)+'</span><span class="v6-doccopy"><strong>'+esc(n.title||'Unbenannt')+'</strong><small>'+esc(v6NoteSubject(n))+' · '+(count?count+' Striche · ':'')+(String(n.text||'').trim()?'Text + Handschrift':'Notiz')+'</small></span></button><span class="v6-doctime">'+esc(v6Time(n.updatedAt))+'</span></article>'
+}
+function v6RoundRow(r){
+  return '<article class="v6-docrow"><button class="v6-doc-main" data-action="play-library" data-id="'+esc(r.id)+'"><span class="v6-fileicon round">'+v4Icon('stack',19)+'</span><span class="v6-doccopy"><strong>'+esc(r.title||'Lernrunde')+'</strong><small>'+esc(r.topic||'Lernen')+' · '+((r.questions||[]).length)+' Fragen</small></span></button><button class="v6-row-action" data-action="share-library" data-id="'+esc(r.id)+'">'+v4Icon('share',15)+'</button></article>'
+}
+
+function renderHome(){
+  const due=v4Due(),rounds=v4Library(),notes=v6RecentNotes(),recentNotes=notes.slice(0,3),recentRounds=rounds.slice(0,2);
+  const p=profile();
+  app.innerHTML=shell(
+    '<section class="v6-home-head"><div><span class="v6-overline">Heute</span><h1>Lernübersicht</h1></div><button class="v6-head-action" data-action="library">'+v4Icon('search',17)+'</button></section>'+
+    '<section class="v6-today-panel">'+
+      '<div class="v6-today-line"><span class="v6-today-status '+(due.length?'due':'clear')+'">'+v4Icon(due.length?'repeat':'check',17)+'</span><div><strong>'+(due.length?due.length+' Wiederholungen':'Keine Wiederholungen offen')+'</strong><small>'+(due.length?'Aus Fehlern und markierten Notizen':'Du bist für heute auf aktuellem Stand')+'</small></div>'+(due.length?'<button data-action="start-due">Starten</button>':'')+'</div>'+
+      '<div class="v6-metrics"><span><b>'+notes.length+'</b><small>Notizseiten</small></span><span><b>'+rounds.length+'</b><small>Lernrunden</small></span><span><b>'+((p.sessions||0))+'</b><small>Runden gespielt</small></span></div>'+
+    '</section>'+
+    '<section class="v6-section"><div class="v6-section-title"><h2>Schnellstart</h2></div><div class="v6-actions"><button data-action="v6-new-note">'+v4Icon('note',18)+'<span><b>Neue Notiz</b><small>Schreiben oder zeichnen</small></span></button><button data-action="create">'+v4Icon('camera',18)+'<span><b>Scannen</b><small>Foto zu Lernrunde</small></span></button><button data-action="create-text">'+v4Icon('text',18)+'<span><b>Text importieren</b><small>Direkt Fragen erstellen</small></span></button></div></section>'+
+    '<section class="v6-section"><div class="v6-section-title"><h2>Zuletzt bearbeitet</h2><button data-action="library">Alle anzeigen</button></div><div class="v6-doclist">'+(recentNotes.length?recentNotes.map(v6DocRow).join(''):'<div class="v6-empty-line">Noch keine Notizen.</div>')+'</div></section>'+
+    (recentRounds.length?'<section class="v6-section"><div class="v6-section-title"><h2>Letzte Lernrunden</h2></div><div class="v6-doclist">'+recentRounds.map(v6RoundRow).join('')+'</div></section>':'')+
+    '<footer class="v6-home-foot"><span>'+remaining()+' automatische Erstellungen heute</span><a href="/privacy/snapstudy" target="_blank" rel="noopener">Datenschutz</a></footer>',
+    false,'today',false
+  )
+}
+
+function renderLibraryV4(){
+  const notes=v6RecentNotes(),rounds=v4Library(),q=String(state.libraryQueryV6||'').toLowerCase().trim(),tab=state.libraryTabV6||'notes';
+  const nFiltered=q?notes.filter(function(n){return (String(n.title||'')+' '+String(n.text||'')+' '+v6NoteSubject(n)).toLowerCase().includes(q)}):notes;
+  const rFiltered=q?rounds.filter(function(r){return (String(r.title||'')+' '+String(r.topic||'')).toLowerCase().includes(q)}):rounds;
+  const body=tab==='notes'
+    ?(nFiltered.length?'<div class="v6-doclist">'+nFiltered.map(v6DocRow).join('')+'</div>':'<div class="v6-library-empty">'+v4Icon('note',24)+'<strong>Keine Notizen gefunden</strong><span>Lege eine neue Notiz an oder ändere die Suche.</span></div>')
+    :(rFiltered.length?'<div class="v6-doclist">'+rFiltered.map(v6RoundRow).join('')+'</div>':'<div class="v6-library-empty">'+v4Icon('stack',24)+'<strong>Keine Lernrunden gefunden</strong><span>Erstelle eine Runde aus einem Foto, Text oder einer Notiz.</span></div>');
+  app.innerHTML=shell(
+    '<section class="v6-library-head"><div><span class="v6-overline">Bibliothek</span><h1>Sammlung</h1></div><button class="v6-new" data-action="'+(tab==='notes'?'v6-new-note':'create')+'">'+v4Icon('plus',16)+(tab==='notes'?'Notiz':'Runde')+'</button></section>'+
+    '<label class="v6-search">'+v4Icon('search',16)+'<input id="v6LibrarySearch" value="'+esc(state.libraryQueryV6||'')+'" placeholder="Notizen und Lernrunden durchsuchen"></label>'+
+    '<div class="v6-lib-tabs"><button data-action="v6-library-tab" data-tab="notes" class="'+(tab==='notes'?'active':'')+'">Notizen <span>'+notes.length+'</span></button><button data-action="v6-library-tab" data-tab="rounds" class="'+(tab==='rounds'?'active':'')+'">Lernrunden <span>'+rounds.length+'</span></button></div>'+
+    '<div class="v6-library-toolbar"><span>'+ (tab==='notes'?nFiltered.length:rFiltered.length)+' Einträge</span><div><button data-action="v6-backup">'+v4Icon('download',14)+'Sichern</button><label>'+v4Icon('upload',14)+'Import<input id="v6RestoreInput" type="file" accept="application/json"></label></div></div>'+
+    body,
+    false,'library',false
+  );
+  const search=document.getElementById('v6LibrarySearch');if(search)search.oninput=function(){state.libraryQueryV6=search.value;renderLibraryV4()};
+  const restore=document.getElementById('v6RestoreInput');if(restore)restore.onchange=function(){const file=restore.files&&restore.files[0];if(file)v6Restore(file);restore.value=''}
+}
+
+const v6PreviousClick=app.onclick;
+app.onclick=function(e){
+  const b=e.target.closest('[data-action]');
+  if(!b){if(v6PreviousClick)v6PreviousClick(e);return}
+  const a=b.dataset.action;
+  if(a==='v6-new-note'){v6NewNote();return}
+  if(a==='v6-open-note'){v6OpenNote(b.dataset.id);return}
+  if(a==='v6-library-tab'){state.libraryTabV6=b.dataset.tab||'notes';state.libraryQueryV6='';renderLibraryV4();return}
+  if(a==='v6-backup'){v6Backup();return}
+  if(v6PreviousClick)v6PreviousClick(e)
+};
