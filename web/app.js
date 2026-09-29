@@ -165,6 +165,13 @@ function toast(msg){
   const el=document.createElement('div'); el.className='toast'; el.textContent=msg; document.body.appendChild(el);
   setTimeout(()=>el.remove(),2200);
 }
+let saveStatusTimer=null;
+function saveStatusPulse(){
+  const s=$('#saveStatus');if(!s)return;
+  s.textContent='Speichert…';
+  clearTimeout(saveStatusTimer);
+  saveStatusTimer=setTimeout(()=>{const el=$('#saveStatus');if(el)el.textContent='Gespeichert';},350);
+}
 function topbar(back=false){
   return '<header class="topbar">'+(back?'<button class="iconbtn" data-action="back">'+icon('back')+'</button>':'<button class="wordmark" data-action="home">SnapStudy</button>')+
     '<div class="spacer"></div><button class="trophy-pill" data-action="trophies">'+icon('trophy',15)+'<span>'+trophyScore()+'</span></button>'+
@@ -188,7 +195,7 @@ function getPage(n=getNote()){
 }
 function patchPage(patch){
   const notes=data.notes().map(n=>n.id===state.noteId?Object.assign({},n,{pages:(n.pages||[]).map(p=>p.id===state.pageId?Object.assign({},p,patch):p),updatedAt:Date.now()}):n);
-  data.setNotes(notes);const s=$('#saveStatus');if(s)s.textContent='Gespeichert';
+  data.setNotes(notes);saveStatusPulse();
 }
 function addPage(){
   const n=getNote();if(!n)return;
@@ -365,7 +372,7 @@ function newNote(){
 }
 function patchNote(patch){
   const notes=data.notes().map(n=>n.id===state.noteId?Object.assign({},n,patch,{updatedAt:Date.now()}):n);data.setNotes(notes);
-  const s=$('#saveStatus');if(s)s.textContent='Gespeichert';
+  saveStatusPulse();
 }
 function softDelete(id){
   const notes=data.notes(),i=notes.findIndex(n=>n.id===id);if(i<0){return;}
@@ -973,7 +980,18 @@ window.addEventListener('click',e=>{
   else if(a==='start-due')startDue();
   else if(a==='play-round'){const r=data.rounds().find(x=>x.id===b.dataset.id);if(r)startChallenge(r,'normal');}
 });
-window.addEventListener('keydown',e=>{if(e.key==='Enter'&&$('#answerInput')&&state.challenge&&!state.answered)checkAnswer($('#answerInput').value);});
+window.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&$('#answerInput')&&state.challenge&&!state.answered){checkAnswer($('#answerInput').value);return;}
+  if(state.screen==='notes'&&(e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){
+    e.preventDefault();if(e.shiftKey)redo();else undo();return;
+  }
+  if(state.screen==='notes'&&(e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='y'){e.preventDefault();redo();return;}
+  if(state.screen==='notes'&&(e.key==='Delete'||e.key==='Backspace')&&state.selection?.ids?.length&&!['INPUT','TEXTAREA'].includes(document.activeElement?.tagName)){e.preventDefault();deleteSelection();return;}
+  if(e.key==='Escape'){
+    state.noteInfo=false;state.folderModal=false;state.folderMenu=false;state.newMenu=false;state.toolMenu=false;state.docSearchOpen=false;
+    if(state.screen==='notes')renderNotes();else if(state.screen==='library')renderLibrary();
+  }
+});
 window.addEventListener('popstate',()=>{state.screen=location.pathname==='/trophies'?'trophies':'home';render();});
 
 try{render();}catch(err){console.error(err);root.innerHTML='<main class="fatal"><h1>SnapStudy</h1><p>Die App konnte nicht gestartet werden.</p><button onclick="location.reload()">Neu laden</button></main>';}
