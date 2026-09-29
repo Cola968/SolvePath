@@ -1568,9 +1568,24 @@ app.onclick=function(e){
   if(v9PrevClick)v9PrevClick(e)
 };
 
+/* SnapStudy trophy route capture — bypass legacy click-wrapper chains. */
+window.addEventListener('click', function(event){
+  const target = event.target && event.target.closest ? event.target.closest('[data-action="trophies"]') : null;
+  if(!target) return;
+  event.preventDefault();
+  event.stopPropagation();
+  try { renderTrophies(); } catch (error) {
+    console.error('Trophy screen failed', error);
+    location.assign('/trophies?build=20260929-5');
+  }
+}, true);
+
 /* Final application boot — keep this at the very end. */
 try {
-  if(!handleHash()) renderHome();
+  if(location.pathname === '/trophies') {
+    renderTrophies();
+  } else if(!handleHash()) {
+    renderHome();
 } catch (error) {
   console.error('SnapStudy boot failed', error);
   app.innerHTML = '<main class="v4-shell"><section class="v7-pagehead"><h1>SnapStudy</h1><p>Die App konnte nicht gestartet werden.</p></section><div class="v7-buttonstack"><button class="v4-btn primary full" onclick="location.reload()">Neu laden</button></div></main>';
