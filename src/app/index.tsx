@@ -3,8 +3,8 @@ import { BackHandler, Linking, Pressable, StyleSheet, Text, View } from 'react-n
 import { StatusBar } from 'expo-status-bar';
 import { WebView, type WebViewNavigation } from 'react-native-webview';
 
-const APP_URL = 'https://snapstudy-test.onrender.com/';
-const APP_ORIGIN = 'https://snapstudy-test.onrender.com';
+const APP_URL = 'https://snapstudy-live-v3.onrender.com/';
+const APP_ORIGIN = 'https://snapstudy-live-v3.onrender.com';
 
 export default function SnapStudyScreen() {
   const webViewRef = useRef<WebView>(null);
@@ -106,11 +106,11 @@ export default function SnapStudyScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F5EF',
+    backgroundColor: '#F5F6F8',
   },
   webview: {
     flex: 1,
-    backgroundColor: '#F7F5EF',
+    backgroundColor: '#F5F6F8',
   },
   loading: {
     position: 'absolute',
@@ -121,13 +121,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
-    backgroundColor: '#F7F5EF',
+    backgroundColor: '#F5F6F8',
   },
   loadingBar: {
     width: 54,
     height: 5,
     borderRadius: 999,
-    backgroundColor: '#6558D8',
+    backgroundColor: '#3568D4',
   },
   loadingText: {
     color: '#6D7480',
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 30,
-    backgroundColor: '#F7F5EF',
+    backgroundColor: '#F5F6F8',
   },
   mark: {
     width: 58,
@@ -156,19 +156,19 @@ const styles = StyleSheet.create({
     height: 4,
     width: 28,
     borderRadius: 999,
-    backgroundColor: '#6558D8',
+    backgroundColor: '#3568D4',
   },
   markLineMedium: {
     height: 4,
     width: 22,
     borderRadius: 999,
-    backgroundColor: '#6558D8',
+    backgroundColor: '#3568D4',
   },
   markLineShort: {
     height: 4,
     width: 15,
     borderRadius: 999,
-    backgroundColor: '#6558D8',
+    backgroundColor: '#3568D4',
   },
   title: {
     marginTop: 22,
@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 22,
     borderRadius: 12,
-    backgroundColor: '#6558D8',
+    backgroundColor: '#3568D4',
   },
   retryText: {
     color: '#FFFFFF',
