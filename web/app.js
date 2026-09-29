@@ -47,20 +47,21 @@ const ICONS = {
   list:'<path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/>'
 };
 function icon(name,size=18){ return '<svg class="icon" width="'+size+'" height="'+size+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(ICONS[name]||'')+'</svg>'; }
+ICONS.pin='<path d="M9 4h6"/><path d="m10 4-1 6-3 3h12l-3-3-1-6"/><path d="M12 13v8"/>';
 
 const KEYS = {
   notes:'ss10:notes', rounds:'ss10:rounds', reviews:'ss10:reviews', profile:'ss10:profile',
   trophies:'ss10:trophies', activity:'ss10:activity', deleted:'ss10:deleted'
 };
 function defaultNote(){
-  return {id:uid('note'),title:'Gravitation',subject:'Physik',paper:'ruled',favorite:false,createdAt:Date.now(),updatedAt:Date.now(),
+  return {id:uid('note'),title:'Gravitation',subject:'Physik',paper:'ruled',favorite:false,pinned:false,createdAt:Date.now(),updatedAt:Date.now(),
     text:'Gravitationskraft\nF = G · m₁m₂ / r²\n\nWenn sich r verdoppelt, wird die Kraft viermal kleiner.',images:[],shapes:[]};
 }
 function migrate(){
   let notes=load(KEYS.notes,null);
   if(!notes){
     const legacy=load('snapstudy-notes-v4',load('snapstudy-notes',null));
-    notes=Array.isArray(legacy)&&legacy.length?legacy.map(n=>Object.assign({subject:'Physik',paper:'ruled',favorite:false,createdAt:n.updatedAt||Date.now(),updatedAt:Date.now(),images:[],shapes:[]},n)):[defaultNote()];
+    notes=Array.isArray(legacy)&&legacy.length?legacy.map(n=>Object.assign({subject:'Physik',paper:'ruled',favorite:false,pinned:false,createdAt:n.updatedAt||Date.now(),updatedAt:Date.now(),images:[],shapes:[]},n)):[defaultNote()];
     save(KEYS.notes,notes);
   }
   if(!localStorage.getItem(KEYS.rounds)) save(KEYS.rounds,load('snapstudy-library-v4',[]));
@@ -133,7 +134,9 @@ const state = {
   screen:location.pathname==='/trophies'?'trophies':'home',
   noteId:data.notes()[0]?.id,
   noteMode:'view', noteTool:'pen', penSize:5, markerSize:24, eraserSize:55, color:'#20242B',
-  selection:null, history:{}, redo:{}, focus:false, libraryTab:'notes', libraryView:'list', libraryQuery:'', librarySort:'recent',
+  selection:null, history:{}, redo:{}, focus:false, noteNav:'pages', splitStudy:false, splitReveal:false, splitIndex:0, noteInfo:false, selectedImage:null, jumpStart:null,
+  libraryTab:'notes', libraryView:'list', libraryQuery:'', librarySort:'recent', librarySubject:'all',
+  recentColors:load('ss11:recentColors',['#20242B','#3568D4','#B75850','#26785B','#D39A23']),
   createMode:'photo', createText:'', createFile:null, createPreview:'', challenge:null, q:0, answered:false, score:0, lastCorrect:false, lastExplanation:'', quizMode:'normal',
   toast:''
 };
@@ -156,10 +159,37 @@ function shell(content,active='home',opts={}){
   return '<main class="app '+(opts.wide?'wide':'')+'">'+(opts.noTop?'':topbar(!!opts.back))+'<div class="content">'+content+'</div>'+(opts.noNav?'':nav(active))+'</main>';
 }
 
-function noteRow(n){
-  return '<article class="row"><button data-action="open-note" data-id="'+esc(n.id)+'"><span class="fileicon">'+icon('note',17)+'</span><span class="rowcopy"><strong>'+esc(n.title||'Unbenannt')+'</strong><small>'+esc(n.subject||'Ohne Fach')+' · '+(n.updatedAt?fmtDate(n.updatedAt):'')+'</small></span></button>'+(n.favorite?'<i class="fav">★</i>':'')+'</article>';
+function noteOutline(n){
+  const text=String(n?.text||''),lines=text.split('\n'),out=[];let pos=0;
+  lines.forEach((raw,i)=>{
+    const line=raw.trim(),start=pos;pos+=raw.length+1;
+    if(!line)return;
+    const heading=i===0 || line.endsWith(':') || (/^[A-ZÄÖÜ0-9][^.!?]{2,55}$/u.test(line) && !/[=+*/]/.test(line));
+    if(heading&&out.length<10)out.push({label:line.replace(/:$/,''),start});
+  });
+  return out;
 }
-function roundRow(r){
+function subjectList(){
+  return [...new Set(data.notes().map(n=>n.subject||'Ohne Fach'))].sort((a,b)=>a.localeCompare(b,'de'));
+}
+function splitChallenge(n){
+  const t=String(n?.text||'').trim();
+  return t.length>=20?localChallenge(t,n.title):null;
+}
+function markNoteForReview(){
+  const n=getNote(),ch=splitChallenge(n);
+  if(!ch||!ch.questions.length){toast('Die Notiz braucht etwas mehr Text');return;}
+  addReview(ch.questions[0],ch,'note');toast('Für Wiederholung markiert');
+}
+function updateRecentColor(color){
+  const next=[color,...state.recentColors.filter(c=>c!==color)].slice(0,5);
+  state.recentColors=next;save('ss11:recentColors',next);
+}
+function noteRow(n){
+  const marks=(n.pinned?'<i class="pinmark">'+icon('pin',12)+'</i>':'')+(n.favorite?'<i class="fav">★</i>':'');
+  return '<article class="row"><button data-action="open-note" data-id="'+esc(n.id)+'"><span class="fileicon">'+icon('note',17)+'</span><span class="rowcopy"><strong>'+esc(n.title||'Unbenannt')+'</strong><small>'+esc(n.subject||'Ohne Fach')+' · '+(n.updatedAt?fmtDate(n.updatedAt):'')+'</small></span></button><span class="rowmarks">'+marks+'</span></article>';
+}
+function roundRowfunction roundRow(r){
   return '<article class="row"><button data-action="play-round" data-id="'+esc(r.id)+'"><span class="fileicon blue">'+icon('stack',17)+'</span><span class="rowcopy"><strong>'+esc(r.title||'Lernrunde')+'</strong><small>'+esc(r.topic||'')+' · '+(r.questions?.length||0)+' Fragen</small></span></button></article>';
 }
 
@@ -212,7 +242,7 @@ function restoreBackup(file){
 }
 
 function newNote(){
-  const n={id:uid('note'),title:'Unbenannte Notiz',subject:'Physik',paper:'ruled',favorite:false,createdAt:Date.now(),updatedAt:Date.now(),text:'',images:[],shapes:[]};
+  const n={id:uid('note'),title:'Unbenannte Notiz',subject:'Physik',paper:'ruled',favorite:false,pinned:false,createdAt:Date.now(),updatedAt:Date.now(),text:'',images:[],shapes:[]};
   data.setNotes([n,...data.notes()]); state.noteId=n.id;state.noteMode='edit';state.screen='notes';renderNotes();
 }
 function getNote(){ return data.notes().find(n=>n.id===state.noteId)||data.notes()[0]; }
