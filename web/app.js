@@ -153,7 +153,7 @@ const state = {
   noteId:data.notes()[0]?.id,
   pageId:data.notes()[0]?.pages?.[0]?.id,
   noteMode:'view', noteTool:'pen', penSize:5, markerSize:24, eraserSize:55, eraserMode:'precision', color:'#20242B',
-  selection:null, history:{}, redo:{}, focus:false, noteNav:'pages', splitStudy:false, splitReveal:false, splitIndex:0, noteInfo:false, selectedImage:null, jumpStart:null,
+  selection:null, history:{}, redo:{}, focus:false, noteNav:'pages', splitStudy:false, splitReveal:false, splitIndex:0, noteInfo:false, selectedImage:null, jumpStart:null, docSearchOpen:false, docSearchQuery:'',
   libraryTab:'notes', libraryView:'list', libraryQuery:'', librarySort:'recent', librarySubject:'all', libraryFolder:'all', newMenu:false, folderModal:false,
   recentColors:load('ss11:recentColors',['#20242B','#3568D4','#B75850','#26785B','#D39A23']),
   createMode:'photo', createText:'', createFile:null, createPreview:'', challenge:null, q:0, answered:false, score:0, lastCorrect:false, lastExplanation:'', quizMode:'normal',
@@ -370,6 +370,16 @@ function renderNotes(){
   const splitQuestion=split?.questions?.length ? split.questions[state.splitIndex%split.questions.length] : null;
   const palette=state.recentColors.slice(0,5);
   const folders=data.folders();
+  const searchTerm=state.docSearchQuery.trim().toLowerCase();
+  const searchResults=searchTerm?pages.flatMap((pg,i)=>{
+    const hay=String(pg.text||'').toLowerCase(),hits=[];
+    let from=0,index=hay.indexOf(searchTerm,from),guard=0;
+    while(index>=0&&guard<12){
+      hits.push({pageId:pg.id,page:i+1,start:index,snippet:String(pg.text||'').slice(Math.max(0,index-28),Math.min(String(pg.text||'').length,index+searchTerm.length+50)).replace(/\n+/g,' ')});
+      from=index+Math.max(1,searchTerm.length);index=hay.indexOf(searchTerm,from);guard++;
+    }
+    return hits;
+  }).slice(0,20):[];
 
   const pageNav=pages.map((pg,i)=>
     '<button data-action="open-page" data-id="'+esc(pg.id)+'" class="'+(pg.id===p.id?'active':'')+'">'+
@@ -499,16 +509,26 @@ function renderNotes(){
     ?'<div class="imagebar"><span>Bild</span><button data-action="image-smaller">−</button><button data-action="image-larger">+</button><button data-action="image-delete" class="danger">'+icon('trash',14)+'</button></div>'
     :'';
 
+  const documentSearch=state.docSearchOpen
+    ?'<section class="docsearch"><label>'+icon('search',15)+'<input id="docSearchInput" value="'+esc(state.docSearchQuery)+'" placeholder="Im Dokument suchen"></label>'+
+      (searchTerm
+        ?'<div class="docsearch-results">'+(searchResults.length?searchResults.map(r=>'<button data-action="doc-search-result" data-page="'+esc(r.pageId)+'" data-start="'+r.start+'"><strong>Seite '+r.page+'</strong><span>'+esc(r.snippet)+'</span></button>').join(''):'<small>Keine Treffer</small>')+'</div>'
+        :'')+
+     '</section>'
+    :'';
+
   const html=
     '<section class="noteshell '+(state.focus?'focus ':'')+(state.noteMode==='view'?'view':'edit')+'">'+
       '<header class="notehead">'+
         '<button class="iconbtn" data-action="home">'+icon('back',17)+'</button>'+
         '<div class="notetitle"><span>'+esc(n.subject||'Notizen')+' · <i id="saveStatus">Gespeichert</i></span><input id="noteTitle" '+(state.noteMode==='view'?'readonly':'')+' value="'+esc(n.title)+'"></div>'+
         '<div class="modes"><button data-action="note-mode" data-mode="edit" class="'+(state.noteMode==='edit'?'active':'')+'">Bearbeiten</button><button data-action="note-mode" data-mode="view" class="'+(state.noteMode==='view'?'active':'')+'">Ansicht</button></div>'+
+        '<button class="iconbtn '+(state.docSearchOpen?'blueicon':'')+'" data-action="toggle-doc-search" aria-label="Suchen">'+icon('search',16)+'</button>'+
         '<button class="iconbtn '+(n.pinned?'blueicon':'')+'" data-action="pin-note" aria-label="Anpinnen">'+icon('pin',16)+'</button>'+
         '<button class="iconbtn '+(n.favorite?'gold':'')+'" data-action="favorite-note" aria-label="Favorit">'+icon('star',16)+'</button>'+
         '<button class="iconbtn" data-action="focus-note" aria-label="Fokus">'+icon('fit',16)+'</button>'+
       '</header>'+
+      documentSearch+
       (!state.focus
         ?'<div class="notenavtabs"><button data-action="note-nav" data-nav="pages" class="'+(state.noteNav==='pages'?'active':'')+'">Seiten</button><button data-action="note-nav" data-nav="outline" class="'+(state.noteNav==='outline'?'active':'')+'">Inhalt</button></div>'+navBlock
         :'')+
@@ -546,6 +566,11 @@ function renderNotes(){
     const t=$('#noteTitle');
     if(t)t.value=e.target.value;
   };
+  const docSearchInput=$('#docSearchInput');
+  if(docSearchInput){
+    docSearchInput.oninput=e=>{state.docSearchQuery=e.target.value;renderNotes();};
+    requestAnimationFrame(()=>{const x=$('#docSearchInput');if(x){x.focus();x.setSelectionRange(x.value.length,x.value.length);}});
+  }
   const custom=$('#customColor');
   if(custom)custom.oninput=e=>{
     state.color=e.target.value;
@@ -841,6 +866,8 @@ window.addEventListener('click',e=>{
   else if(a==='purge-note')purgeNote(b.dataset.id);
   else if(a==='note-mode'){state.noteMode=b.dataset.mode;state.selection=null;state.selectedImage=null;renderNotes();}
   else if(a==='note-nav'){state.noteNav=b.dataset.nav||'pages';renderNotes();}
+  else if(a==='toggle-doc-search'){state.docSearchOpen=!state.docSearchOpen;if(!state.docSearchOpen)state.docSearchQuery='';renderNotes();}
+  else if(a==='doc-search-result'){state.pageId=b.dataset.page;state.jumpStart=Number(b.dataset.start||0);state.docSearchOpen=false;state.docSearchQuery='';state.noteMode='edit';state.noteTool='text';renderNotes();}
   else if(a==='note-tool'){state.noteTool=b.dataset.tool;state.selectedImage=null;renderNotes();}
   else if(a==='note-color'){state.color=b.dataset.color;updateRecentColor(state.color);if(state.selection&&state.selection.noteId===state.noteId)recolorSelection();else renderNotes();}
   else if(a==='pen-size'){state.penSize=+b.dataset.size;renderNotes();}
